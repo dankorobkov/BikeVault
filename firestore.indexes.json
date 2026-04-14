@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "components",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "bikeId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
