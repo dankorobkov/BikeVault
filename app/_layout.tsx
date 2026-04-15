@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { auth } from '../config/firebase';
@@ -11,6 +12,7 @@ import { fetchBikes } from '../services/bikesService';
 import { fetchAllComponents } from '../services/componentsService';
 import { loadStravaTokens } from '../services/stravaService';
 import { Colors } from '../constants/colors';
+import { DEMO_BIKES, DEMO_COMPONENTS } from '../constants/demoData';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,6 +38,10 @@ export default function RootLayout() {
   const { setUserId, setUserProfile, setBikes, setComponents, setStravaTokens, setLoading, isLoading } =
     useAppStore();
 
+  const [fontsLoaded] = useFonts({
+    ...Ionicons.font,
+  });
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -47,14 +53,20 @@ export default function RootLayout() {
           photoUrl: user.photoURL,
         });
         try {
-          const [bikes, components, stravaTokens] = await Promise.all([
-            fetchBikes(user.uid),
-            fetchAllComponents(user.uid),
-            loadStravaTokens(user.uid),
-          ]);
-          setBikes(bikes);
-          setComponents(components);
-          if (stravaTokens) setStravaTokens(stravaTokens);
+          if (user.isAnonymous) {
+            // Load demo data for anonymous/guest users
+            setBikes(DEMO_BIKES);
+            setComponents(DEMO_COMPONENTS);
+          } else {
+            const [bikes, components, stravaTokens] = await Promise.all([
+              fetchBikes(user.uid),
+              fetchAllComponents(user.uid),
+              loadStravaTokens(user.uid),
+            ]);
+            setBikes(bikes);
+            setComponents(components);
+            if (stravaTokens) setStravaTokens(stravaTokens);
+          }
         } catch (e) {
           console.error('Init load error:', e);
         } finally {
@@ -70,7 +82,7 @@ export default function RootLayout() {
     return unsub;
   }, []);
 
-  if (isLoading) {
+  if (isLoading || !fontsLoaded) {
     return (
       <View style={styles.splash}>
         <StatusBar style="light" />
