@@ -7,51 +7,120 @@ export type BikeType =
   | 'ebike'
   | 'other';
 
+export type BrakeSystem = 'disc-hydraulic' | 'disc-cable' | 'rim';
+
 export interface Bike {
   id: string;
   name: string;
   brand: string;
   type: BikeType;
+  brakeSystem: BrakeSystem;
   color: string;
   stravaId?: string;
   totalDistance: number; // km
-  createdAt: number; // timestamp
-  updatedAt: number; // timestamp
+  createdAt: number;
+  updatedAt: number;
 }
 
-export type ComponentStatus = 'active' | 'retired';
+export type ComponentStatus = 'active' | 'in-stock' | 'retired';
 
-export type ComponentCategory =
+// ── Drivetrain ────────────────────────────────────────────────────────────────
+export type DrivetrainCategory =
   | 'chain'
   | 'cassette'
   | 'chainring'
-  | 'rear_derailleur'
-  | 'front_derailleur'
-  | 'brake_pads_rim'
-  | 'brake_pads_disc'
-  | 'tire_front'
-  | 'tire_rear'
-  | 'brake_cable'
-  | 'shift_cable'
-  | 'bottom_bracket'
-  | 'bar_tape'
-  | 'pedals'
+  | 'pulley-wheel'
+  | 'left-shifter'
+  | 'right-shifter'
+  | 'front-derailleur'
+  | 'rear-derailleur'
+  | 'bottom-bracket'
+  | 'crankset'
+  | 'di2-battery'
+  | 'front-shift-cable'
+  | 'rear-shift-cable';
+
+// ── Brakes ────────────────────────────────────────────────────────────────────
+export type BrakeCategory =
+  | 'front-disc-rotor'
+  | 'front-brake-pads'
+  | 'rear-disc-rotor'
+  | 'rear-brake-pads'
+  | 'front-brake-cable'
+  | 'rear-brake-cable';
+
+// ── Wheels ────────────────────────────────────────────────────────────────────
+export type WheelCategory =
+  | 'front-hub'
+  | 'front-rim'
+  | 'front-spokes'
+  | 'front-tyre'
+  | 'front-tube'
+  | 'front-tubeless-sealant'
+  | 'rear-hub'
+  | 'rear-rim'
+  | 'rear-spokes'
+  | 'rear-tyre'
+  | 'rear-tube'
+  | 'rear-tubeless-sealant';
+
+// ── Frame & Cockpit ───────────────────────────────────────────────────────────
+export type FrameCategory =
   | 'fork'
-  | 'handlebar'
+  | 'frame'
   | 'saddle'
+  | 'saddle-post'
+  | 'stem'
+  | 'headset-bearings'
+  | 'handlebar'
+  | 'pedals'
+  | 'bar-tape';
+
+// ── Sensors ───────────────────────────────────────────────────────────────────
+export type SensorCategory = 'speed-sensor' | 'cadence-sensor' | 'power-meter';
+
+export type ComponentCategory =
+  | DrivetrainCategory
+  | BrakeCategory
+  | WheelCategory
+  | FrameCategory
+  | SensorCategory
   | 'other';
+
+export type ComponentGroup =
+  | 'drivetrain'
+  | 'brakes'
+  | 'front-wheel'
+  | 'rear-wheel'
+  | 'frame'
+  | 'sensors'
+  | 'other';
+
+// Electric-capable categories
+export const ELECTRIC_CATEGORIES: ComponentCategory[] = [
+  'left-shifter',
+  'right-shifter',
+  'front-derailleur',
+  'rear-derailleur',
+  'di2-battery',
+];
 
 export interface BikeComponent {
   id: string;
-  bikeId: string;
+  bikeId: string | null; // null = in stock, not installed on a bike
   name: string;
   category: ComponentCategory;
   brand?: string;
-  installDate: number; // timestamp
-  installDistance: number; // bike's total km when this component was installed
+  installDate: number; // timestamp ms
+  installDistance: number; // bike's total km when installed (0 if in stock)
   maxLifespan: number; // km
-  status: ComponentStatus;
+  attentionFrequency?: number; // km between maintenance events (e.g. chain lube)
+  status: ComponentStatus; // 'active' | 'in-stock' | 'retired'
   notes?: string;
+  // Electric fields (only when isElectric = true)
+  isElectric?: boolean;
+  lastCharged?: number; // timestamp ms
+  chargeIntervalDays?: number; // typical days between charges
   createdAt: number;
   updatedAt: number;
 }
@@ -83,10 +152,18 @@ export interface StravaActivity {
 export interface StravaTokens {
   accessToken: string;
   refreshToken: string;
-  expiresAt: number; // unix timestamp
+  expiresAt: number;
   athleteId: number;
   athleteName: string;
   athleteAvatar: string;
+}
+
+// ── Notification prefs ────────────────────────────────────────────────────────
+export interface NotificationPrefs {
+  enabled: boolean;
+  chainLube: boolean; // warn when < 100km to attention
+  componentWear: boolean; // warn when < 100km remaining lifespan
+  batteryLow: boolean; // warn when estimated < 20% charge
 }
 
 export type WearLevel = 'good' | 'warning' | 'critical' | 'overdue';

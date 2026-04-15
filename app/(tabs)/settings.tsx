@@ -8,12 +8,16 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  Platform,
+  Switch,
 } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { signOut as firebaseSignOut } from 'firebase/auth';
+import { auth } from '../../config/firebase';
 import { useAppStore } from '../../store/useAppStore';
 import {
   exchangeCodeForTokens,
@@ -34,7 +38,20 @@ const discovery = {
 };
 
 export default function SettingsScreen() {
-  const { userId, stravaTokens, setStravaTokens, lastSyncAt, isSyncing } = useAppStore();
+  const {
+    userId,
+    isAnonymous,
+    userDisplayName,
+    userEmail,
+    userPhotoUrl,
+    stravaTokens,
+    setStravaTokens,
+    lastSyncAt,
+    isSyncing,
+    notificationPrefs,
+    setNotificationPrefs,
+    signOut,
+  } = useAppStore();
   const { syncStrava, loadLastSync } = useSync();
   const [connecting, setConnecting] = useState(false);
   const [athleteAvatar, setAthleteAvatar] = useState<string | null>(null);
@@ -55,14 +72,10 @@ export default function SettingsScreen() {
     discovery
   );
 
-  useEffect(() => {
-    loadLastSync();
-  }, []);
+  useEffect(() => { loadLastSync(); }, []);
 
   useEffect(() => {
-    if (stravaTokens?.athleteAvatar) {
-      setAthleteAvatar(stravaTokens.athleteAvatar);
-    }
+    if (stravaTokens?.athleteAvatar) setAthleteAvatar(stravaTokens.athleteAvatar);
   }, [stravaTokens]);
 
   useEffect(() => {
@@ -90,7 +103,7 @@ export default function SettingsScreen() {
         text: 'Disconnect',
         style: 'destructive',
         onPress: async () => {
-          if (!userId) return;
+          if (\!userId) return;
           await clearStravaTokens(userId);
           setStravaTokens(null);
         },
@@ -108,7 +121,21 @@ export default function SettingsScreen() {
     }
   };
 
-  const isConnected = !!stravaTokens;
+  const handleSignOut = () => {
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          await firebaseSignOut(auth);
+          signOut();
+        },
+      },
+    ]);
+  };
+
+  const isConnected = \!\!stravaTokens;
 
   return (
     <View style={styles.root}>
@@ -118,17 +145,63 @@ export default function SettingsScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
 
+        {/* Account section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>ACCOUNT</Text>
+          <View style={styles.card}>
+            <View style={styles.accountRow}>
+              {userPhotoUrl ? (
+                <Image source={{ uri: userPhotoUrl }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Ionicons name="person" size={22} color={Colors.accent} />
+                </View>
+              )}
+              <View style={styles.accountInfo}>
+                {isAnonymous ? (
+                  <>
+                    <Text style={styles.accountName}>Anonymous</Text>
+                    <Text style={styles.accountEmail}>Data is not saved to the cloud</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.accountName}>{userDisplayName ?? 'User'}</Text>
+                    <Text style={styles.accountEmail}>{userEmail ?? ''}</Text>
+                  </>
+                )}
+              </View>
+              {\!isAnonymous && (
+                <View style={styles.googleBadge}>
+                  <Ionicons name="logo-google" size={12} color={Colors.textSecondary} />
+                  <Text style={styles.googleBadgeText}>Google</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity style={styles.row} onPress={handleSignOut}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="log-out-outline" size={20} color={Colors.danger} />
+                <Text style={[styles.rowTitle, { color: Colors.danger }]}>
+                  {isAnonymous ? 'Leave Anonymous Session' : 'Sign Out'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Strava section */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>STRAVA</Text>
           <View style={styles.card}>
             {isConnected ? (
               <>
-                {/* Connected state */}
                 <View style={styles.stravaRow}>
                   <View style={styles.stravaLogo}>
                     {athleteAvatar ? (
-                      <Image source={{ uri: athleteAvatar }} style={styles.avatar} />
+                      <Image source={{ uri: athleteAvatar }} style={styles.stravaAvatar} />
                     ) : (
                       <Ionicons name="person-circle-outline" size={36} color={Colors.accent} />
                     )}
@@ -144,21 +217,16 @@ export default function SettingsScreen() {
 
                 <View style={styles.divider} />
 
-                {/* Sync row */}
-                <TouchableOpacity
-                  style={styles.row}
-                  onPress={handleSync}
-                  disabled={isSyncing}
-                >
+                <TouchableOpacity style={styles.row} onPress={handleSync} disabled={isSyncing}>
                   <View style={styles.rowLeft}>
                     <Ionicons name="sync-outline" size={20} color={Colors.accent} />
                     <View>
                       <Text style={styles.rowTitle}>Sync Activities</Text>
-                      {lastSyncAt && (
-                        <Text style={styles.rowSub}>
-                          Last synced {dayjs(lastSyncAt).fromNow()}
-                        </Text>
-                      )}
+                      <Text style={styles.rowSub}>
+                        {lastSyncAt
+                          ? 'Last synced ' + dayjs(lastSyncAt).fromNow() + ' · ' + dayjs(lastSyncAt).format('D MMM YYYY, HH:mm')
+                          : 'Never synced'}
+                      </Text>
                     </View>
                   </View>
                   {isSyncing ? (
@@ -170,7 +238,6 @@ export default function SettingsScreen() {
 
                 <View style={styles.divider} />
 
-                {/* Disconnect */}
                 <TouchableOpacity style={styles.row} onPress={handleDisconnect}>
                   <View style={styles.rowLeft}>
                     <Ionicons name="unlink-outline" size={20} color={Colors.danger} />
@@ -182,20 +249,18 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
               </>
             ) : (
-              /* Disconnected state */
               <View style={styles.connectBox}>
                 <View style={styles.stravaIconBox}>
                   <Ionicons name="fitness-outline" size={28} color={Colors.accent} />
                 </View>
                 <Text style={styles.connectTitle}>Connect Strava</Text>
                 <Text style={styles.connectSub}>
-                  Link your Strava account to automatically sync bike distances and track
-                  component wear.
+                  Link your Strava account to automatically sync bike distances and track component wear.
                 </Text>
                 <TouchableOpacity
-                  style={[styles.connectBtn, (!request || connecting) && styles.connectBtnDisabled]}
+                  style={[styles.connectBtn, (\!request || connecting) && styles.connectBtnDisabled]}
                   onPress={handleConnectStrava}
-                  disabled={!request || connecting}
+                  disabled={\!request || connecting}
                 >
                   {connecting ? (
                     <ActivityIndicator color={Colors.white} />
@@ -211,6 +276,84 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Notifications section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>
+          <View style={styles.card}>
+            {/* Master toggle */}
+            <View style={styles.switchRow}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="notifications-outline" size={20} color={Colors.accent} />
+                <View>
+                  <Text style={styles.rowTitle}>Enable Notifications</Text>
+                  <Text style={styles.rowSub}>Reminders for wear, maintenance & batteries</Text>
+                </View>
+              </View>
+              <Switch
+                value={notificationPrefs.enabled}
+                onValueChange={(v) => setNotificationPrefs({ enabled: v })}
+                trackColor={{ true: Colors.accent, false: Colors.border }}
+                thumbColor={Colors.white}
+              />
+            </View>
+
+            {notificationPrefs.enabled && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.switchRow}>
+                  <View style={styles.rowLeft}>
+                    <Ionicons name="water-outline" size={20} color={Colors.textSecondary} />
+                    <View>
+                      <Text style={styles.rowTitle}>Chain Lube Reminder</Text>
+                      <Text style={styles.rowSub}>When less than 100 km to next service</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationPrefs.chainLube}
+                    onValueChange={(v) => setNotificationPrefs({ chainLube: v })}
+                    trackColor={{ true: Colors.accent, false: Colors.border }}
+                    thumbColor={Colors.white}
+                  />
+                </View>
+
+                <View style={styles.divider} />
+                <View style={styles.switchRow}>
+                  <View style={styles.rowLeft}>
+                    <Ionicons name="warning-outline" size={20} color={Colors.textSecondary} />
+                    <View>
+                      <Text style={styles.rowTitle}>Component Wear Alert</Text>
+                      <Text style={styles.rowSub}>When less than 100 km lifespan remaining</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationPrefs.componentWear}
+                    onValueChange={(v) => setNotificationPrefs({ componentWear: v })}
+                    trackColor={{ true: Colors.accent, false: Colors.border }}
+                    thumbColor={Colors.white}
+                  />
+                </View>
+
+                <View style={styles.divider} />
+                <View style={styles.switchRow}>
+                  <View style={styles.rowLeft}>
+                    <Ionicons name="battery-dead-outline" size={20} color={Colors.textSecondary} />
+                    <View>
+                      <Text style={styles.rowTitle}>Battery Low Alert</Text>
+                      <Text style={styles.rowSub}>When estimated charge drops below 20%</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationPrefs.batteryLow}
+                    onValueChange={(v) => setNotificationPrefs({ batteryLow: v })}
+                    trackColor={{ true: Colors.accent, false: Colors.border }}
+                    thumbColor={Colors.white}
+                  />
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+
         {/* About section */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>ABOUT</Text>
@@ -220,7 +363,7 @@ export default function SettingsScreen() {
                 <Ionicons name="bicycle-outline" size={20} color={Colors.accent} />
                 <Text style={styles.rowTitle}>BikeVault</Text>
               </View>
-              <Text style={styles.rowSub}>v1.0.0</Text>
+              <Text style={styles.rowSub}>v1.1.0</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.row}>
@@ -231,9 +374,7 @@ export default function SettingsScreen() {
             </View>
           </View>
           <Text style={styles.hint}>
-            Component wear is based on the distance your bike has traveled since a component
-            was installed. Connect Strava to sync distances automatically, or update them
-            manually.
+            Wear is based on the distance ridden since a component was installed. Connect Strava to sync automatically, or add rides manually.
           </Text>
         </View>
       </ScrollView>
@@ -245,34 +386,40 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'web' ? 20 : 60,
     paddingBottom: 16,
   },
-  title: {
-    fontSize: 34,
-    fontWeight: '700',
-    color: Colors.text,
-    letterSpacing: -0.5,
-  },
+  title: { fontSize: 34, fontWeight: '700', color: Colors.text, letterSpacing: -0.5 },
   content: { padding: 20, gap: 24, paddingBottom: 40 },
   section: { gap: 10 },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    letterSpacing: 1,
+  sectionLabel: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary, letterSpacing: 1 },
+  card: { backgroundColor: Colors.card, borderRadius: 16, overflow: 'hidden' },
+
+  accountRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  avatar: { width: 48, height: 48, borderRadius: 24 },
+  avatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.accentDim,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  card: {
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  stravaRow: {
+  accountInfo: { flex: 1 },
+  accountName: { fontSize: 16, fontWeight: '600', color: Colors.text },
+  accountEmail: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
+  googleBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    gap: 12,
+    gap: 4,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 99,
   },
+  googleBadgeText: { fontSize: 11, color: Colors.textSecondary, fontWeight: '500' },
+
+  stravaRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   stravaLogo: {
     width: 44,
     height: 44,
@@ -282,21 +429,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: Colors.accentDim,
   },
-  avatar: { width: 44, height: 44 },
+  stravaAvatar: { width: 44, height: 44 },
   stravaInfo: { flex: 1, gap: 4 },
   stravaName: { fontSize: 16, fontWeight: '600', color: Colors.text },
-  connectedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 99,
-    backgroundColor: Colors.good,
-  },
+  connectedBadge: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  dot: { width: 7, height: 7, borderRadius: 99, backgroundColor: Colors.good },
   connectedText: { fontSize: 13, color: Colors.good, fontWeight: '500' },
+
   divider: { height: 1, backgroundColor: Colors.border, marginLeft: 16 },
   row: {
     flexDirection: 'row',
@@ -304,15 +443,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
   },
-  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    gap: 12,
+  },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   rowTitle: { fontSize: 15, fontWeight: '500', color: Colors.text },
   rowSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
 
-  connectBox: {
-    padding: 24,
-    alignItems: 'center',
-    gap: 10,
-  },
+  connectBox: { padding: 24, alignItems: 'center', gap: 10 },
   stravaIconBox: {
     width: 60,
     height: 60,
@@ -323,12 +465,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   connectTitle: { fontSize: 18, fontWeight: '700', color: Colors.text },
-  connectSub: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
+  connectSub: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 20 },
   connectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -342,10 +479,5 @@ const styles = StyleSheet.create({
   connectBtnDisabled: { opacity: 0.5 },
   connectBtnText: { fontSize: 15, fontWeight: '700', color: Colors.white },
 
-  hint: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-    paddingHorizontal: 4,
-  },
+  hint: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18, paddingHorizontal: 4 },
 });

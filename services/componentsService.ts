@@ -26,7 +26,7 @@ function fromFirestore(d: { id: string; data: () => Record<string, unknown> }): 
   const data = d.data();
   return {
     id: d.id,
-    bikeId: data.bikeId as string,
+    bikeId: (data.bikeId as string | null) ?? null,
     name: data.name as string,
     category: data.category as ComponentCategory,
     brand: (data.brand as string) ?? undefined,
@@ -36,8 +36,15 @@ function fromFirestore(d: { id: string; data: () => Record<string, unknown> }): 
         : (data.installDate as number) ?? Date.now(),
     installDistance: (data.installDistance as number) ?? 0,
     maxLifespan: (data.maxLifespan as number) ?? 5000,
+    attentionFrequency: (data.attentionFrequency as number) ?? undefined,
     status: (data.status as ComponentStatus) ?? 'active',
     notes: (data.notes as string) ?? undefined,
+    isElectric: (data.isElectric as boolean) ?? false,
+    lastCharged:
+      data.lastCharged instanceof Timestamp
+        ? data.lastCharged.toMillis()
+        : (data.lastCharged as number) ?? undefined,
+    chargeIntervalDays: (data.chargeIntervalDays as number) ?? undefined,
     createdAt:
       data.createdAt instanceof Timestamp
         ? data.createdAt.toMillis()
@@ -76,11 +83,25 @@ export async function addComponent(
   userId: string,
   component: Omit<BikeComponent, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<BikeComponent> {
-  const ref = await addDoc(componentsRef(userId), {
-    ...component,
+  const data: Record<string, unknown> = {
+    bikeId: component.bikeId ?? null,
+    name: component.name,
+    category: component.category,
+    installDate: component.installDate,
+    installDistance: component.installDistance,
+    maxLifespan: component.maxLifespan,
+    status: component.status,
+    isElectric: component.isElectric ?? false,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  });
+  };
+  if (component.brand) data.brand = component.brand;
+  if (component.notes) data.notes = component.notes;
+  if (component.attentionFrequency) data.attentionFrequency = component.attentionFrequency;
+  if (component.lastCharged) data.lastCharged = component.lastCharged;
+  if (component.chargeIntervalDays) data.chargeIntervalDays = component.chargeIntervalDays;
+
+  const ref = await addDoc(componentsRef(userId), data);
   const now = Date.now();
   return { id: ref.id, ...component, createdAt: now, updatedAt: now };
 }
@@ -96,19 +117,35 @@ export async function updateComponent(
   });
 }
 
-export async function retireComponent(
-  userId: string,
-  componentId: string
-): Promise<void> {
+export async function retireComponent(userId: string, componentId: string): Promise<void> {
   await updateDoc(componentDoc(userId, componentId), {
     status: 'retired',
     updatedAt: serverTimestamp(),
   });
 }
 
-export async function deleteComponent(
+export async function moveToStock(userId: string, componentId: string): Promise<void> {
+  await updateDoc(componentDoc(userId, componentId), {
+    bikeId: null,
+    status: 'in-stock',
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function installOnBike(
   userId: string,
-  componentId: string
+  componentId: string,
+  bikeId: string,
+  installDistance: number
 ): Promise<void> {
+  await updateDoc(componentDoc(userId, componentId), {
+    bikeId,
+    status: 'active',
+    installDistance,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteComponent(userId: string, componentId: string): Promise<void> {
   await deleteDoc(componentDoc(userId, componentId));
 }

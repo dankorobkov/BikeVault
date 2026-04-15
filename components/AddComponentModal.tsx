@@ -10,18 +10,24 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import {
   COMPONENT_TYPES,
-  COMPONENT_GROUPS,
+  COMPONENT_GROUP_LABELS,
+  getGroupedComponents,
 } from '../constants/componentTypes';
-import type { ComponentCategory } from '../types';
+import { ELECTRIC_CATEGORIES } from '../types';
+import type { ComponentCategory, BrakeSystem } from '../types';
 
 interface Props {
   visible: boolean;
   bikeDistance: number;
+  brakeSystem?: BrakeSystem;
+  /** If true, the component is being added to stock (no bike attached) */
+  inStockMode?: boolean;
   onClose: () => void;
   onAdd: (data: {
     name: string;
@@ -29,44 +35,65 @@ interface Props {
     brand: string;
     installDistance: number;
     maxLifespan: number;
+    attentionFrequency?: number;
     notes: string;
+    isElectric: boolean;
+    lastCharged?: number;
+    chargeIntervalDays?: number;
   }) => Promise<void>;
 }
-
-const GROUP_ORDER = ['drivetrain', 'brakes', 'wheels', 'cockpit', 'other'] as const;
 
 export default function AddComponentModal({
   visible,
   bikeDistance,
+  brakeSystem,
+  inStockMode = false,
   onClose,
   onAdd,
 }: Props) {
-  const [category, setCategory] = useState<ComponentCategory>('chain');
   const [name, setName] = useState('');
+  const [category, setCategory] = useState<ComponentCategory>('chain');
   const [brand, setBrand] = useState('');
-  const [lifespan, setLifespan] = useState('');
+  const [installDistance, setInstallDistance] = useState(String(bikeDistance));
+  const [maxLifespan, setMaxLifespan] = useState(
+    String(COMPONENT_TYPES.chain.defaultLifespan)
+  );
+  const [attentionFreq, setAttentionFreq] = useState('');
   const [notes, setNotes] = useState('');
+  const [isElectric, setIsElectric] = useState(false);
+  const [chargeInterval, setChargeInterval] = useState('');
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState<'category' | 'details'>('category');
 
+  const grouped = getGroupedComponents(brakeSystem);
   const typeInfo = COMPONENT_TYPES[category];
+  const canBeElectric = ELECTRIC_CATEGORIES.includes(category);
 
   const handleSelectCategory = (cat: ComponentCategory) => {
-    setCategory(cat);
     const info = COMPONENT_TYPES[cat];
+    setCategory(cat);
+    setMaxLifespan(String(info.defaultLifespan));
+    setAttentionFreq(info.defaultAttentionFrequency ? String(info.defaultAttentionFrequency) : '');
+    setIsElectric(false);
     setName(info.label);
-    setLifespan(String(info.defaultLifespan));
+    setStep('details');
   };
 
   const handleAdd = async () => {
+    if (\!name.trim()) return;
     setSaving(true);
     try {
       await onAdd({
-        name: name.trim() || typeInfo.label,
+        name: name.trim(),
         category,
         brand: brand.trim(),
-        installDistance: bikeDistance,
-        maxLifespan: Number(lifespan) || typeInfo.defaultLifespan,
+        installDistance: inStockMode ? 0 : (Number(installDistance) || 0),
+        maxLifespan: Number(maxLifespan) || typeInfo.defaultLifespan,
+        attentionFrequency: attentionFreq ? Number(attentionFreq) : undefined,
         notes: notes.trim(),
+        isElectric: canBeElectric && isElectric,
+        lastCharged: isElectric ? Date.now() : undefined,
+        chargeIntervalDays: isElectric && chargeInterval ? Number(chargeInterval) : undefined,
       });
       resetForm();
       onClose();
@@ -76,118 +103,206 @@ export default function AddComponentModal({
   };
 
   const resetForm = () => {
-    setCategory('chain');
     setName('');
+    setCategory('chain');
     setBrand('');
-    setLifespan('');
+    setInstallDistance(String(bikeDistance));
+    setMaxLifespan(String(COMPONENT_TYPES.chain.defaultLifespan));
+    setAttentionFreq('');
     setNotes('');
+    setIsElectric(false);
+    setChargeInterval('');
+    setStep('category');
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
       <KeyboardAvoidingView
         style={styles.root}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => { resetForm(); onClose(); }}>
-            <Text style={styles.cancelBtn}>Cancel</Text>
+          <TouchableOpacity onPress={step === 'category' ? handleClose : () => setStep('category')}>
+            <Text style={styles.cancelBtn}>{step === 'category' ? 'Cancel' : '← Back'}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Add Component</Text>
-          <TouchableOpacity onPress={handleAdd} disabled={saving}>
-            {saving ? (
-              <ActivityIndicator color={Colors.accent} />
-            ) : (
-              <Text style={styles.saveBtn}>Save</Text>
-            )}
-          </TouchableOpacity>
+          <Text style={styles.title}>
+            {step === 'category' ? 'Choose Type' : 'Component Details'}
+          </Text>
+          {step === 'details' ? (
+            <TouchableOpacity onPress={handleAdd} disabled={\!name.trim() || saving}>
+              {saving ? (
+                <ActivityIndicator color={Colors.accent} />
+              ) : (
+                <Text style={[styles.saveBtn, \!name.trim() && styles.saveBtnDisabled]}>Save</Text>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 50 }} />
+          )}
         </View>
 
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-
-          {/* Category picker */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>COMPONENT TYPE</Text>
-            {GROUP_ORDER.map((group) => {
-              const entries = (Object.entries(COMPONENT_TYPES) as [ComponentCategory, typeof COMPONENT_TYPES[ComponentCategory]][])
-                .filter(([, v]) => v.group === group);
-              if (!entries.length) return null;
-              return (
-                <View key={group} style={styles.groupBlock}>
-                  <Text style={styles.groupLabel}>{COMPONENT_GROUPS[group]}</Text>
-                  <View style={styles.categoryGrid}>
-                    {entries.map(([key, info]) => (
+        {step === 'category' ? (
+          /* ── Step 1: pick category ─────────────────────────── */
+          <ScrollView contentContainerStyle={styles.content}>
+            {(Object.entries(grouped) as [string, ComponentCategory[]][]).map(([group, cats]) => (
+              <View key={group} style={styles.section}>
+                <Text style={styles.sectionLabel}>
+                  {COMPONENT_GROUP_LABELS[group as keyof typeof COMPONENT_GROUP_LABELS] ?? group}
+                </Text>
+                <View style={styles.catList}>
+                  {cats.map((cat) => {
+                    const info = COMPONENT_TYPES[cat];
+                    return (
                       <TouchableOpacity
-                        key={key}
-                        style={[styles.catChip, category === key && styles.catChipActive]}
-                        onPress={() => handleSelectCategory(key)}
+                        key={cat}
+                        style={styles.catRow}
+                        onPress={() => handleSelectCategory(cat)}
                       >
-                        <Ionicons
-                          name={info.icon as React.ComponentProps<typeof Ionicons>['name']}
-                          size={14}
-                          color={category === key ? Colors.accent : Colors.textSecondary}
-                        />
-                        <Text style={[styles.catChipText, category === key && styles.catChipTextActive]}>
-                          {info.label}
-                        </Text>
+                        <View style={styles.catIcon}>
+                          <Ionicons name={info.icon as any} size={18} color={Colors.accent} />
+                        </View>
+                        <View style={styles.catInfo}>
+                          <Text style={styles.catLabel}>{info.label}</Text>
+                          <Text style={styles.catSub}>
+                            ~{info.defaultLifespan.toLocaleString()} km lifespan
+                            {info.defaultAttentionFrequency
+                              ? ` · service every ${info.defaultAttentionFrequency} km`
+                              : ''}
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
                       </TouchableOpacity>
-                    ))}
-                  </View>
+                    );
+                  })}
                 </View>
-              );
-            })}
-          </View>
+              </View>
+            ))}
+          </ScrollView>
+        ) : (
+          /* ── Step 2: details ────────────────────────────────── */
+          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
-          {/* Details */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>DETAILS</Text>
-            <View style={styles.inputGroup}>
-              <TextInput
-                style={styles.input}
-                placeholder="Component name"
-                placeholderTextColor={Colors.textTertiary}
-                value={name}
-                onChangeText={setName}
-              />
-              <View style={styles.inputDivider} />
-              <TextInput
-                style={styles.input}
-                placeholder="Brand (optional)"
-                placeholderTextColor={Colors.textTertiary}
-                value={brand}
-                onChangeText={setBrand}
-              />
-              <View style={styles.inputDivider} />
-              <TextInput
-                style={styles.input}
-                placeholder={`Max lifespan (km) — default ${typeInfo.defaultLifespan}`}
-                placeholderTextColor={Colors.textTertiary}
-                value={lifespan}
-                onChangeText={setLifespan}
-                keyboardType="numeric"
-              />
-              <View style={styles.inputDivider} />
+            {/* Selected category badge */}
+            <View style={styles.selectedBadge}>
+              <Ionicons name={typeInfo.icon as any} size={16} color={Colors.accent} />
+              <Text style={styles.selectedBadgeText}>{typeInfo.label}</Text>
+            </View>
+
+            {/* Basic info */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>DETAILS</Text>
+              <View style={styles.inputGroup}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Component name *"
+                  placeholderTextColor={Colors.textTertiary}
+                  value={name}
+                  onChangeText={setName}
+                />
+                <View style={styles.inputDivider} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Brand (optional)"
+                  placeholderTextColor={Colors.textTertiary}
+                  value={brand}
+                  onChangeText={setBrand}
+                />
+              </View>
+            </View>
+
+            {/* Lifespan & distance */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>WEAR TRACKING</Text>
+              <View style={styles.inputGroup}>
+                {\!inStockMode && (
+                  <>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Installed at distance (km)"
+                      placeholderTextColor={Colors.textTertiary}
+                      value={installDistance}
+                      onChangeText={setInstallDistance}
+                      keyboardType="numeric"
+                    />
+                    <View style={styles.inputDivider} />
+                  </>
+                )}
+                <TextInput
+                  style={styles.input}
+                  placeholder="Max lifespan (km)"
+                  placeholderTextColor={Colors.textTertiary}
+                  value={maxLifespan}
+                  onChangeText={setMaxLifespan}
+                  keyboardType="numeric"
+                />
+                <View style={styles.inputDivider} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Attention frequency (km) — e.g. lube every 300 km"
+                  placeholderTextColor={Colors.textTertiary}
+                  value={attentionFreq}
+                  onChangeText={setAttentionFreq}
+                  keyboardType="numeric"
+                />
+              </View>
+              {attentionFreq ? (
+                <Text style={styles.hint}>
+                  You'll be reminded every {Number(attentionFreq).toLocaleString()} km.
+                </Text>
+              ) : null}
+            </View>
+
+            {/* Electric toggle (only for electric-capable categories) */}
+            {canBeElectric && (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>ELECTRONIC COMPONENT</Text>
+                <View style={styles.switchRow}>
+                  <View>
+                    <Text style={styles.switchLabel}>This is an electronic / Di2 / eTap component</Text>
+                    <Text style={styles.switchSub}>Enables battery tracking</Text>
+                  </View>
+                  <Switch
+                    value={isElectric}
+                    onValueChange={setIsElectric}
+                    trackColor={{ true: Colors.accent, false: Colors.border }}
+                    thumbColor={Colors.white}
+                  />
+                </View>
+                {isElectric && (
+                  <View style={[styles.inputGroup, { marginTop: 10 }]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Typical days from charge to charge"
+                      placeholderTextColor={Colors.textTertiary}
+                      value={chargeInterval}
+                      onChangeText={setChargeInterval}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Notes */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>NOTES</Text>
               <TextInput
                 style={[styles.input, styles.notesInput]}
-                placeholder="Notes (optional)"
+                placeholder="Any notes (optional)"
                 placeholderTextColor={Colors.textTertiary}
                 value={notes}
                 onChangeText={setNotes}
                 multiline
-                numberOfLines={2}
               />
             </View>
-          </View>
-
-          {/* Info box */}
-          <View style={styles.infoBox}>
-            <Ionicons name="information-circle-outline" size={16} color={Colors.textSecondary} />
-            <Text style={styles.infoText}>
-              Installed at {bikeDistance.toLocaleString()} km. Wear will be tracked from this
-              distance.
-            </Text>
-          </View>
-        </ScrollView>
+          </ScrollView>
+        )}
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -207,61 +322,65 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: '600', color: Colors.text },
   cancelBtn: { fontSize: 16, color: Colors.textSecondary },
   saveBtn: { fontSize: 16, fontWeight: '600', color: Colors.accent },
-  scroll: { flex: 1 },
-  content: { padding: 20, gap: 24, paddingBottom: 40 },
-  section: { gap: 10 },
+  saveBtnDisabled: { opacity: 0.4 },
+  content: { padding: 20, gap: 20, paddingBottom: 48 },
+  section: { gap: 8 },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
     color: Colors.textSecondary,
     letterSpacing: 1,
   },
-  groupBlock: { gap: 6 },
-  groupLabel: {
-    fontSize: 12,
-    color: Colors.textTertiary,
-    fontWeight: '500',
-    letterSpacing: 0.3,
-    marginTop: 4,
+  hint: { fontSize: 12, color: Colors.textTertiary, lineHeight: 17 },
+  inputGroup: { backgroundColor: Colors.card, borderRadius: 14, overflow: 'hidden' },
+  input: { paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: Colors.text },
+  notesInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+    backgroundColor: Colors.card,
+    borderRadius: 14,
   },
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  catChip: {
+  inputDivider: { height: 1, backgroundColor: Colors.border, marginLeft: 16 },
+  selectedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 8,
+    backgroundColor: Colors.accentDim,
+    alignSelf: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 99,
-    backgroundColor: Colors.card,
   },
-  catChipActive: { backgroundColor: Colors.accentDim },
-  catChipText: { fontSize: 13, color: Colors.textSecondary },
-  catChipTextActive: { color: Colors.accent, fontWeight: '600' },
-  inputGroup: {
+  selectedBadgeText: { fontSize: 14, fontWeight: '600', color: Colors.accent },
+  catList: { backgroundColor: Colors.card, borderRadius: 14, overflow: 'hidden' },
+  catRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  catIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: Colors.accentDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  catInfo: { flex: 1 },
+  catLabel: { fontSize: 15, fontWeight: '500', color: Colors.text },
+  catSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: Colors.card,
     borderRadius: 14,
-    overflow: 'hidden',
-  },
-  input: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: Colors.text,
-  },
-  notesInput: { minHeight: 60, textAlignVertical: 'top' },
-  inputDivider: { height: 1, backgroundColor: Colors.border, marginLeft: 16 },
-  infoBox: {
-    flexDirection: 'row',
-    gap: 8,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
     padding: 14,
-    alignItems: 'flex-start',
+    gap: 12,
   },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
+  switchLabel: { fontSize: 15, fontWeight: '500', color: Colors.text, flex: 1 },
+  switchSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
 });

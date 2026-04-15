@@ -1,9 +1,13 @@
 import { create } from 'zustand';
-import type { Bike, BikeComponent, StravaTokens } from '../types';
+import type { Bike, BikeComponent, StravaTokens, NotificationPrefs } from '../types';
 
 interface AppState {
   // Auth
   userId: string | null;
+  isAnonymous: boolean;
+  userDisplayName: string | null;
+  userEmail: string | null;
+  userPhotoUrl: string | null;
 
   // Data
   bikes: Bike[];
@@ -11,14 +15,24 @@ interface AppState {
 
   // Strava
   stravaTokens: StravaTokens | null;
-  lastSyncAt: number | null; // timestamp
+  lastSyncAt: number | null;
   isSyncing: boolean;
+
+  // Preferences
+  notificationPrefs: NotificationPrefs;
 
   // UI
   isLoading: boolean;
 
   // ─── Actions ──────────────────────────────────────────────────────────────
   setUserId: (id: string | null) => void;
+  setUserProfile: (profile: {
+    isAnonymous: boolean;
+    displayName: string | null;
+    email: string | null;
+    photoUrl: string | null;
+  }) => void;
+  signOut: () => void;
 
   setBikes: (bikes: Bike[]) => void;
   addBikeLocal: (bike: Bike) => void;
@@ -34,19 +48,52 @@ interface AppState {
   setLastSyncAt: (ts: number) => void;
   setIsSyncing: (v: boolean) => void;
 
+  setNotificationPrefs: (prefs: Partial<NotificationPrefs>) => void;
+
   setLoading: (v: boolean) => void;
 }
 
+const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
+  enabled: true,
+  chainLube: true,
+  componentWear: true,
+  batteryLow: true,
+};
+
 export const useAppStore = create<AppState>((set) => ({
   userId: null,
+  isAnonymous: true,
+  userDisplayName: null,
+  userEmail: null,
+  userPhotoUrl: null,
   bikes: [],
   components: [],
   stravaTokens: null,
   lastSyncAt: null,
   isSyncing: false,
+  notificationPrefs: DEFAULT_NOTIFICATION_PREFS,
   isLoading: true,
 
   setUserId: (id) => set({ userId: id }),
+  setUserProfile: (p) =>
+    set({
+      isAnonymous: p.isAnonymous,
+      userDisplayName: p.displayName,
+      userEmail: p.email,
+      userPhotoUrl: p.photoUrl,
+    }),
+  signOut: () =>
+    set({
+      userId: null,
+      isAnonymous: true,
+      userDisplayName: null,
+      userEmail: null,
+      userPhotoUrl: null,
+      bikes: [],
+      components: [],
+      stravaTokens: null,
+      lastSyncAt: null,
+    }),
 
   setBikes: (bikes) => set({ bikes }),
   addBikeLocal: (bike) => set((s) => ({ bikes: [bike, ...s.bikes] })),
@@ -65,9 +112,7 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => ({ components: [component, ...s.components] })),
   updateComponentLocal: (id, updates) =>
     set((s) => ({
-      components: s.components.map((c) =>
-        c.id === id ? { ...c, ...updates } : c
-      ),
+      components: s.components.map((c) => (c.id === id ? { ...c, ...updates } : c)),
     })),
   removeComponentLocal: (id) =>
     set((s) => ({ components: s.components.filter((c) => c.id !== id) })),
@@ -75,6 +120,9 @@ export const useAppStore = create<AppState>((set) => ({
   setStravaTokens: (tokens) => set({ stravaTokens: tokens }),
   setLastSyncAt: (ts) => set({ lastSyncAt: ts }),
   setIsSyncing: (v) => set({ isSyncing: v }),
+
+  setNotificationPrefs: (prefs) =>
+    set((s) => ({ notificationPrefs: { ...s.notificationPrefs, ...prefs } })),
 
   setLoading: (v) => set({ isLoading: v }),
 }));

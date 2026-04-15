@@ -13,8 +13,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
-import { BIKE_TYPE_LABELS, BIKE_COLORS } from '../constants/componentTypes';
-import type { BikeType } from '../types';
+import {
+  BIKE_TYPE_LABELS,
+  BIKE_COLORS,
+  BRAKE_SYSTEM_LABELS,
+} from '../constants/componentTypes';
+import type { BikeType, BrakeSystem } from '../types';
 
 interface Props {
   visible: boolean;
@@ -24,6 +28,7 @@ interface Props {
     name: string;
     brand: string;
     type: BikeType;
+    brakeSystem: BrakeSystem;
     color: string;
     stravaId?: string;
     totalDistance: number;
@@ -31,11 +36,13 @@ interface Props {
 }
 
 const BIKE_TYPES = Object.entries(BIKE_TYPE_LABELS) as [BikeType, string][];
+const BRAKE_SYSTEMS = Object.entries(BRAKE_SYSTEM_LABELS) as [BrakeSystem, string][];
 
 export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: Props) {
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [type, setType] = useState<BikeType>('road');
+  const [brakeSystem, setBrakeSystem] = useState<BrakeSystem>('disc-hydraulic');
   const [color, setColor] = useState(Colors.accent);
   const [stravaId, setStravaId] = useState<string | undefined>();
   const [manualDistance, setManualDistance] = useState('0');
@@ -46,19 +53,20 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
       setStravaId(undefined);
     } else {
       setStravaId(id);
-      if (!name) setName(bikeName);
+      if (\!name) setName(bikeName);
       setManualDistance(String(distanceKm));
     }
   };
 
   const handleAdd = async () => {
-    if (!name.trim()) return;
+    if (\!name.trim()) return;
     setSaving(true);
     try {
       await onAdd({
         name: name.trim(),
         brand: brand.trim(),
         type,
+        brakeSystem,
         color,
         stravaId,
         totalDistance: Number(manualDistance) || 0,
@@ -74,6 +82,7 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
     setName('');
     setBrand('');
     setType('road');
+    setBrakeSystem('disc-hydraulic');
     setColor(Colors.accent);
     setStravaId(undefined);
     setManualDistance('0');
@@ -91,11 +100,11 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
             <Text style={styles.cancelBtn}>Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Add Bike</Text>
-          <TouchableOpacity onPress={handleAdd} disabled={!name.trim() || saving}>
+          <TouchableOpacity onPress={handleAdd} disabled={\!name.trim() || saving}>
             {saving ? (
               <ActivityIndicator color={Colors.accent} />
             ) : (
-              <Text style={[styles.saveBtn, !name.trim() && styles.saveBtnDisabled]}>Save</Text>
+              <Text style={[styles.saveBtn, \!name.trim() && styles.saveBtnDisabled]}>Save</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -129,7 +138,7 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
             </View>
           )}
 
-          {/* Name & Brand */}
+          {/* Name & Brand & Distance */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>DETAILS</Text>
             <View style={styles.inputGroup}>
@@ -160,22 +169,43 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
             </View>
           </View>
 
-          {/* Type */}
+          {/* Bike Type */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>TYPE</Text>
-            <View style={styles.typeGrid}>
+            <Text style={styles.sectionLabel}>BIKE TYPE</Text>
+            <View style={styles.chipGrid}>
               {BIKE_TYPES.map(([key, label]) => (
                 <TouchableOpacity
                   key={key}
-                  style={[styles.typeChip, type === key && styles.typeChipActive]}
+                  style={[styles.chip, type === key && styles.chipActive]}
                   onPress={() => setType(key)}
                 >
-                  <Text style={[styles.typeChipText, type === key && styles.typeChipTextActive]}>
+                  <Text style={[styles.chipText, type === key && styles.chipTextActive]}>
                     {label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
+          </View>
+
+          {/* Brake System */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>BRAKE SYSTEM</Text>
+            <View style={styles.chipGrid}>
+              {BRAKE_SYSTEMS.map(([key, label]) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.chip, brakeSystem === key && styles.chipActive]}
+                  onPress={() => setBrakeSystem(key)}
+                >
+                  <Text style={[styles.chipText, brakeSystem === key && styles.chipTextActive]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.hint}>
+              This controls which brake components appear when adding parts to this bike.
+            </Text>
           </View>
 
           {/* Color */}
@@ -229,6 +259,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     letterSpacing: 1,
   },
+  hint: { fontSize: 12, color: Colors.textTertiary, lineHeight: 17 },
   inputGroup: {
     backgroundColor: Colors.card,
     borderRadius: 14,
@@ -241,16 +272,16 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   inputDivider: { height: 1, backgroundColor: Colors.border, marginLeft: 16 },
-  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  typeChip: {
+  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 99,
     backgroundColor: Colors.card,
   },
-  typeChipActive: { backgroundColor: Colors.accentDim },
-  typeChipText: { fontSize: 14, color: Colors.textSecondary },
-  typeChipTextActive: { color: Colors.accent, fontWeight: '600' },
+  chipActive: { backgroundColor: Colors.accentDim },
+  chipText: { fontSize: 14, color: Colors.textSecondary },
+  chipTextActive: { color: Colors.accent, fontWeight: '600' },
   colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   colorDot: {
     width: 34,
@@ -259,10 +290,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  colorDotActive: {
-    borderWidth: 3,
-    borderColor: Colors.white,
-  },
+  colorDotActive: { borderWidth: 3, borderColor: Colors.white },
   stravaRow: {
     flexDirection: 'row',
     alignItems: 'center',

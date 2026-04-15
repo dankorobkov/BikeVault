@@ -6,35 +6,31 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  Alert,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/useAppStore';
-import { addBike, deleteBike } from '../../services/bikesService';
-import { fetchAthlete, getValidToken, buildBikeDistanceMap } from '../../services/stravaService';
+import { addBike } from '../../services/bikesService';
+import { fetchAthlete, getValidToken } from '../../services/stravaService';
 import { Colors } from '../../constants/colors';
 import BikeCard from '../../components/BikeCard';
 import AddBikeModal from '../../components/AddBikeModal';
 import EmptyState from '../../components/EmptyState';
-import type { BikeType } from '../../types';
+import SuccessBanner from '../../components/SuccessBanner';
+import type { BikeType, BrakeSystem } from '../../types';
 
 export default function BikesScreen() {
   const router = useRouter();
-  const {
-    userId,
-    bikes,
-    components,
-    stravaTokens,
-    addBikeLocal,
-    removeBikeLocal,
-  } = useAppStore();
+  const { userId, bikes, components, stravaTokens, addBikeLocal } = useAppStore();
 
   const [showAdd, setShowAdd] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [stravaBikes, setStravaBikes] = useState<
     { id: string; name: string; distanceKm: number }[]
   >([]);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successBikeName, setSuccessBikeName] = useState('');
 
   const openAddModal = async () => {
     if (stravaTokens && userId) {
@@ -59,13 +55,16 @@ export default function BikesScreen() {
     name: string;
     brand: string;
     type: BikeType;
+    brakeSystem: BrakeSystem;
     color: string;
     stravaId?: string;
     totalDistance: number;
   }) => {
-    if (!userId) return;
+    if (\!userId) return;
     const newBike = await addBike(userId, data);
     addBikeLocal(newBike);
+    setSuccessBikeName(newBike.name);
+    setShowSuccess(true);
   };
 
   const onRefresh = async () => {
@@ -75,6 +74,13 @@ export default function BikesScreen() {
 
   return (
     <View style={styles.root}>
+      <SuccessBanner
+        visible={showSuccess}
+        title={successBikeName + ' added\!'}
+        subtitle="Start adding components to track wear."
+        onHide={() => setShowSuccess(false)}
+      />
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>My Bikes</Text>
@@ -105,7 +111,7 @@ export default function BikesScreen() {
               key={bike.id}
               bike={bike}
               components={components}
-              onPress={() => router.push(`/bike/${bike.id}`)}
+              onPress={() => router.push('/bike/' + bike.id)}
             />
           ))
         )}
@@ -128,7 +134,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'web' ? 20 : 60,
     paddingBottom: 16,
   },
   title: {

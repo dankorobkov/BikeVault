@@ -1,20 +1,20 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Platform } from 'react-native';
 import { Colors } from '../../constants/colors';
 
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: Colors.bg },
-        headerTintColor: Colors.text,
-        headerShadowVisible: false,
+        // Each tab screen manages its own title; disable Navigator-level header
+        headerShown: false,
         tabBarStyle: {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          height: 88,
-          paddingBottom: 28,
+          height: Platform.OS === 'web' ? 60 : 88,
+          paddingBottom: Platform.OS === 'web' ? 8 : 28,
           paddingTop: 10,
         },
         tabBarActiveTintColor: Colors.accent,
