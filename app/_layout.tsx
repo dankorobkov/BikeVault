@@ -3,7 +3,6 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { useFonts } from 'expo-font';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { auth } from '../config/firebase';
@@ -37,10 +36,6 @@ function AuthGate() {
 export default function RootLayout() {
   const { setUserId, setUserProfile, setBikes, setComponents, setStravaTokens, setLoading, isLoading } =
     useAppStore();
-
-  const [fontsLoaded] = useFonts({
-    ...Ionicons.font,
-  });
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -82,7 +77,7 @@ export default function RootLayout() {
     return unsub;
   }, []);
 
-  if (isLoading || !fontsLoaded) {
+  if (isLoading) {
     return (
       <View style={styles.splash}>
         <StatusBar style="light" />
