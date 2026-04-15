@@ -306,7 +306,7 @@ export default function BikeDetailScreen() {
         onHide={() => setShowSuccess(false)}
       />
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
         {/* Back button */}
         <TouchableOpacity style={styles.backBtn} onPress={() => router.canGoBack() ? router.back() : router.replace('/')}>
           <Ionicons name="arrow-back" size={18} color={Colors.accent} />
