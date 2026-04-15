@@ -25,7 +25,7 @@ export default function Root({ children }: PropsWithChildren) {
 const iconFontStyles = `
 @font-face {
   font-family: Ionicons;
-  src: url(${require('@expo/vector-icons/fonts/Ionicons.ttf')});
+  src: url(${require('../assets/fonts/Ionicons.ttf')});
   font-weight: normal;
   font-style: normal;
 }
