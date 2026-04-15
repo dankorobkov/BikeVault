@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
-import { COMPONENT_TYPES } from '../constants/componentTypes';
+import { COMPONENT_TYPES, BRAKE_SYSTEM_LABELS } from '../constants/componentTypes';
 import { ELECTRIC_CATEGORIES } from '../types';
 import type { BikeComponent, Bike } from '../types';
 
@@ -84,6 +84,15 @@ export default function EditComponentModal({
   const isRetired = component.status === 'retired';
 
   const bikeChanged = selectedBikeId !== component.bikeId;
+
+  // Brake compatibility check
+  const brakeFilter = typeInfo.brakeSystemFilter;
+  const selectedBike = bikes.find((b) => b.id === selectedBikeId);
+  const brakeIncompatible =
+    selectedBikeId !== null &&
+    brakeFilter !== undefined &&
+    selectedBike !== undefined &&
+    !brakeFilter.includes(selectedBike.brakeSystem);
 
   const handleSave = async () => {
     if (!name.trim()) return;
@@ -294,6 +303,20 @@ export default function EditComponentModal({
             </View>
           )}
 
+          {/* Brake compatibility warning */}
+          {brakeIncompatible && selectedBike && (
+            <View style={styles.compatWarning}>
+              <Ionicons name="warning" size={16} color={Colors.warning} />
+              <Text style={styles.compatWarningText}>
+                <Text style={{ fontWeight: '700' }}>{typeInfo.label}</Text> is designed for{' '}
+                {brakeFilter!.map((s) => BRAKE_SYSTEM_LABELS[s]).join(' or ')} brakes,
+                but {selectedBike.name} uses{' '}
+                {BRAKE_SYSTEM_LABELS[selectedBike.brakeSystem]} brakes.
+                Consider putting this in stock instead.
+              </Text>
+            </View>
+          )}
+
           {/* Electric */}
           {canBeElectric && !isRetired && (
             <View style={styles.section}>
@@ -448,6 +471,20 @@ const styles = StyleSheet.create({
   },
   switchLabel: { fontSize: 15, fontWeight: '500', color: Colors.text },
   switchSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  compatWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: Colors.warningDim,
+    borderRadius: 12,
+    padding: 12,
+  },
+  compatWarningText: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.warning,
+    lineHeight: 19,
+  },
   actionsGroup: { backgroundColor: Colors.card, borderRadius: 14, overflow: 'hidden' },
   actionRow: {
     flexDirection: 'row',

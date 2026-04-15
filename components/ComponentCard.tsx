@@ -74,7 +74,7 @@ export default function ComponentCard({
     const options: any[] = [];
 
     if (onEdit) {
-      options.push({ text: 'Edit', onPress: onEdit });
+      options.push({ text: isInStock ? 'Edit / Install on Bike' : 'Edit', onPress: onEdit });
     }
 
     if (isRetired) {
@@ -153,8 +153,13 @@ export default function ComponentCard({
           </View>
 
           {isInStock ? (
-            <View style={[styles.statusBadge, styles.stockBadge]}>
-              <Text style={[styles.statusBadgeText, { color: Colors.accent }]}>In Stock</Text>
+            <View style={styles.stockRow}>
+              <View style={[styles.statusBadge, styles.stockBadge]}>
+                <Text style={[styles.statusBadgeText, { color: Colors.accent }]}>In Stock</Text>
+              </View>
+              <TouchableOpacity onPress={handleOptions} hitSlop={8} style={styles.moreBtn}>
+                <Ionicons name="ellipsis-horizontal" size={18} color={Colors.textSecondary} />
+              </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity onPress={handleOptions} hitSlop={8} style={styles.moreBtn}>
@@ -233,6 +238,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 15, fontWeight: '600', color: Colors.text, letterSpacing: -0.2 },
   meta: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
   moreBtn: { padding: 2 },
+  stockRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statusBadge: {
     backgroundColor: Colors.border,
     paddingHorizontal: 8,

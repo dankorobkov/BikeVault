@@ -112,12 +112,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="bike/[id]"
-          options={{
-            title: '',
-            headerStyle: { backgroundColor: Colors.bg },
-            headerTintColor: Colors.accent,
-            headerBackTitle: 'Back',
-          }}
+          options={{ headerShown: false }}
         />
       </Stack>
     </>

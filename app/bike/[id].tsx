@@ -255,13 +255,11 @@ export default function BikeDetailScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Back button (web only) */}
-        {Platform.OS === 'web' && (
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={18} color={Colors.accent} />
-            <Text style={styles.backText}>Bikes</Text>
-          </TouchableOpacity>
-        )}
+        {/* Back button */}
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={18} color={Colors.accent} />
+          <Text style={styles.backText}>Bikes</Text>
+        </TouchableOpacity>
 
         {/* Bike hero */}
         <View style={styles.hero}>
@@ -509,15 +507,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 4,
+    paddingTop: Platform.OS === 'web' ? 20 : 60,
+    paddingBottom: 8,
   },
   backText: { fontSize: 15, color: Colors.accent, fontWeight: '500' },
 
   hero: {
     flexDirection: 'row',
     margin: 20,
-    marginTop: Platform.OS === 'web' ? 8 : 100,
+    marginTop: 4,
     backgroundColor: Colors.card,
     borderRadius: 20,
     overflow: 'hidden',

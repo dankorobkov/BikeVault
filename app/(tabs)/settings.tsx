@@ -50,6 +50,8 @@ export default function SettingsScreen() {
     isSyncing,
     notificationPrefs,
     setNotificationPrefs,
+    useMetric,
+    setUseMetric,
     signOut,
   } = useAppStore();
   const { syncStrava, loadLastSync } = useSync();
@@ -273,6 +275,30 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
               </View>
             )}
+          </View>
+        </View>
+
+        {/* Units section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>UNITS</Text>
+          <View style={styles.card}>
+            <View style={styles.switchRow}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="speedometer-outline" size={20} color={Colors.accent} />
+                <View>
+                  <Text style={styles.rowTitle}>Use Metric</Text>
+                  <Text style={styles.rowSub}>
+                    {useMetric ? 'Distances shown in kilometres (km)' : 'Distances shown in miles (mi)'}
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={useMetric}
+                onValueChange={setUseMetric}
+                trackColor={{ true: Colors.accent, false: Colors.border }}
+                thumbColor={Colors.white}
+              />
+            </View>
           </View>
         </View>
 

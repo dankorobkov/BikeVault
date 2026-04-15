@@ -28,6 +28,7 @@ import EmptyState from '../../components/EmptyState';
 import SuccessBanner from '../../components/SuccessBanner';
 
 type Filter = 'all' | 'in-stock' | 'attention' | 'retired';
+type SortMode = 'wear' | 'bike';
 
 const FILTERS: { key: Filter; label: string; icon: string }[] = [
   { key: 'all', label: 'All', icon: 'layers-outline' },
@@ -40,6 +41,7 @@ export default function GarageScreen() {
   const { userId, bikes, components, updateComponentLocal, removeComponentLocal, addComponentLocal } =
     useAppStore();
   const [filter, setFilter] = useState<Filter>('all');
+  const [sortMode, setSortMode] = useState<SortMode>('wear');
   const [showAddStock, setShowAddStock] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successName, setSuccessName] = useState('');
@@ -63,13 +65,19 @@ export default function GarageScreen() {
   });
 
   const sorted = [...filtered].sort((a, b) => {
-    // In-stock at the top of "all" view
+    // In-stock always floats to top of "all" view
     if (filter === 'all') {
       if (a.status === 'in-stock' && b.status !== 'in-stock') return -1;
       if (b.status === 'in-stock' && a.status !== 'in-stock') return 1;
     }
     const bikeA = getBike(a.bikeId);
     const bikeB = getBike(b.bikeId);
+    if (sortMode === 'bike') {
+      const nameA = bikeA?.name ?? 'In Stock';
+      const nameB = bikeB?.name ?? 'In Stock';
+      const nameCmp = nameA.localeCompare(nameB);
+      if (nameCmp !== 0) return nameCmp;
+    }
     const pctA = bikeA ? calcWearPercent(bikeA.totalDistance, a.installDistance, a.maxLifespan) : 0;
     const pctB = bikeB ? calcWearPercent(bikeB.totalDistance, b.installDistance, b.maxLifespan) : 0;
     return pctB - pctA;
@@ -178,16 +186,36 @@ export default function GarageScreen() {
             </View>
           )}
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddStock(true)}>
-          <Ionicons name="add" size={20} color={Colors.accent} />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          {/* Sort toggle */}
+          <View style={styles.sortToggle}>
+            <TouchableOpacity
+              style={[styles.sortBtn, sortMode === 'wear' && styles.sortBtnActive]}
+              onPress={() => setSortMode('wear')}
+            >
+              <Text style={[styles.sortBtnText, sortMode === 'wear' && styles.sortBtnTextActive]}>
+                Wear
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.sortBtn, sortMode === 'bike' && styles.sortBtnActive]}
+              onPress={() => setSortMode('bike')}
+            >
+              <Text style={[styles.sortBtnText, sortMode === 'bike' && styles.sortBtnTextActive]}>
+                Bike
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddStock(true)}>
+            <Ionicons name="add" size={20} color={Colors.accent} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Filter tabs */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
         contentContainerStyle={styles.filterRow}
       >
         {FILTERS.map((f) => {
@@ -316,6 +344,26 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   badgeText: { fontSize: 12, fontWeight: '600', color: Colors.warning },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 4,
+  },
+  sortToggle: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    borderRadius: 10,
+    padding: 2,
+  },
+  sortBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  sortBtnActive: { backgroundColor: Colors.accentDim },
+  sortBtnText: { fontSize: 12, fontWeight: '500', color: Colors.textSecondary },
+  sortBtnTextActive: { color: Colors.accent, fontWeight: '600' },
   addBtn: {
     width: 40,
     height: 40,
@@ -323,9 +371,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accentDim,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
   },
-  filterScroll: { maxHeight: 52 },
   filterRow: {
     flexDirection: 'row',
     gap: 8,

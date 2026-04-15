@@ -20,13 +20,14 @@ import {
   getGroupedComponents,
 } from '../constants/componentTypes';
 import { ELECTRIC_CATEGORIES } from '../types';
+import { useAppStore } from '../store/useAppStore';
+import { unitLabel } from '../constants/units';
 import type { ComponentCategory, BrakeSystem } from '../types';
 
 interface Props {
   visible: boolean;
   bikeDistance: number;
   brakeSystem?: BrakeSystem;
-  /** If true, the component is being added to stock (no bike attached) */
   inStockMode?: boolean;
   onClose: () => void;
   onAdd: (data: {
@@ -51,6 +52,9 @@ export default function AddComponentModal({
   onClose,
   onAdd,
 }: Props) {
+  const { useMetric } = useAppStore();
+  const unit = unitLabel(useMetric);
+
   const [name, setName] = useState('');
   const [category, setCategory] = useState<ComponentCategory>('chain');
   const [brand, setBrand] = useState('');
@@ -70,7 +74,7 @@ export default function AddComponentModal({
   const handleSelectCategory = (cat: ComponentCategory) => {
     const info = COMPONENT_TYPES[cat];
     setCategory(cat);
-    setMaxLifespan('');   // placeholder will show the default as hint
+    setMaxLifespan('');
     setAttentionFreq(info.defaultAttentionFrequency ? String(info.defaultAttentionFrequency) : '');
     setIsElectric(false);
     setName(info.label);
@@ -146,35 +150,26 @@ export default function AddComponentModal({
         </View>
 
         {step === 'category' ? (
-          /* ── Step 1: pick category ─────────────────────────── */
+          /* ── Step 1: pick category as bubbles ─────────────────── */
           <ScrollView contentContainerStyle={styles.content}>
             {(Object.entries(grouped) as [string, ComponentCategory[]][]).map(([group, cats]) => (
               <View key={group} style={styles.section}>
                 <Text style={styles.sectionLabel}>
                   {COMPONENT_GROUP_LABELS[group as keyof typeof COMPONENT_GROUP_LABELS] ?? group}
                 </Text>
-                <View style={styles.catList}>
+                <View style={styles.bubblesRow}>
                   {cats.map((cat) => {
                     const info = COMPONENT_TYPES[cat];
+                    const isSelected = category === cat;
                     return (
                       <TouchableOpacity
                         key={cat}
-                        style={styles.catRow}
+                        style={[styles.bubble, isSelected && styles.bubbleActive]}
                         onPress={() => handleSelectCategory(cat)}
                       >
-                        <View style={styles.catIcon}>
-                          <Ionicons name={info.icon as any} size={18} color={Colors.accent} />
-                        </View>
-                        <View style={styles.catInfo}>
-                          <Text style={styles.catLabel}>{info.label}</Text>
-                          <Text style={styles.catSub}>
-                            ~{info.defaultLifespan.toLocaleString()} km lifespan
-                            {info.defaultAttentionFrequency
-                              ? ` · service every ${info.defaultAttentionFrequency} km`
-                              : ''}
-                          </Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
+                        <Text style={[styles.bubbleText, isSelected && styles.bubbleTextActive]}>
+                          {info.label}
+                        </Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -186,7 +181,7 @@ export default function AddComponentModal({
           /* ── Step 2: details ────────────────────────────────── */
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
-            {/* Selected category badge — tap to go back and change */}
+            {/* Selected category badge */}
             <TouchableOpacity style={styles.selectedBadge} onPress={() => setStep('category')}>
               <Ionicons name={typeInfo.icon as any} size={16} color={Colors.accent} />
               <Text style={styles.selectedBadgeText}>{typeInfo.label}</Text>
@@ -221,56 +216,62 @@ export default function AddComponentModal({
               <View style={styles.inputGroup}>
                 {!inStockMode && (
                   <>
-                    <TextInput
-                      style={styles.input}
-                      placeholder={
-                        bikeDistance > 0
-                          ? 'Odometer when installed (km) — e.g. ' + bikeDistance.toLocaleString()
-                          : 'Odometer when installed (km) — e.g. 12 500'
-                      }
-                      placeholderTextColor={Colors.textTertiary}
-                      value={installDistance}
-                      onChangeText={setInstallDistance}
-                      keyboardType="numeric"
-                    />
+                    <View style={styles.inputWithUnit}>
+                      <TextInput
+                        style={[styles.input, { flex: 1 }]}
+                        placeholder={
+                          bikeDistance > 0
+                            ? 'Odometer when installed — e.g. ' + bikeDistance.toLocaleString()
+                            : 'Odometer when installed — e.g. 12,500'
+                        }
+                        placeholderTextColor={Colors.textTertiary}
+                        value={installDistance}
+                        onChangeText={setInstallDistance}
+                        keyboardType="numeric"
+                      />
+                      <Text style={styles.unitLabel}>{unit}</Text>
+                    </View>
                     <View style={styles.inputDivider} />
                   </>
                 )}
-                <TextInput
-                  style={styles.input}
-                  placeholder={
-                    'Max lifespan (km) — default: ' +
-                    (typeInfo.defaultLifespan.toLocaleString())
-                  }
-                  placeholderTextColor={Colors.textTertiary}
-                  value={maxLifespan}
-                  onChangeText={setMaxLifespan}
-                  keyboardType="numeric"
-                />
+                <View style={styles.inputWithUnit}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    placeholder={'Max lifespan — default: ' + typeInfo.defaultLifespan.toLocaleString()}
+                    placeholderTextColor={Colors.textTertiary}
+                    value={maxLifespan}
+                    onChangeText={setMaxLifespan}
+                    keyboardType="numeric"
+                  />
+                  <Text style={styles.unitLabel}>{unit}</Text>
+                </View>
                 <View style={styles.inputDivider} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Attention frequency (km) — e.g. lube every 300 km"
-                  placeholderTextColor={Colors.textTertiary}
-                  value={attentionFreq}
-                  onChangeText={setAttentionFreq}
-                  keyboardType="numeric"
-                />
+                <View style={styles.inputWithUnit}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    placeholder="Service reminder every — e.g. 300"
+                    placeholderTextColor={Colors.textTertiary}
+                    value={attentionFreq}
+                    onChangeText={setAttentionFreq}
+                    keyboardType="numeric"
+                  />
+                  <Text style={styles.unitLabel}>{unit}</Text>
+                </View>
               </View>
               {attentionFreq ? (
                 <Text style={styles.hint}>
-                  You'll be reminded every {Number(attentionFreq).toLocaleString()} km.
+                  You'll be reminded every {Number(attentionFreq).toLocaleString()} {unit}.
                 </Text>
               ) : null}
             </View>
 
-            {/* Electric toggle (only for electric-capable categories) */}
+            {/* Electric toggle */}
             {canBeElectric && (
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>ELECTRONIC COMPONENT</Text>
                 <View style={styles.switchRow}>
                   <View>
-                    <Text style={styles.switchLabel}>This is an electronic / Di2 / eTap component</Text>
+                    <Text style={styles.switchLabel}>Di2 / eTap electronic component</Text>
                     <Text style={styles.switchSub}>Enables battery tracking</Text>
                   </View>
                   <Switch
@@ -284,7 +285,7 @@ export default function AddComponentModal({
                   <View style={[styles.inputGroup, { marginTop: 10 }]}>
                     <TextInput
                       style={styles.input}
-                      placeholder="Typical days from charge to charge"
+                      placeholder="Typical days from full charge to empty"
                       placeholderTextColor={Colors.textTertiary}
                       value={chargeInterval}
                       onChangeText={setChargeInterval}
@@ -329,17 +330,48 @@ const styles = StyleSheet.create({
   cancelBtn: { fontSize: 16, color: Colors.textSecondary },
   saveBtn: { fontSize: 16, fontWeight: '600', color: Colors.accent },
   saveBtnDisabled: { opacity: 0.4 },
-  content: { padding: 20, gap: 20, paddingBottom: 48 },
-  section: { gap: 8 },
+  content: { padding: 20, gap: 24, paddingBottom: 48 },
+  section: { gap: 10 },
   sectionLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     color: Colors.textSecondary,
     letterSpacing: 1,
+    textTransform: 'uppercase',
   },
+
+  // ── Bubble/pill styles ────────────────────────────────────────────────────
+  bubblesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  bubble: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 99,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  bubbleActive: {
+    backgroundColor: Colors.accentDim,
+    borderColor: Colors.accent,
+  },
+  bubbleText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '500' },
+  bubbleTextActive: { color: Colors.accent, fontWeight: '600' },
+
+  // ── Details step ──────────────────────────────────────────────────────────
   hint: { fontSize: 12, color: Colors.textTertiary, lineHeight: 17 },
   inputGroup: { backgroundColor: Colors.card, borderRadius: 14, overflow: 'hidden' },
+  inputWithUnit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+  },
   input: { paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: Colors.text },
+  unitLabel: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+    paddingRight: 16,
+  },
   notesInput: {
     minHeight: 80,
     textAlignVertical: 'top',
@@ -358,26 +390,6 @@ const styles = StyleSheet.create({
     borderRadius: 99,
   },
   selectedBadgeText: { fontSize: 14, fontWeight: '600', color: Colors.accent },
-  catList: { backgroundColor: Colors.card, borderRadius: 14, overflow: 'hidden' },
-  catRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  catIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: Colors.accentDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  catInfo: { flex: 1 },
-  catLabel: { fontSize: 15, fontWeight: '500', color: Colors.text },
-  catSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',

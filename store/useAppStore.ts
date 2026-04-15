@@ -20,6 +20,7 @@ interface AppState {
 
   // Preferences
   notificationPrefs: NotificationPrefs;
+  useMetric: boolean;
 
   // UI
   isLoading: boolean;
@@ -49,6 +50,7 @@ interface AppState {
   setIsSyncing: (v: boolean) => void;
 
   setNotificationPrefs: (prefs: Partial<NotificationPrefs>) => void;
+  setUseMetric: (v: boolean) => void;
 
   setLoading: (v: boolean) => void;
 }
@@ -72,6 +74,7 @@ export const useAppStore = create<AppState>((set) => ({
   lastSyncAt: null,
   isSyncing: false,
   notificationPrefs: DEFAULT_NOTIFICATION_PREFS,
+  useMetric: true,
   isLoading: true,
 
   setUserId: (id) => set({ userId: id }),
@@ -123,6 +126,7 @@ export const useAppStore = create<AppState>((set) => ({
 
   setNotificationPrefs: (prefs) =>
     set((s) => ({ notificationPrefs: { ...s.notificationPrefs, ...prefs } })),
+  setUseMetric: (v) => set({ useMetric: v }),
 
   setLoading: (v) => set({ isLoading: v }),
 }));
