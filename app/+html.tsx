@@ -15,18 +15,8 @@ export default function Root({ children }: PropsWithChildren) {
         />
         {/* Required for expo-router scroll views to work correctly on web */}
         <ScrollViewStyleReset />
-        <style dangerouslySetInnerHTML={{ __html: iconFontStyles }} />
       </head>
       <body>{children}</body>
     </html>
   );
 }
-
-const iconFontStyles = `
-@font-face {
-  font-family: Ionicons;
-  src: url(${require('../assets/fonts/Ionicons.ttf')});
-  font-weight: normal;
-  font-style: normal;
-}
-`;
