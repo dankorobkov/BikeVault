@@ -47,9 +47,9 @@ export default function GarageScreen() {
     if (filter === 'retired') return c.status === 'retired';
     if (filter === 'in-stock') return c.status === 'in-stock';
     if (filter === 'attention') {
-      if (c.status \!== 'active') return false;
+      if (c.status !== 'active') return false;
       const bike = getBike(c.bikeId);
-      if (\!bike) return false;
+      if (!bike) return false;
       const pct = calcWearPercent(bike.totalDistance, c.installDistance, c.maxLifespan);
       return pct >= 60;
     }
@@ -60,8 +60,8 @@ export default function GarageScreen() {
   const sorted = [...filtered].sort((a, b) => {
     // In-stock at the top of "all" view
     if (filter === 'all') {
-      if (a.status === 'in-stock' && b.status \!== 'in-stock') return -1;
-      if (b.status === 'in-stock' && a.status \!== 'in-stock') return 1;
+      if (a.status === 'in-stock' && b.status !== 'in-stock') return -1;
+      if (b.status === 'in-stock' && a.status !== 'in-stock') return 1;
     }
     const bikeA = getBike(a.bikeId);
     const bikeB = getBike(b.bikeId);
@@ -71,28 +71,28 @@ export default function GarageScreen() {
   });
 
   const attentionCount = components.filter((c) => {
-    if (c.status \!== 'active') return false;
+    if (c.status !== 'active') return false;
     const bike = getBike(c.bikeId);
-    if (\!bike) return false;
+    if (!bike) return false;
     return calcWearPercent(bike.totalDistance, c.installDistance, c.maxLifespan) >= 60;
   }).length;
 
   const inStockCount = components.filter((c) => c.status === 'in-stock').length;
 
   const handleRetire = async (componentId: string) => {
-    if (\!userId) return;
+    if (!userId) return;
     await retireComponent(userId, componentId);
     updateComponentLocal(componentId, { status: 'retired', updatedAt: Date.now() });
   };
 
   const handleMoveToStock = async (componentId: string) => {
-    if (\!userId) return;
+    if (!userId) return;
     await moveToStock(userId, componentId);
     updateComponentLocal(componentId, { bikeId: null, status: 'in-stock', updatedAt: Date.now() });
   };
 
   const handleDelete = async (componentId: string) => {
-    if (\!userId) return;
+    if (!userId) return;
     await deleteComponent(userId, componentId);
     removeComponentLocal(componentId);
   };
@@ -109,7 +109,7 @@ export default function GarageScreen() {
     lastCharged?: number;
     chargeIntervalDays?: number;
   }) => {
-    if (\!userId) return;
+    if (!userId) return;
     const newComp = await addComponent(userId, {
       bikeId: null,
       name: data.name,
@@ -134,7 +134,7 @@ export default function GarageScreen() {
     <View style={styles.root}>
       <SuccessBanner
         visible={showSuccess}
-        title={successName + ' added to stock\!'}
+        title={successName + ' added to stock!'}
         subtitle="Install it on a bike from the Bikes tab."
         onHide={() => setShowSuccess(false)}
       />
@@ -201,7 +201,7 @@ export default function GarageScreen() {
             }
             title={
               filter === 'attention'
-                ? 'All components look good\!'
+                ? 'All components look good!'
                 : filter === 'retired'
                 ? 'No retired components'
                 : filter === 'in-stock'

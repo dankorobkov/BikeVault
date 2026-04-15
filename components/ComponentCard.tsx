@@ -62,7 +62,7 @@ export default function ComponentCard({
 
   // Electric battery estimation
   const batteryPctLabel = (() => {
-    if (\!component.isElectric || \!component.lastCharged || \!component.chargeIntervalDays) return null;
+    if (!component.isElectric || !component.lastCharged || !component.chargeIntervalDays) return null;
     const daysSinceCharge = (Date.now() - component.lastCharged) / 86400000;
     const pct = Math.max(0, Math.round(100 - (daysSinceCharge / component.chargeIntervalDays) * 100));
     return pct;
@@ -185,7 +185,7 @@ export default function ComponentCard({
         )}
 
         {/* Electric battery indicator */}
-        {component.isElectric && batteryPctLabel \!== null && (
+        {component.isElectric && batteryPctLabel !== null && (
           <View style={styles.batteryRow}>
             <Ionicons
               name="battery-half-outline"

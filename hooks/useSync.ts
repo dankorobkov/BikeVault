@@ -6,7 +6,7 @@ import {
   getValidToken,
   buildBikeDistanceMap,
 } from '../services/stravaService';
-import { updateBikeDistance } from '../services/bikesService';
+import { updateBike } from '../services/bikesService';
 
 const LAST_SYNC_KEY = 'bikevault_last_sync';
 
@@ -33,7 +33,7 @@ export function useSync() {
         if (bike.stravaId && distanceMap[bike.stravaId] !== undefined) {
           const newDistance = distanceMap[bike.stravaId];
           if (newDistance !== bike.totalDistance) {
-            await updateBikeDistance(userId, bike.id, newDistance);
+            await updateBike(userId, bike.id, { totalDistance: newDistance });
             updateBikeLocal(bike.id, { totalDistance: newDistance, updatedAt: Date.now() });
           }
         }

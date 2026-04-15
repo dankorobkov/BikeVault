@@ -61,11 +61,11 @@ export default function BikeDetailScreen() {
 
   const bike = bikes.find((b) => b.id === id);
   const bikeComponents = components.filter(
-    (c) => c.bikeId === id && (showRetired ? true : c.status \!== 'retired')
+    (c) => c.bikeId === id && (showRetired ? true : c.status !== 'retired')
   );
 
   useEffect(() => {
-    if (\!bike?.stravaId || \!stravaTokens || \!userId) return;
+    if (!bike?.stravaId || !stravaTokens || !userId) return;
     setLoadingRides(true);
     getValidToken(userId, stravaTokens)
       .then((tokens) =>
@@ -84,7 +84,7 @@ export default function BikeDetailScreen() {
       .finally(() => setLoadingRides(false));
   }, [bike?.stravaId, stravaTokens]);
 
-  if (\!bike) {
+  if (!bike) {
     return (
       <View style={styles.notFound}>
         <Text style={styles.notFoundText}>Bike not found</Text>
@@ -107,7 +107,7 @@ export default function BikeDetailScreen() {
     lastCharged?: number;
     chargeIntervalDays?: number;
   }) => {
-    if (\!userId) return;
+    if (!userId) return;
     const newComp = await addComponent(userId, {
       bikeId: id,
       name: data.name,
@@ -129,19 +129,19 @@ export default function BikeDetailScreen() {
   };
 
   const handleRetire = async (componentId: string) => {
-    if (\!userId) return;
+    if (!userId) return;
     await retireComponent(userId, componentId);
     updateComponentLocal(componentId, { status: 'retired', updatedAt: Date.now() });
   };
 
   const handleMoveToStock = async (componentId: string) => {
-    if (\!userId) return;
+    if (!userId) return;
     await moveToStock(userId, componentId);
     updateComponentLocal(componentId, { bikeId: null, status: 'in-stock', updatedAt: Date.now() });
   };
 
   const handleDeleteComponent = async (componentId: string) => {
-    if (\!userId) return;
+    if (!userId) return;
     await deleteComponent(userId, componentId);
     removeComponentLocal(componentId);
   };
@@ -156,7 +156,7 @@ export default function BikeDetailScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            if (\!userId) return;
+            if (!userId) return;
             await deleteBike(userId, id);
             removeBikeLocal(id);
             router.back();
@@ -168,7 +168,7 @@ export default function BikeDetailScreen() {
 
   const handleAddRide = async () => {
     const km = Number(rideKm);
-    if (\!km || \!userId) return;
+    if (!km || !userId) return;
     setAddingRide(true);
     try {
       const newDist = bike.totalDistance + km;
@@ -192,7 +192,7 @@ export default function BikeDetailScreen() {
     <View style={styles.root}>
       <SuccessBanner
         visible={showSuccess}
-        title={successName + ' added\!'}
+        title={successName + ' added!'}
         subtitle="Wear tracking has started."
         onHide={() => setShowSuccess(false)}
       />
@@ -290,7 +290,7 @@ export default function BikeDetailScreen() {
           <View style={styles.sectionActions}>
             {retiredCount > 0 && (
               <TouchableOpacity
-                onPress={() => setShowRetired((v) => \!v)}
+                onPress={() => setShowRetired((v) => !v)}
                 style={styles.retiredToggle}
               >
                 <Text style={styles.retiredToggleText}>
@@ -363,9 +363,9 @@ export default function BikeDetailScreen() {
                 <Text style={{ color: Colors.textSecondary, fontSize: 15 }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.rideModalSave, \!rideKm && styles.rideModalSaveDisabled]}
+                style={[styles.rideModalSave, !rideKm && styles.rideModalSaveDisabled]}
                 onPress={handleAddRide}
-                disabled={\!rideKm || addingRide}
+                disabled={!rideKm || addingRide}
               >
                 {addingRide ? (
                   <ActivityIndicator color={Colors.white} />

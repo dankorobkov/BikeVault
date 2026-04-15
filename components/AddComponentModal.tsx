@@ -80,7 +80,7 @@ export default function AddComponentModal({
   };
 
   const handleAdd = async () => {
-    if (\!name.trim()) return;
+    if (!name.trim()) return;
     setSaving(true);
     try {
       await onAdd({
@@ -135,11 +135,11 @@ export default function AddComponentModal({
             {step === 'category' ? 'Choose Type' : 'Component Details'}
           </Text>
           {step === 'details' ? (
-            <TouchableOpacity onPress={handleAdd} disabled={\!name.trim() || saving}>
+            <TouchableOpacity onPress={handleAdd} disabled={!name.trim() || saving}>
               {saving ? (
                 <ActivityIndicator color={Colors.accent} />
               ) : (
-                <Text style={[styles.saveBtn, \!name.trim() && styles.saveBtnDisabled]}>Save</Text>
+                <Text style={[styles.saveBtn, !name.trim() && styles.saveBtnDisabled]}>Save</Text>
               )}
             </TouchableOpacity>
           ) : (
@@ -220,7 +220,7 @@ export default function AddComponentModal({
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>WEAR TRACKING</Text>
               <View style={styles.inputGroup}>
-                {\!inStockMode && (
+                {!inStockMode && (
                   <>
                     <TextInput
                       style={styles.input}

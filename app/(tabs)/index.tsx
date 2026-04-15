@@ -60,7 +60,7 @@ export default function BikesScreen() {
     stravaId?: string;
     totalDistance: number;
   }) => {
-    if (\!userId) return;
+    if (!userId) return;
     const newBike = await addBike(userId, data);
     addBikeLocal(newBike);
     setSuccessBikeName(newBike.name);
@@ -76,7 +76,7 @@ export default function BikesScreen() {
     <View style={styles.root}>
       <SuccessBanner
         visible={showSuccess}
-        title={successBikeName + ' added\!'}
+        title={successBikeName + ' added!'}
         subtitle="Start adding components to track wear."
         onHide={() => setShowSuccess(false)}
       />
@@ -111,7 +111,7 @@ export default function BikesScreen() {
               key={bike.id}
               bike={bike}
               components={components}
-              onPress={() => router.push('/bike/' + bike.id)}
+              onPress={() => router.push(('/bike/' + bike.id) as never)}
             />
           ))
         )}

@@ -43,7 +43,7 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
   const [brand, setBrand] = useState('');
   const [type, setType] = useState<BikeType>('road');
   const [brakeSystem, setBrakeSystem] = useState<BrakeSystem>('disc-hydraulic');
-  const [color, setColor] = useState(Colors.accent);
+  const [color, setColor] = useState<string>(Colors.accent);
   const [stravaId, setStravaId] = useState<string | undefined>();
   const [manualDistance, setManualDistance] = useState('0');
   const [saving, setSaving] = useState(false);
@@ -53,13 +53,13 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
       setStravaId(undefined);
     } else {
       setStravaId(id);
-      if (\!name) setName(bikeName);
+      if (!name) setName(bikeName);
       setManualDistance(String(distanceKm));
     }
   };
 
   const handleAdd = async () => {
-    if (\!name.trim()) return;
+    if (!name.trim()) return;
     setSaving(true);
     try {
       await onAdd({
@@ -100,11 +100,11 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
             <Text style={styles.cancelBtn}>Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Add Bike</Text>
-          <TouchableOpacity onPress={handleAdd} disabled={\!name.trim() || saving}>
+          <TouchableOpacity onPress={handleAdd} disabled={!name.trim() || saving}>
             {saving ? (
               <ActivityIndicator color={Colors.accent} />
             ) : (
-              <Text style={[styles.saveBtn, \!name.trim() && styles.saveBtnDisabled]}>Save</Text>
+              <Text style={[styles.saveBtn, !name.trim() && styles.saveBtnDisabled]}>Save</Text>
             )}
           </TouchableOpacity>
         </View>

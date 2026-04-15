@@ -103,7 +103,7 @@ export default function SettingsScreen() {
         text: 'Disconnect',
         style: 'destructive',
         onPress: async () => {
-          if (\!userId) return;
+          if (!userId) return;
           await clearStravaTokens(userId);
           setStravaTokens(null);
         },
@@ -135,7 +135,7 @@ export default function SettingsScreen() {
     ]);
   };
 
-  const isConnected = \!\!stravaTokens;
+  const isConnected = !!stravaTokens;
 
   return (
     <View style={styles.root}>
@@ -170,7 +170,7 @@ export default function SettingsScreen() {
                   </>
                 )}
               </View>
-              {\!isAnonymous && (
+              {!isAnonymous && (
                 <View style={styles.googleBadge}>
                   <Ionicons name="logo-google" size={12} color={Colors.textSecondary} />
                   <Text style={styles.googleBadgeText}>Google</Text>
@@ -258,15 +258,15 @@ export default function SettingsScreen() {
                   Link your Strava account to automatically sync bike distances and track component wear.
                 </Text>
                 <TouchableOpacity
-                  style={[styles.connectBtn, (\!request || connecting) && styles.connectBtnDisabled]}
+                  style={[styles.connectBtn, (!request || connecting) && styles.connectBtnDisabled]}
                   onPress={handleConnectStrava}
-                  disabled={\!request || connecting}
+                  disabled={!request || connecting}
                 >
                   {connecting ? (
                     <ActivityIndicator color={Colors.white} />
                   ) : (
                     <>
-                      <Ionicons name="logo-strava" size={18} color={Colors.white} />
+                      <Ionicons name="flash-outline" size={18} color={Colors.white} />
                       <Text style={styles.connectBtnText}>Connect with Strava</Text>
                     </>
                   )}
