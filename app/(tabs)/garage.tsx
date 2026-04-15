@@ -5,9 +5,9 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Platform,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/useAppStore';
 import {
@@ -38,6 +38,7 @@ const FILTERS: { key: Filter; label: string; icon: string }[] = [
 ];
 
 export default function GarageScreen() {
+  const insets = useSafeAreaInsets();
   const { userId, bikes, components, updateComponentLocal, removeComponentLocal, addComponentLocal } =
     useAppStore();
   const [filter, setFilter] = useState<Filter>('all');
@@ -177,7 +178,7 @@ export default function GarageScreen() {
       />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 8, 20) }]}>
         <View>
           <Text style={styles.title}>Garage</Text>
         </View>
@@ -322,7 +323,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'web' ? 20 : 60,
     paddingBottom: 12,
   },
   title: {

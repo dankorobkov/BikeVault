@@ -8,9 +8,9 @@ import {
   Image,
   Alert,
   ActivityIndicator,
-  Platform,
   Switch,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,6 +38,7 @@ const discovery = {
 };
 
 export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
   const {
     userId,
     isAnonymous,
@@ -141,7 +142,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 8, 20) }]}>
         <Text style={styles.title}>Settings</Text>
       </View>
 
@@ -412,7 +413,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
   header: {
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'web' ? 20 : 60,
     paddingBottom: 16,
   },
   title: { fontSize: 34, fontWeight: '700', color: Colors.text, letterSpacing: -0.5 },
