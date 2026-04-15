@@ -34,13 +34,13 @@ import EditComponentModal from '../../components/EditComponentModal';
 import EmptyState from '../../components/EmptyState';
 import SuccessBanner from '../../components/SuccessBanner';
 import AppTabBar from '../../components/AppTabBar';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '../../hooks/useTopInset';
 import type { BikeComponent, ComponentCategory, StravaActivity, BikeType, BrakeSystem } from '../../types';
 
 const STRAVA_API = 'https://www.strava.com/api/v3';
 
 export default function BikeDetailScreen() {
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const {
@@ -311,7 +311,7 @@ export default function BikeDetailScreen() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
         {/* Back button */}
         <TouchableOpacity
-          style={[styles.backBtn, { paddingTop: Math.max(insets.top + 8, 20) }]}
+          style={[styles.backBtn, { paddingTop: topInset }]}
           onPress={() => router.canGoBack() ? router.back() : router.replace('/')}
         >
           <Ionicons name="arrow-back" size={18} color={Colors.accent} />

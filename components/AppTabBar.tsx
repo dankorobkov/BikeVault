@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,9 +18,27 @@ const TABS: { name: TabName; label: string; icon: string; path: string }[] = [
 
 export default function AppTabBar({ active }: Props) {
   const router = useRouter();
+  const [bottomInset, setBottomInset] = useState(0);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const div = document.createElement('div');
+    div.style.cssText =
+      'position:fixed;pointer-events:none;visibility:hidden;' +
+      'bottom:0;left:0;width:1px;height:1px;' +
+      'padding-bottom:env(safe-area-inset-bottom,0px)';
+    document.body.appendChild(div);
+    const val = parseFloat(getComputedStyle(div).paddingBottom) || 0;
+    document.body.removeChild(div);
+    setBottomInset(val);
+  }, []);
+
+  const pbBottom = Platform.OS === 'web'
+    ? Math.max(bottomInset + 8, 8)
+    : 28;
 
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { paddingBottom: pbBottom, height: 52 + pbBottom }]}>
       {TABS.map((tab) => {
         const isActive = tab.name === active;
         return (
@@ -50,8 +68,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    height: Platform.OS === 'web' ? 60 : 88,
-    paddingBottom: Platform.OS === 'web' ? 8 : 28,
     paddingTop: 10,
   },
   tab: {

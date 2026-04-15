@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '../../hooks/useTopInset';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/useAppStore';
 import {
@@ -38,7 +38,7 @@ const FILTERS: { key: Filter; label: string; icon: string }[] = [
 ];
 
 export default function GarageScreen() {
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const { userId, bikes, components, updateComponentLocal, removeComponentLocal, addComponentLocal } =
     useAppStore();
   const [filter, setFilter] = useState<Filter>('all');
@@ -178,7 +178,7 @@ export default function GarageScreen() {
       />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top + 8, 20) }]}>
+      <View style={[styles.header, { paddingTop: topInset }]}>
         <View>
           <Text style={styles.title}>Garage</Text>
         </View>

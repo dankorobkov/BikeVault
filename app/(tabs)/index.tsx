@@ -7,7 +7,7 @@ import {
   StyleSheet,
   RefreshControl,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '../../hooks/useTopInset';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/useAppStore';
@@ -21,7 +21,7 @@ import SuccessBanner from '../../components/SuccessBanner';
 import type { BikeType, BrakeSystem } from '../../types';
 
 export default function BikesScreen() {
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const router = useRouter();
   const { userId, bikes, components, stravaTokens, addBikeLocal } = useAppStore();
 
@@ -83,7 +83,7 @@ export default function BikesScreen() {
       />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top + 8, 20) }]}>
+      <View style={[styles.header, { paddingTop: topInset }]}>
         <Text style={styles.title}>My Bikes</Text>
         <TouchableOpacity onPress={openAddModal} style={styles.addBtn}>
           <Ionicons name="add" size={22} color={Colors.accent} />

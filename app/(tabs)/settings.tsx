@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopInset } from '../../hooks/useTopInset';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,7 +38,7 @@ const discovery = {
 };
 
 export default function SettingsScreen() {
-  const insets = useSafeAreaInsets();
+  const topInset = useTopInset();
   const {
     userId,
     isAnonymous,
@@ -142,7 +142,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top + 8, 20) }]}>
+      <View style={[styles.header, { paddingTop: topInset }]}>
         <Text style={styles.title}>Settings</Text>
       </View>
 
