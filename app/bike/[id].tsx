@@ -26,13 +26,14 @@ import {
 import { deleteBike, updateBike } from '../../services/bikesService';
 import { getValidToken } from '../../services/stravaService';
 import { Colors } from '../../constants/colors';
-import { BIKE_TYPE_LABELS, BRAKE_SYSTEM_LABELS } from '../../constants/componentTypes';
+import { BIKE_TYPE_LABELS, BRAKE_SYSTEM_LABELS, COMPONENT_TYPES } from '../../constants/componentTypes';
 import ComponentCard from '../../components/ComponentCard';
 import AddComponentModal from '../../components/AddComponentModal';
 import EditBikeModal from '../../components/EditBikeModal';
 import EditComponentModal from '../../components/EditComponentModal';
 import EmptyState from '../../components/EmptyState';
 import SuccessBanner from '../../components/SuccessBanner';
+import AppTabBar from '../../components/AppTabBar';
 import type { BikeComponent, ComponentCategory, StravaActivity, BikeType, BrakeSystem } from '../../types';
 
 const STRAVA_API = 'https://www.strava.com/api/v3';
@@ -108,7 +109,7 @@ export default function BikeDetailScreen() {
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  const handleAddComponent = async (data: {
+  const doAddComponent = async (data: {
     name: string;
     category: ComponentCategory;
     brand: string;
@@ -139,6 +140,57 @@ export default function BikeDetailScreen() {
     addComponentLocal(newComp);
     setSuccessName(newComp.name);
     setShowSuccess(true);
+  };
+
+  const handleAddComponent = async (data: {
+    name: string;
+    category: ComponentCategory;
+    brand: string;
+    installDistance: number;
+    maxLifespan: number;
+    attentionFrequency?: number;
+    notes: string;
+    isElectric: boolean;
+    lastCharged?: number;
+    chargeIntervalDays?: number;
+  }) => {
+    if (!userId) return;
+
+    // Check for an existing active component of the same category on this bike
+    const existing = components.find(
+      (c) => c.bikeId === id && c.status === 'active' && c.category === data.category
+    );
+
+    if (existing) {
+      const typeLabel = COMPONENT_TYPES[data.category]?.label ?? data.category;
+      Alert.alert(
+        typeLabel + ' already installed',
+        `"${existing.name}" is currently on this bike. What should happen to it?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Move to Stock',
+            onPress: async () => {
+              await moveToStock(userId, existing.id);
+              updateComponentLocal(existing.id, { bikeId: null, status: 'in-stock', updatedAt: Date.now() });
+              await doAddComponent(data);
+            },
+          },
+          {
+            text: 'Retire It',
+            style: 'destructive',
+            onPress: async () => {
+              await retireComponent(userId, existing.id);
+              updateComponentLocal(existing.id, { status: 'retired', updatedAt: Date.now() });
+              await doAddComponent(data);
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    await doAddComponent(data);
   };
 
   const handleEditSave = async (
@@ -256,7 +308,7 @@ export default function BikeDetailScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Back button */}
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.canGoBack() ? router.back() : router.replace('/')}>
           <Ionicons name="arrow-back" size={18} color={Colors.accent} />
           <Text style={styles.backText}>Bikes</Text>
         </TouchableOpacity>
@@ -381,6 +433,7 @@ export default function BikeDetailScreen() {
               key={comp.id}
               component={comp}
               bikeDistance={bike.totalDistance}
+              onPress={() => setEditingComponent(comp)}
               onEdit={() => setEditingComponent(comp)}
               onRetire={() => handleRetire(comp.id)}
               onMoveToStock={() => handleMoveToStock(comp.id)}
@@ -389,6 +442,8 @@ export default function BikeDetailScreen() {
           ))
         )}
       </ScrollView>
+
+      <AppTabBar active="bikes" />
 
       {/* Add Component modal */}
       <AddComponentModal

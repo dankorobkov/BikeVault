@@ -21,6 +21,7 @@ import {
 interface Props {
   component: BikeComponent;
   bikeDistance: number;
+  onPress?: () => void;
   onEdit?: () => void;
   onRetire?: () => void;
   onMoveToStock?: () => void;
@@ -37,6 +38,7 @@ const WEAR_BG: Record<string, string> = {
 export default function ComponentCard({
   component,
   bikeDistance,
+  onPress,
   onEdit,
   onRetire,
   onMoveToStock,
@@ -112,7 +114,11 @@ export default function ComponentCard({
   };
 
   return (
-    <View style={[styles.card, isRetired && styles.retired]}>
+    <TouchableOpacity
+      style={[styles.card, isRetired && styles.retired]}
+      onPress={onPress ?? onEdit}
+      activeOpacity={onPress || onEdit ? 0.75 : 1}
+    >
       {/* Icon */}
       <View style={[styles.iconBox, { backgroundColor: wearBg }]}>
         <Ionicons
@@ -210,7 +216,7 @@ export default function ComponentCard({
           </View>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

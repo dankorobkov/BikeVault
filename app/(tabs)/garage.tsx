@@ -180,11 +180,6 @@ export default function GarageScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Garage</Text>
-          {attentionCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{attentionCount} need attention</Text>
-            </View>
-          )}
         </View>
         <View style={styles.headerRight}>
           {/* Sort toggle */}
@@ -286,6 +281,7 @@ export default function GarageScreen() {
                 <ComponentCard
                   component={comp}
                   bikeDistance={bike?.totalDistance ?? 0}
+                  onPress={() => setEditingComponent(comp)}
                   onEdit={() => setEditingComponent(comp)}
                   onRetire={comp.status === 'active' ? () => handleRetire(comp.id) : undefined}
                   onMoveToStock={comp.status === 'active' ? () => handleMoveToStock(comp.id) : undefined}
@@ -335,15 +331,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
     letterSpacing: -0.5,
   },
-  badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.warningDim,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 99,
-    marginTop: 6,
-  },
-  badgeText: { fontSize: 12, fontWeight: '600', color: Colors.warning },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
