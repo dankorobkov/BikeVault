@@ -20,6 +20,8 @@ import {
   retireComponent,
   deleteComponent,
   moveToStock,
+  updateComponent,
+  installOnBike,
 } from '../../services/componentsService';
 import { deleteBike, updateBike } from '../../services/bikesService';
 import { getValidToken } from '../../services/stravaService';
@@ -27,9 +29,11 @@ import { Colors } from '../../constants/colors';
 import { BIKE_TYPE_LABELS, BRAKE_SYSTEM_LABELS } from '../../constants/componentTypes';
 import ComponentCard from '../../components/ComponentCard';
 import AddComponentModal from '../../components/AddComponentModal';
+import EditBikeModal from '../../components/EditBikeModal';
+import EditComponentModal from '../../components/EditComponentModal';
 import EmptyState from '../../components/EmptyState';
 import SuccessBanner from '../../components/SuccessBanner';
-import type { ComponentCategory, StravaActivity } from '../../types';
+import type { BikeComponent, ComponentCategory, StravaActivity, BikeType, BrakeSystem } from '../../types';
 
 const STRAVA_API = 'https://www.strava.com/api/v3';
 
@@ -54,10 +58,19 @@ export default function BikeDetailScreen() {
   const [successName, setSuccessName] = useState('');
   const [activities, setActivities] = useState<StravaActivity[]>([]);
   const [loadingRides, setLoadingRides] = useState(false);
+
+  // Add Ride modal
   const [showAddRide, setShowAddRide] = useState(false);
   const [rideKm, setRideKm] = useState('');
   const [rideName, setRideName] = useState('');
+  const [rideDate, setRideDate] = useState('');
   const [addingRide, setAddingRide] = useState(false);
+
+  // Edit Bike modal
+  const [showEditBike, setShowEditBike] = useState(false);
+
+  // Edit Component modal
+  const [editingComponent, setEditingComponent] = useState<BikeComponent | null>(null);
 
   const bike = bikes.find((b) => b.id === id);
   const bikeComponents = components.filter(
@@ -69,11 +82,9 @@ export default function BikeDetailScreen() {
     setLoadingRides(true);
     getValidToken(userId, stravaTokens)
       .then((tokens) =>
-        fetch(
-          STRAVA_API +
-            '/athlete/activities?per_page=10&page=1',
-          { headers: { Authorization: 'Bearer ' + tokens.accessToken } }
-        )
+        fetch(STRAVA_API + '/athlete/activities?per_page=10&page=1', {
+          headers: { Authorization: 'Bearer ' + tokens.accessToken },
+        })
       )
       .then((r) => r.json())
       .then((data: StravaActivity[]) => {
@@ -94,6 +105,8 @@ export default function BikeDetailScreen() {
 
   const activeCount = components.filter((c) => c.bikeId === id && c.status === 'active').length;
   const retiredCount = components.filter((c) => c.bikeId === id && c.status === 'retired').length;
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
 
   const handleAddComponent = async (data: {
     name: string;
@@ -126,6 +139,30 @@ export default function BikeDetailScreen() {
     addComponentLocal(newComp);
     setSuccessName(newComp.name);
     setShowSuccess(true);
+  };
+
+  const handleEditSave = async (
+    componentId: string,
+    updates: Partial<Omit<BikeComponent, 'id' | 'createdAt'>>
+  ) => {
+    if (!userId) return;
+    await updateComponent(userId, componentId, updates);
+    updateComponentLocal(componentId, { ...updates, updatedAt: Date.now() });
+  };
+
+  const handleEditInstallOnBike = async (
+    componentId: string,
+    targetBikeId: string,
+    dist: number
+  ) => {
+    if (!userId) return;
+    await installOnBike(userId, componentId, targetBikeId, dist);
+    updateComponentLocal(componentId, {
+      bikeId: targetBikeId,
+      status: 'active',
+      installDistance: dist,
+      updatedAt: Date.now(),
+    });
   };
 
   const handleRetire = async (componentId: string) => {
@@ -166,6 +203,18 @@ export default function BikeDetailScreen() {
     );
   };
 
+  const handleSaveBike = async (data: {
+    name: string;
+    brand: string;
+    type: BikeType;
+    brakeSystem: BrakeSystem;
+    color: string;
+  }) => {
+    if (!userId) return;
+    await updateBike(userId, id, data);
+    updateBikeLocal(id, { ...data, updatedAt: Date.now() });
+  };
+
   const handleAddRide = async () => {
     const km = Number(rideKm);
     if (!km || !userId) return;
@@ -177,9 +226,15 @@ export default function BikeDetailScreen() {
       setShowAddRide(false);
       setRideKm('');
       setRideName('');
+      setRideDate('');
     } finally {
       setAddingRide(false);
     }
+  };
+
+  const openAddRide = () => {
+    setRideDate(dayjs().format('D MMM YYYY'));
+    setShowAddRide(true);
   };
 
   const formatMovingTime = (seconds: number) => {
@@ -187,6 +242,8 @@ export default function BikeDetailScreen() {
     const m = Math.floor((seconds % 3600) / 60);
     return h > 0 ? h + 'h ' + m + 'm' : m + 'm';
   };
+
+  // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <View style={styles.root}>
@@ -198,7 +255,7 @@ export default function BikeDetailScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Back button (for web where the Stack header may not show) */}
+        {/* Back button (web only) */}
         {Platform.OS === 'web' && (
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={18} color={Colors.accent} />
@@ -223,9 +280,18 @@ export default function BikeDetailScreen() {
                   Added {dayjs(bike.createdAt).format('D MMM YYYY')}
                 </Text>
               </View>
-              <TouchableOpacity onPress={handleDeleteBike} style={styles.deleteBtn}>
-                <Ionicons name="trash-outline" size={18} color={Colors.danger} />
-              </TouchableOpacity>
+              {/* Edit + Delete buttons */}
+              <View style={styles.heroBtns}>
+                <TouchableOpacity
+                  onPress={() => setShowEditBike(true)}
+                  style={styles.editBtn}
+                >
+                  <Ionicons name="pencil-outline" size={16} color={Colors.accent} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleDeleteBike} style={styles.deleteBtn}>
+                  <Ionicons name="trash-outline" size={16} color={Colors.danger} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Stats */}
@@ -242,7 +308,7 @@ export default function BikeDetailScreen() {
                 <Text style={styles.heroStatLabel}>active parts</Text>
               </View>
               <View style={styles.heroStatDivider} />
-              <TouchableOpacity style={styles.heroStat} onPress={() => setShowAddRide(true)}>
+              <TouchableOpacity style={styles.heroStat} onPress={openAddRide}>
                 <Ionicons name="add-circle-outline" size={22} color={Colors.accent} />
                 <Text style={styles.heroStatLabel}>add ride</Text>
               </TouchableOpacity>
@@ -317,6 +383,7 @@ export default function BikeDetailScreen() {
               key={comp.id}
               component={comp}
               bikeDistance={bike.totalDistance}
+              onEdit={() => setEditingComponent(comp)}
               onRetire={() => handleRetire(comp.id)}
               onMoveToStock={() => handleMoveToStock(comp.id)}
               onDelete={() => handleDeleteComponent(comp.id)}
@@ -334,27 +401,75 @@ export default function BikeDetailScreen() {
         onAdd={handleAddComponent}
       />
 
-      {/* Manual ride modal */}
-      <Modal visible={showAddRide} animationType="fade" transparent onRequestClose={() => setShowAddRide(false)}>
+      {/* Edit Bike modal */}
+      <EditBikeModal
+        visible={showEditBike}
+        bike={bike}
+        onClose={() => setShowEditBike(false)}
+        onSave={handleSaveBike}
+      />
+
+      {/* Edit Component modal */}
+      <EditComponentModal
+        visible={editingComponent !== null}
+        component={editingComponent}
+        bikes={bikes}
+        onClose={() => setEditingComponent(null)}
+        onSave={handleEditSave}
+        onRetire={handleRetire}
+        onMoveToStock={handleMoveToStock}
+        onInstallOnBike={handleEditInstallOnBike}
+      />
+
+      {/* Manual Add Ride modal */}
+      <Modal
+        visible={showAddRide}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowAddRide(false)}
+      >
         <View style={styles.overlay}>
           <View style={styles.rideModal}>
             <Text style={styles.rideModalTitle}>Add Ride</Text>
-            <TextInput
-              style={styles.rideInput}
-              placeholder="Ride name (optional)"
-              placeholderTextColor={Colors.textTertiary}
-              value={rideName}
-              onChangeText={setRideName}
-            />
-            <TextInput
-              style={styles.rideInput}
-              placeholder="Distance (km) *"
-              placeholderTextColor={Colors.textTertiary}
-              value={rideKm}
-              onChangeText={setRideKm}
-              keyboardType="numeric"
-              autoFocus
-            />
+
+            {/* Date */}
+            <View style={styles.rideFieldRow}>
+              <Ionicons name="calendar-outline" size={16} color={Colors.textSecondary} />
+              <TextInput
+                style={[styles.rideInput, { flex: 1 }]}
+                placeholder="Date — e.g. 15 Apr 2026"
+                placeholderTextColor={Colors.textTertiary}
+                value={rideDate}
+                onChangeText={setRideDate}
+              />
+            </View>
+
+            {/* Name */}
+            <View style={styles.rideFieldRow}>
+              <Ionicons name="text-outline" size={16} color={Colors.textSecondary} />
+              <TextInput
+                style={[styles.rideInput, { flex: 1 }]}
+                placeholder="Ride name (optional)"
+                placeholderTextColor={Colors.textTertiary}
+                value={rideName}
+                onChangeText={setRideName}
+              />
+            </View>
+
+            {/* Distance */}
+            <View style={styles.rideFieldRow}>
+              <Ionicons name="speedometer-outline" size={16} color={Colors.textSecondary} />
+              <TextInput
+                style={[styles.rideInput, { flex: 1 }]}
+                placeholder="Distance in km *"
+                placeholderTextColor={Colors.textTertiary}
+                value={rideKm}
+                onChangeText={setRideKm}
+                keyboardType="numeric"
+                autoFocus
+              />
+            </View>
+
             <View style={styles.rideModalActions}>
               <TouchableOpacity
                 style={styles.rideModalCancel}
@@ -371,7 +486,7 @@ export default function BikeDetailScreen() {
                   <ActivityIndicator color={Colors.white} />
                 ) : (
                   <Text style={{ color: Colors.white, fontWeight: '700', fontSize: 15 }}>
-                    Add {rideKm ? Number(rideKm).toLocaleString() + ' km' : ''}
+                    {rideKm ? 'Add ' + Number(rideKm).toLocaleString() + ' km' : 'Add Ride'}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -413,9 +528,18 @@ const styles = StyleSheet.create({
   bikeName: { fontSize: 22, fontWeight: '700', color: Colors.text, letterSpacing: -0.5 },
   bikeMeta: { fontSize: 13, color: Colors.textSecondary, marginTop: 3 },
   bikeDate: { fontSize: 12, color: Colors.textTertiary, marginTop: 2 },
+  heroBtns: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  editBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: Colors.accentDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   deleteBtn: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: 10,
     backgroundColor: Colors.dangerDim,
     alignItems: 'center',
@@ -456,11 +580,7 @@ const styles = StyleSheet.create({
   addBtnText: { fontSize: 14, fontWeight: '600', color: Colors.accent },
 
   noRides: { fontSize: 13, color: Colors.textSecondary },
-  rideList: {
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
+  rideList: { backgroundColor: Colors.card, borderRadius: 14, overflow: 'hidden' },
   rideRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -494,18 +614,23 @@ const styles = StyleSheet.create({
     padding: 24,
     width: '100%',
     maxWidth: 380,
-    gap: 14,
+    gap: 12,
   },
   rideModalTitle: { fontSize: 18, fontWeight: '700', color: Colors.text },
-  rideInput: {
+  rideFieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     backgroundColor: Colors.surface,
     borderRadius: 12,
     paddingHorizontal: 14,
+  },
+  rideInput: {
     paddingVertical: 12,
     fontSize: 15,
     color: Colors.text,
   },
-  rideModalActions: { flexDirection: 'row', gap: 10 },
+  rideModalActions: { flexDirection: 'row', gap: 10, marginTop: 2 },
   rideModalCancel: {
     flex: 1,
     alignItems: 'center',

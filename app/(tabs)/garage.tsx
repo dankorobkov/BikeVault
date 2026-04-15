@@ -15,11 +15,15 @@ import {
   deleteComponent,
   moveToStock,
   addComponent,
+  updateComponent,
+  installOnBike,
 } from '../../services/componentsService';
 import { Colors } from '../../constants/colors';
 import { calcWearPercent } from '../../types';
+import type { BikeComponent } from '../../types';
 import ComponentCard from '../../components/ComponentCard';
 import AddComponentModal from '../../components/AddComponentModal';
+import EditComponentModal from '../../components/EditComponentModal';
 import EmptyState from '../../components/EmptyState';
 import SuccessBanner from '../../components/SuccessBanner';
 
@@ -39,6 +43,7 @@ export default function GarageScreen() {
   const [showAddStock, setShowAddStock] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successName, setSuccessName] = useState('');
+  const [editingComponent, setEditingComponent] = useState<BikeComponent | null>(null);
 
   const getBike = (bikeId: string | null) =>
     bikeId ? bikes.find((b) => b.id === bikeId) : undefined;
@@ -95,6 +100,30 @@ export default function GarageScreen() {
     if (!userId) return;
     await deleteComponent(userId, componentId);
     removeComponentLocal(componentId);
+  };
+
+  const handleEditSave = async (
+    componentId: string,
+    updates: Partial<Omit<BikeComponent, 'id' | 'createdAt'>>
+  ) => {
+    if (!userId) return;
+    await updateComponent(userId, componentId, updates);
+    updateComponentLocal(componentId, { ...updates, updatedAt: Date.now() });
+  };
+
+  const handleEditInstallOnBike = async (
+    componentId: string,
+    targetBikeId: string,
+    dist: number
+  ) => {
+    if (!userId) return;
+    await installOnBike(userId, componentId, targetBikeId, dist);
+    updateComponentLocal(componentId, {
+      bikeId: targetBikeId,
+      status: 'active',
+      installDistance: dist,
+      updatedAt: Date.now(),
+    });
   };
 
   const handleAddToStock = async (data: {
@@ -229,6 +258,7 @@ export default function GarageScreen() {
                 <ComponentCard
                   component={comp}
                   bikeDistance={bike?.totalDistance ?? 0}
+                  onEdit={() => setEditingComponent(comp)}
                   onRetire={comp.status === 'active' ? () => handleRetire(comp.id) : undefined}
                   onMoveToStock={comp.status === 'active' ? () => handleMoveToStock(comp.id) : undefined}
                   onDelete={() => handleDelete(comp.id)}
@@ -245,6 +275,17 @@ export default function GarageScreen() {
         inStockMode
         onClose={() => setShowAddStock(false)}
         onAdd={handleAddToStock}
+      />
+
+      <EditComponentModal
+        visible={editingComponent !== null}
+        component={editingComponent}
+        bikes={bikes}
+        onClose={() => setEditingComponent(null)}
+        onSave={handleEditSave}
+        onRetire={handleRetire}
+        onMoveToStock={handleMoveToStock}
+        onInstallOnBike={handleEditInstallOnBike}
       />
     </View>
   );

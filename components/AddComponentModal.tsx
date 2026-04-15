@@ -54,10 +54,8 @@ export default function AddComponentModal({
   const [name, setName] = useState('');
   const [category, setCategory] = useState<ComponentCategory>('chain');
   const [brand, setBrand] = useState('');
-  const [installDistance, setInstallDistance] = useState(String(bikeDistance));
-  const [maxLifespan, setMaxLifespan] = useState(
-    String(COMPONENT_TYPES.chain.defaultLifespan)
-  );
+  const [installDistance, setInstallDistance] = useState('');
+  const [maxLifespan, setMaxLifespan] = useState('');
   const [attentionFreq, setAttentionFreq] = useState('');
   const [notes, setNotes] = useState('');
   const [isElectric, setIsElectric] = useState(false);
@@ -72,7 +70,7 @@ export default function AddComponentModal({
   const handleSelectCategory = (cat: ComponentCategory) => {
     const info = COMPONENT_TYPES[cat];
     setCategory(cat);
-    setMaxLifespan(String(info.defaultLifespan));
+    setMaxLifespan('');   // placeholder will show the default as hint
     setAttentionFreq(info.defaultAttentionFrequency ? String(info.defaultAttentionFrequency) : '');
     setIsElectric(false);
     setName(info.label);
@@ -87,7 +85,7 @@ export default function AddComponentModal({
         name: name.trim(),
         category,
         brand: brand.trim(),
-        installDistance: inStockMode ? 0 : (Number(installDistance) || 0),
+        installDistance: inStockMode ? 0 : (Number(installDistance) || bikeDistance || 0),
         maxLifespan: Number(maxLifespan) || typeInfo.defaultLifespan,
         attentionFrequency: attentionFreq ? Number(attentionFreq) : undefined,
         notes: notes.trim(),
@@ -106,8 +104,8 @@ export default function AddComponentModal({
     setName('');
     setCategory('chain');
     setBrand('');
-    setInstallDistance(String(bikeDistance));
-    setMaxLifespan(String(COMPONENT_TYPES.chain.defaultLifespan));
+    setInstallDistance('');
+    setMaxLifespan('');
     setAttentionFreq('');
     setNotes('');
     setIsElectric(false);
@@ -188,11 +186,12 @@ export default function AddComponentModal({
           /* ── Step 2: details ────────────────────────────────── */
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
-            {/* Selected category badge */}
-            <View style={styles.selectedBadge}>
+            {/* Selected category badge — tap to go back and change */}
+            <TouchableOpacity style={styles.selectedBadge} onPress={() => setStep('category')}>
               <Ionicons name={typeInfo.icon as any} size={16} color={Colors.accent} />
               <Text style={styles.selectedBadgeText}>{typeInfo.label}</Text>
-            </View>
+              <Ionicons name="swap-horizontal-outline" size={13} color={Colors.accent} />
+            </TouchableOpacity>
 
             {/* Basic info */}
             <View style={styles.section}>
@@ -224,7 +223,11 @@ export default function AddComponentModal({
                   <>
                     <TextInput
                       style={styles.input}
-                      placeholder="Installed at distance (km)"
+                      placeholder={
+                        bikeDistance > 0
+                          ? 'Odometer when installed (km) — e.g. ' + bikeDistance.toLocaleString()
+                          : 'Odometer when installed (km) — e.g. 12 500'
+                      }
                       placeholderTextColor={Colors.textTertiary}
                       value={installDistance}
                       onChangeText={setInstallDistance}
@@ -235,7 +238,10 @@ export default function AddComponentModal({
                 )}
                 <TextInput
                   style={styles.input}
-                  placeholder="Max lifespan (km)"
+                  placeholder={
+                    'Max lifespan (km) — default: ' +
+                    (typeInfo.defaultLifespan.toLocaleString())
+                  }
                   placeholderTextColor={Colors.textTertiary}
                   value={maxLifespan}
                   onChangeText={setMaxLifespan}

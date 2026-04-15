@@ -21,6 +21,7 @@ import {
 interface Props {
   component: BikeComponent;
   bikeDistance: number;
+  onEdit?: () => void;
   onRetire?: () => void;
   onMoveToStock?: () => void;
   onDelete?: () => void;
@@ -36,6 +37,7 @@ const WEAR_BG: Record<string, string> = {
 export default function ComponentCard({
   component,
   bikeDistance,
+  onEdit,
   onRetire,
   onMoveToStock,
   onDelete,
@@ -69,23 +71,26 @@ export default function ComponentCard({
   })();
 
   const handleOptions = () => {
-    if (isRetired) {
-      Alert.alert(component.name, 'Component actions', [
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () =>
-            Alert.alert('Delete', 'This cannot be undone.', [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete', style: 'destructive', onPress: onDelete },
-            ]),
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]);
-      return;
+    const options: any[] = [];
+
+    if (onEdit) {
+      options.push({ text: 'Edit', onPress: onEdit });
     }
 
-    const options: any[] = [];
+    if (isRetired) {
+      options.push({
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert('Delete', 'This cannot be undone.', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Delete', style: 'destructive', onPress: onDelete },
+          ]),
+      });
+      options.push({ text: 'Cancel', style: 'cancel' });
+      Alert.alert(component.name, 'Component actions', options);
+      return;
+    }
 
     if (isActive && onMoveToStock) {
       options.push({ text: 'Move to Stock', onPress: onMoveToStock });
@@ -147,11 +152,7 @@ export default function ComponentCard({
             </Text>
           </View>
 
-          {isRetired ? (
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusBadgeText}>Retired</Text>
-            </View>
-          ) : isInStock ? (
+          {isInStock ? (
             <View style={[styles.statusBadge, styles.stockBadge]}>
               <Text style={[styles.statusBadgeText, { color: Colors.accent }]}>In Stock</Text>
             </View>
