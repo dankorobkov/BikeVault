@@ -212,6 +212,7 @@ export default function GarageScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.filterScroll}
         contentContainerStyle={styles.filterRow}
       >
         {FILTERS.map((f) => {
@@ -358,6 +359,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accentDim,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  filterScroll: {
+    flexShrink: 0,
   },
   filterRow: {
     flexDirection: 'row',
