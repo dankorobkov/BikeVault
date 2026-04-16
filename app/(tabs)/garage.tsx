@@ -43,6 +43,7 @@ export default function GarageScreen() {
     useAppStore();
   const [filter, setFilter] = useState<Filter>('all');
   const [sortMode, setSortMode] = useState<SortMode>('wear');
+  const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null); // null = all bikes
   const [showAddStock, setShowAddStock] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successName, setSuccessName] = useState('');
@@ -51,7 +52,13 @@ export default function GarageScreen() {
   const getBike = (bikeId: string | null) =>
     bikeId ? bikes.find((b) => b.id === bikeId) : undefined;
 
+  // Reset bike filter when switching to tabs where it doesn't apply
+  const bikeFilterApplies = filter === 'all' || filter === 'attention';
+
   const filtered = components.filter((c) => {
+    // Bike filter (only when applicable)
+    if (bikeFilterApplies && selectedBikeId !== null && c.bikeId !== selectedBikeId) return false;
+
     if (filter === 'retired') return c.status === 'retired';
     if (filter === 'in-stock') return c.status === 'in-stock';
     if (filter === 'attention') {
@@ -65,17 +72,19 @@ export default function GarageScreen() {
     return c.status === 'active' || c.status === 'in-stock';
   });
 
+  // Group by bike when no specific bike is selected; otherwise sort by wear
+  const groupByBike = bikeFilterApplies && selectedBikeId === null;
+
   const sorted = [...filtered].sort((a, b) => {
-    // In-stock always floats to top of "all" view
-    if (filter === 'all') {
-      if (a.status === 'in-stock' && b.status !== 'in-stock') return -1;
-      if (b.status === 'in-stock' && a.status !== 'in-stock') return 1;
-    }
     const bikeA = getBike(a.bikeId);
     const bikeB = getBike(b.bikeId);
-    if (sortMode === 'bike') {
-      const nameA = bikeA?.name ?? 'In Stock';
-      const nameB = bikeB?.name ?? 'In Stock';
+
+    if (groupByBike || sortMode === 'bike') {
+      // In-stock floats to bottom in grouped view
+      if (a.status === 'in-stock' && b.status !== 'in-stock') return 1;
+      if (b.status === 'in-stock' && a.status !== 'in-stock') return -1;
+      const nameA = bikeA?.name ?? '';
+      const nameB = bikeB?.name ?? '';
       const nameCmp = nameA.localeCompare(nameB);
       if (nameCmp !== 0) return nameCmp;
     }
@@ -245,6 +254,38 @@ export default function GarageScreen() {
       </ScrollView>
       </View>
 
+      {/* Bike filter pills — shown for All and Attention tabs */}
+      {bikeFilterApplies && bikes.length > 1 && (
+        <View style={styles.bikeFilterWrapper}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterScroll}
+            contentContainerStyle={styles.bikeFilterRow}
+          >
+            <TouchableOpacity
+              style={[styles.bikePill, selectedBikeId === null && styles.bikePillActive]}
+              onPress={() => setSelectedBikeId(null)}
+            >
+              <Text style={[styles.bikePillText, selectedBikeId === null && styles.bikePillTextActive]}>
+                All Bikes
+              </Text>
+            </TouchableOpacity>
+            {bikes.map((b) => (
+              <TouchableOpacity
+                key={b.id}
+                style={[styles.bikePill, selectedBikeId === b.id && styles.bikePillActive]}
+                onPress={() => setSelectedBikeId(selectedBikeId === b.id ? null : b.id)}
+              >
+                <Text style={[styles.bikePillText, selectedBikeId === b.id && styles.bikePillTextActive]}>
+                  {b.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       <ScrollView contentContainerStyle={styles.content}>
         {sorted.length === 0 ? (
           <EmptyState
@@ -275,15 +316,23 @@ export default function GarageScreen() {
             }
           />
         ) : (
-          sorted.map((comp) => {
+          sorted.map((comp, idx) => {
             const bike = comp.bikeId ? getBike(comp.bikeId) : undefined;
+            const prev = idx > 0 ? sorted[idx - 1] : null;
+            // Show group header only when the bike group changes
+            const showHeader =
+              idx === 0 ||
+              (comp.status === 'in-stock' && prev?.status !== 'in-stock') ||
+              (comp.status !== 'in-stock' && comp.bikeId !== prev?.bikeId);
             return (
               <View key={comp.id}>
-                {comp.status === 'in-stock' ? (
-                  <Text style={styles.bikeLabel}>In Stock</Text>
-                ) : bike ? (
-                  <Text style={styles.bikeLabel}>{bike.name}</Text>
-                ) : null}
+                {showHeader && (
+                  comp.status === 'in-stock' ? (
+                    <Text style={styles.bikeLabel}>In Stock</Text>
+                  ) : bike ? (
+                    <Text style={styles.bikeLabel}>{bike.name}</Text>
+                  ) : null
+                )}
                 <ComponentCard
                   component={comp}
                   bikeDistance={bike?.totalDistance ?? 0}
@@ -371,6 +420,33 @@ const styles = StyleSheet.create({
   filterScroll: {
     flexShrink: 0,
   },
+  bikeFilterWrapper: {
+    flexShrink: 0,
+    flexGrow: 0,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  bikeFilterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  bikePill: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 99,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  bikePillActive: {
+    backgroundColor: Colors.accentDim,
+    borderColor: Colors.accent,
+  },
+  bikePillText: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },
+  bikePillTextActive: { color: Colors.accent, fontWeight: '600' },
   filterRow: {
     flexDirection: 'row',
     gap: 8,

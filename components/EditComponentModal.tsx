@@ -211,32 +211,56 @@ export default function EditComponentModal({
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>WEAR TRACKING</Text>
               <View style={styles.inputGroup}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Odometer when installed (km) — e.g. 12 500"
-                  placeholderTextColor={Colors.textTertiary}
-                  value={installDistance}
-                  onChangeText={setInstallDistance}
-                  keyboardType="numeric"
-                />
+                <View style={styles.labeledRow}>
+                  <View style={styles.labelCol}>
+                    <Text style={styles.fieldLabel}>Installed at</Text>
+                    <Text style={styles.fieldSub}>Bike odometer at install</Text>
+                  </View>
+                  <TextInput
+                    style={styles.inlineInput}
+                    placeholder="0"
+                    placeholderTextColor={Colors.textTertiary}
+                    value={installDistance}
+                    onChangeText={setInstallDistance}
+                    keyboardType="numeric"
+                    textAlign="right"
+                  />
+                  <Text style={styles.unitTag}>km</Text>
+                </View>
                 <View style={styles.divider} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Max lifespan (km) — e.g. 3 000"
-                  placeholderTextColor={Colors.textTertiary}
-                  value={maxLifespan}
-                  onChangeText={setMaxLifespan}
-                  keyboardType="numeric"
-                />
+                <View style={styles.labeledRow}>
+                  <View style={styles.labelCol}>
+                    <Text style={styles.fieldLabel}>Max lifespan</Text>
+                    <Text style={styles.fieldSub}>Expected total distance</Text>
+                  </View>
+                  <TextInput
+                    style={styles.inlineInput}
+                    placeholder={String(typeInfo.defaultLifespan)}
+                    placeholderTextColor={Colors.textTertiary}
+                    value={maxLifespan}
+                    onChangeText={setMaxLifespan}
+                    keyboardType="numeric"
+                    textAlign="right"
+                  />
+                  <Text style={styles.unitTag}>km</Text>
+                </View>
                 <View style={styles.divider} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Service reminder every (km) — e.g. 300"
-                  placeholderTextColor={Colors.textTertiary}
-                  value={attentionFreq}
-                  onChangeText={setAttentionFreq}
-                  keyboardType="numeric"
-                />
+                <View style={styles.labeledRow}>
+                  <View style={styles.labelCol}>
+                    <Text style={styles.fieldLabel}>Service every</Text>
+                    <Text style={styles.fieldSub}>Maintenance reminder interval</Text>
+                  </View>
+                  <TextInput
+                    style={styles.inlineInput}
+                    placeholder="—"
+                    placeholderTextColor={Colors.textTertiary}
+                    value={attentionFreq}
+                    onChangeText={setAttentionFreq}
+                    keyboardType="numeric"
+                    textAlign="right"
+                  />
+                  <Text style={styles.unitTag}>km</Text>
+                </View>
               </View>
             </View>
           )}
@@ -433,6 +457,24 @@ const styles = StyleSheet.create({
   },
   inputGroup: { backgroundColor: Colors.card, borderRadius: 14, overflow: 'hidden' },
   input: { paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: Colors.text },
+  labeledRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  labelCol: { flex: 1 },
+  fieldLabel: { fontSize: 15, fontWeight: '500', color: Colors.text },
+  fieldSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
+  inlineInput: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: Colors.accent,
+    minWidth: 60,
+    textAlign: 'right',
+  },
+  unitTag: { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
   notesInput: {
     minHeight: 80,
     textAlignVertical: 'top',
