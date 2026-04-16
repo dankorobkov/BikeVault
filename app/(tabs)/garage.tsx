@@ -178,7 +178,7 @@ export default function GarageScreen() {
       />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: topInset }]}>
+      <View style={[styles.header, { paddingTop: topInset, backgroundColor: Colors.bg }]}>
         <View>
           <Text style={styles.title}>Garage</Text>
         </View>
@@ -208,7 +208,10 @@ export default function GarageScreen() {
         </View>
       </View>
 
-      {/* Filter tabs */}
+      {/* Filter tabs — wrapped in a View to prevent RNW from applying flex:1
+           to the ScrollView's outer container, which causes it to fight the
+           flex-column layout and overlap the header above it. */}
+      <View style={styles.filterWrapper}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -240,6 +243,7 @@ export default function GarageScreen() {
           );
         })}
       </ScrollView>
+      </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         {sorted.length === 0 ? (
@@ -359,6 +363,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accentDim,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  filterWrapper: {
+    flexShrink: 0,
+    flexGrow: 0,
   },
   filterScroll: {
     flexShrink: 0,
