@@ -38,10 +38,11 @@ export default function RootLayout() {
   const { setUserId, setUserProfile, setBikes, setComponents, setStravaTokens, setLoading, isLoading } =
     useAppStore();
 
-  // Use the font definition bundled inside @expo/vector-icons — avoids a
-  // separate local TTF asset that can fail to deploy / decode on some platforms.
+  // Load Ionicons from the local asset (gets hashed + deployed with the build).
   // fontError is captured so a load failure doesn't freeze the splash screen.
-  const [fontsLoaded, fontError] = useFonts(Ionicons.font);
+  const [fontsLoaded, fontError] = useFonts({
+    Ionicons: require('../assets/fonts/Ionicons.ttf'),
+  });
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
