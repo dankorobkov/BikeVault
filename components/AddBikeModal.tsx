@@ -158,14 +158,22 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
                 onChangeText={setBrand}
               />
               <View style={styles.inputDivider} />
-              <TextInput
-                style={styles.input}
-                placeholder="Starting distance (km)"
-                placeholderTextColor={Colors.textTertiary}
-                value={manualDistance}
-                onChangeText={setManualDistance}
-                keyboardType="numeric"
-              />
+              <View style={styles.labeledRow}>
+                <View style={styles.labelCol}>
+                  <Text style={styles.fieldLabel}>Current distance</Text>
+                  <Text style={styles.fieldSub}>Total km on this bike so far</Text>
+                </View>
+                <TextInput
+                  style={styles.inlineInput}
+                  placeholder="0"
+                  placeholderTextColor={Colors.textTertiary}
+                  value={manualDistance}
+                  onChangeText={setManualDistance}
+                  keyboardType="numeric"
+                  textAlign="right"
+                />
+                <Text style={styles.unitTag}>km</Text>
+              </View>
             </View>
           </View>
 
@@ -272,6 +280,24 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   inputDivider: { height: 1, backgroundColor: Colors.border, marginLeft: 16 },
+  labeledRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  labelCol: { flex: 1 },
+  fieldLabel: { fontSize: 15, fontWeight: '500', color: Colors.text },
+  fieldSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
+  inlineInput: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: Colors.accent,
+    minWidth: 60,
+    textAlign: 'right',
+  },
+  unitTag: { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 14,
