@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
@@ -72,47 +71,6 @@ export default function ComponentCard({
     return pct;
   })();
 
-  const handleOptions = () => {
-    const options: any[] = [];
-
-    if (onEdit) {
-      options.push({ text: isInStock ? 'Edit / Install on Bike' : 'Edit', onPress: onEdit });
-    }
-
-    if (isRetired) {
-      options.push({
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () =>
-          Alert.alert('Delete', 'This cannot be undone.', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Delete', style: 'destructive', onPress: onDelete },
-          ]),
-      });
-      options.push({ text: 'Cancel', style: 'cancel' });
-      Alert.alert(component.name, 'Component actions', options);
-      return;
-    }
-
-    if (isActive && onMoveToStock) {
-      options.push({ text: 'Move to Stock', onPress: onMoveToStock });
-    }
-    if (isActive && onRetire) {
-      options.push({ text: 'Retire', onPress: onRetire });
-    }
-    options.push({
-      text: 'Delete',
-      style: 'destructive',
-      onPress: () =>
-        Alert.alert('Delete Component', 'This cannot be undone.', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: onDelete },
-        ]),
-    });
-    options.push({ text: 'Cancel', style: 'cancel' });
-    Alert.alert(component.name, 'What would you like to do?', options);
-  };
-
   return (
     <TouchableOpacity
       style={[styles.card, isRetired && styles.retired]}
@@ -158,19 +116,10 @@ export default function ComponentCard({
             </Text>
           </View>
 
-          {isInStock ? (
-            <View style={styles.stockRow}>
-              <View style={[styles.statusBadge, styles.stockBadge]}>
-                <Text style={[styles.statusBadgeText, { color: Colors.accent }]}>In Stock</Text>
-              </View>
-              <TouchableOpacity onPress={handleOptions} hitSlop={8} style={styles.moreBtn}>
-                <Ionicons name="ellipsis-horizontal" size={18} color={Colors.textSecondary} />
-              </TouchableOpacity>
+          {isInStock && (
+            <View style={[styles.statusBadge, styles.stockBadge]}>
+              <Text style={[styles.statusBadgeText, { color: Colors.accent }]}>In Stock</Text>
             </View>
-          ) : (
-            <TouchableOpacity onPress={handleOptions} hitSlop={8} style={styles.moreBtn}>
-              <Ionicons name="ellipsis-horizontal" size={18} color={Colors.textSecondary} />
-            </TouchableOpacity>
           )}
         </View>
 
@@ -243,7 +192,6 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   name: { fontSize: 15, fontWeight: '600', color: Colors.text, letterSpacing: -0.2 },
   meta: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
-  moreBtn: { padding: 2 },
   stockRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statusBadge: {
     backgroundColor: Colors.border,
