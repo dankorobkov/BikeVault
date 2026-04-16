@@ -18,7 +18,6 @@ export const COMPONENT_TYPES: Record<ComponentCategory, ComponentTypeInfo> = {
     icon: 'link-outline',
     defaultLifespan: 3000,
     group: 'drivetrain',
-    defaultAttentionFrequency: 300, // lube/wax every ~300 km
   },
   cassette: {
     label: 'Cassette',

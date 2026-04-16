@@ -104,23 +104,6 @@ export default function LoginScreen() {
       {/* Auth buttons */}
       <View style={styles.actions}>
         <TouchableOpacity
-          style={[styles.btn, styles.googleBtn]}
-          onPress={handleGoogle}
-          disabled={loading !== null || (!request && Platform.OS !== 'web')}
-        >
-          {loading === 'google' ? (
-            <ActivityIndicator color={Colors.text} />
-          ) : (
-            <>
-              <Ionicons name="logo-google" size={20} color={Colors.text} />
-              <Text style={[styles.btnText, { color: Colors.text }]}>
-                Continue with Google
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
           style={[styles.btn, styles.anonBtn]}
           onPress={handleAnonymous}
           disabled={loading !== null}

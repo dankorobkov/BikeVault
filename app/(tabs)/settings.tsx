@@ -390,7 +390,7 @@ export default function SettingsScreen() {
                 <Ionicons name="bicycle-outline" size={20} color={Colors.accent} />
                 <Text style={styles.rowTitle}>BikeVault</Text>
               </View>
-              <Text style={styles.rowSub}>v1.1.0</Text>
+              <Text style={styles.rowSub}>v0.1</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.row}>

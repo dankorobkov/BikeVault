@@ -145,7 +145,9 @@ export default function AddComponentModal({
               )}
             </TouchableOpacity>
           ) : (
-            <View style={{ width: 50 }} />
+            <TouchableOpacity onPress={() => setStep('details')}>
+              <Text style={styles.saveBtn}>Next</Text>
+            </TouchableOpacity>
           )}
         </View>
 
