@@ -261,19 +261,13 @@ export default function SettingsScreen() {
                   Link your Strava account to automatically sync bike distances and track component wear.
                 </Text>
                 <TouchableOpacity
-                  style={[styles.connectBtn, (!request || connecting) && styles.connectBtnDisabled]}
-                  onPress={handleConnectStrava}
-                  disabled={!request || connecting}
+                  style={[styles.connectBtn, styles.connectBtnDisabled]}
+                  disabled
                 >
-                  {connecting ? (
-                    <ActivityIndicator color={Colors.white} />
-                  ) : (
-                    <>
-                      <Ionicons name="flash-outline" size={18} color={Colors.white} />
-                      <Text style={styles.connectBtnText}>Connect with Strava</Text>
-                    </>
-                  )}
+                  <Ionicons name="flash-outline" size={18} color={Colors.white} />
+                  <Text style={styles.connectBtnText}>Connect with Strava</Text>
                 </TouchableOpacity>
+                <Text style={styles.connectComingSoon}>Coming soon</Text>
               </View>
             )}
           </View>
@@ -480,6 +474,7 @@ const styles = StyleSheet.create({
   },
   connectBtnDisabled: { opacity: 0.5 },
   connectBtnText: { fontSize: 15, fontWeight: '700', color: Colors.white },
+  connectComingSoon: { fontSize: 12, color: Colors.textTertiary, textAlign: 'center', marginTop: 2 },
 
   hint: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18, paddingHorizontal: 4 },
 });

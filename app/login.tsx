@@ -121,7 +121,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <Text style={styles.disclaimer}>
-          Anonymous sessions are local only — your data will be lost if you clear app data.
+          Try the full app with demo data — no account needed. Your data won't be saved to the cloud.
         </Text>
       </View>
     </View>
