@@ -38,10 +38,10 @@ export default function RootLayout() {
   const { setUserId, setUserProfile, setBikes, setComponents, setStravaTokens, setLoading, isLoading } =
     useAppStore();
 
-  const [fontsLoaded] = useFonts({
-    // Load font from local assets — required for icons to work in web exports
-    Ionicons: require('../assets/fonts/Ionicons.ttf'),
-  });
+  // Use the font definition bundled inside @expo/vector-icons — avoids a
+  // separate local TTF asset that can fail to deploy / decode on some platforms.
+  // fontError is captured so a load failure doesn't freeze the splash screen.
+  const [fontsLoaded, fontError] = useFonts(Ionicons.font);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -83,7 +83,9 @@ export default function RootLayout() {
     return unsub;
   }, []);
 
-  if (isLoading || !fontsLoaded) {
+  // Allow the app to proceed if fonts errored — icons degrade gracefully
+  // rather than the user being stuck on the splash screen forever.
+  if (isLoading || (!fontsLoaded && !fontError)) {
     return (
       <View style={styles.splash}>
         <StatusBar style="light" />
