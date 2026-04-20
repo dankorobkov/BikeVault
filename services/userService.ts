@@ -1,0 +1,139 @@
+import {
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  getDocs,
+  collection,
+  serverTimestamp,
+  writeBatch,
+} from 'firebase/firestore';
+import { deleteUser, type User } from 'firebase/auth';
+import { db } from '../config/firebase';
+import { clearStravaTokens } from './stravaService';
+
+export interface UserProfile {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoUrl: string | null;
+  signupCode: string;
+  createdAt: number;
+}
+
+function userDoc(userId: string) {
+  return doc(db, 'users', userId);
+}
+
+/** Returns the user's profile doc (or null if the user hasn't signed up yet). */
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  const snap = await getDoc(userDoc(userId));
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  // A profile is considered "created" once `signupCode` has been written.
+  if (!data.signupCode) return null;
+  return {
+    uid: userId,
+    email: (data.email as string | null) ?? null,
+    displayName: (data.displayName as string | null) ?? null,
+    photoUrl: (data.photoUrl as string | null) ?? null,
+    signupCode: data.signupCode as string,
+    createdAt:
+      typeof data.createdAt === 'number'
+        ? data.createdAt
+        : Date.now(),
+  };
+}
+
+/**
+ * Creates the user profile after a successful invite-code redemption.
+ * Safe to call twice (uses `setDoc` with merge).
+ */
+export async function createUserProfile(
+  userId: string,
+  profile: {
+    email: string | null;
+    displayName: string | null;
+    photoUrl: string | null;
+    signupCode: string;
+  }
+): Promise<void> {
+  await setDoc(
+    userDoc(userId),
+    {
+      email: profile.email ?? null,
+      displayName: profile.displayName ?? null,
+      photoUrl: profile.photoUrl ?? null,
+      signupCode: profile.signupCode,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+// ─── Account deletion ────────────────────────────────────────────────────────
+
+/**
+ * Batch-deletes every document in a subcollection under users/{userId}.
+ * Firestore batch limit is 500; we chunk just in case.
+ */
+async function deleteSubcollection(
+  userId: string,
+  subcollection: string
+): Promise<void> {
+  const ref = collection(db, 'users', userId, subcollection);
+  const snap = await getDocs(ref);
+  if (snap.empty) return;
+
+  const docs = snap.docs;
+  for (let i = 0; i < docs.length; i += 400) {
+    const batch = writeBatch(db);
+    for (const d of docs.slice(i, i + 400)) {
+      batch.delete(d.ref);
+    }
+    await batch.commit();
+  }
+}
+
+/**
+ * Permanently deletes the user's BikeVault data and the Firebase Auth
+ * account. In order:
+ *   1. bikes subcollection
+ *   2. components subcollection
+ *   3. strava/tokens
+ *   4. users/{uid} profile doc
+ *   5. Firebase Auth user (requires a recent sign-in)
+ *
+ * Steps 1-4 run inside Firestore; step 5 uses the passed-in auth `User`.
+ *
+ * Note: the invite code the user redeemed stays consumed — codes are
+ * single-use, so the account is gone but the code does not become
+ * available again.
+ */
+export async function deleteUserAccount(
+  userId: string,
+  authUser: User
+): Promise<void> {
+  // 1–3: wipe user data
+  await deleteSubcollection(userId, 'bikes');
+  await deleteSubcollection(userId, 'components');
+  try {
+    await clearStravaTokens(userId);
+  } catch {
+    // ignore — token doc might not exist
+  }
+
+  // 4: profile doc itself
+  try {
+    await deleteDoc(userDoc(userId));
+  } catch {
+    // ignore — may not exist if signup never completed
+  }
+
+  // 5: Firebase Auth account — this also signs the user out.
+  // May throw `auth/requires-recent-login` if the session is stale; the
+  // caller is expected to surface that error to the user so they can
+  // sign in again and retry.
+  await deleteUser(authUser);
+}

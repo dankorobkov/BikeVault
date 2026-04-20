@@ -19,6 +19,7 @@ import {
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { auth } from '../config/firebase';
+import { Analytics } from '../services/analytics';
 import { Colors } from '../constants/colors';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -56,14 +57,22 @@ export default function LoginScreen() {
         // Web: use Firebase popup directly
         const provider = new GoogleAuthProvider();
         await signInWithPopup(auth, provider);
-        // Root layout will react to auth state change
+        Analytics.login('google');
+        // Root layout will react to auth state change and route to either
+        // the invite-code screen (first sign-in) or /(tabs).
       } else {
         // Native: use expo-auth-session, then exchange with Firebase
+        if (!GOOGLE_CLIENT_ID) {
+          throw new Error(
+            'Google sign-in is not configured. Set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID.'
+          );
+        }
         const result = await promptAsync();
         if (result?.type === 'success') {
           const { id_token, access_token } = result.params;
           const credential = GoogleAuthProvider.credential(id_token, access_token);
           await signInWithCredential(auth, credential);
+          Analytics.login('google');
         } else if (result?.type === 'error') {
           throw new Error(result.error?.message ?? 'Google sign-in failed');
         } else {
@@ -82,6 +91,7 @@ export default function LoginScreen() {
     setLoading('anon');
     try {
       await signInAnonymously(auth);
+      Analytics.login('anonymous');
       // Root layout will react to auth state change
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Could not sign in';
@@ -104,6 +114,29 @@ export default function LoginScreen() {
       {/* Auth buttons */}
       <View style={styles.actions}>
         <TouchableOpacity
+          style={[styles.btn, styles.googleBtn]}
+          onPress={handleGoogle}
+          disabled={loading !== null}
+        >
+          {loading === 'google' ? (
+            <ActivityIndicator color={Colors.text} />
+          ) : (
+            <>
+              <Ionicons name="logo-google" size={20} color={Colors.text} />
+              <Text style={[styles.btnText, { color: Colors.text }]}>
+                Continue with Google
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <TouchableOpacity
           style={[styles.btn, styles.anonBtn]}
           onPress={handleAnonymous}
           disabled={loading !== null}
@@ -121,7 +154,9 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <Text style={styles.disclaimer}>
-          Try the full app with demo data — no account needed. Your data won't be saved to the cloud.
+          Google sign-in lets you save bikes and components across devices
+          and sync with Strava. Anonymous mode shows demo data only — nothing
+          is saved to the cloud.
         </Text>
       </View>
     </View>
@@ -174,6 +209,22 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   btnText: { fontSize: 16, fontWeight: '600' },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 2,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    color: Colors.textTertiary,
+    fontSize: 12,
+    fontWeight: '500',
+  },
   disclaimer: {
     fontSize: 12,
     color: Colors.textTertiary,

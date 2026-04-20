@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { useTopInset } from '../../hooks/useTopInset';
 import { useRouter } from 'expo-router';
@@ -13,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/useAppStore';
 import { addBike } from '../../services/bikesService';
 import { fetchAthlete, getValidToken } from '../../services/stravaService';
+import { Analytics } from '../../services/analytics';
 import { Colors } from '../../constants/colors';
 import BikeCard from '../../components/BikeCard';
 import AddBikeModal from '../../components/AddBikeModal';
@@ -23,7 +25,7 @@ import type { BikeType, BrakeSystem } from '../../types';
 export default function BikesScreen() {
   const topInset = useTopInset();
   const router = useRouter();
-  const { userId, bikes, components, stravaTokens, addBikeLocal } = useAppStore();
+  const { userId, bikes, components, isDataLoading, stravaTokens, addBikeLocal } = useAppStore();
 
   const [showAdd, setShowAdd] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,6 +66,7 @@ export default function BikesScreen() {
     if (!userId) return;
     const newBike = await addBike(userId, data);
     addBikeLocal(newBike);
+    Analytics.addBike(data.type);
     setSuccessBikeName(newBike.name);
     setShowSuccess(true);
   };
@@ -101,11 +104,17 @@ export default function BikesScreen() {
         }
       >
         {bikes.length === 0 ? (
+          isDataLoading ? (
+            <View style={styles.loadingCenter}>
+              <ActivityIndicator size="large" color={Colors.accent} />
+            </View>
+          ) : (
           <EmptyState
             icon="bicycle-outline"
             title="No bikes yet"
             subtitle="Tap + to add your first bike and start tracking component wear."
           />
+          )
         ) : (
           bikes.map((bike) => (
             <BikeCard
@@ -157,4 +166,5 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     flexGrow: 1,
   },
+  loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80 },
 });

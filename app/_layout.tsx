@@ -11,6 +11,7 @@ import { useAppStore } from '../store/useAppStore';
 import { fetchBikes } from '../services/bikesService';
 import { fetchAllComponents } from '../services/componentsService';
 import { loadStravaTokens } from '../services/stravaService';
+import { getUserProfile } from '../services/userService';
 import { Colors } from '../constants/colors';
 import { DEMO_BIKES, DEMO_COMPONENTS } from '../constants/demoData';
 
@@ -19,24 +20,48 @@ SplashScreen.preventAutoHideAsync();
 function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
-  const { userId, isLoading } = useAppStore();
+  const { userId, isAnonymous, hasProfile, profileChecked, isLoading } = useAppStore();
 
   useEffect(() => {
     if (isLoading) return;
-    const inAuthGroup = segments[0] === 'login';
-    if (!userId && !inAuthGroup) {
-      router.replace('/login');
-    } else if (userId && inAuthGroup) {
+    const current = segments[0] as string | undefined;
+    const onLogin = current === 'login';
+    const onInvite = current === 'invite-code';
+
+    if (!userId) {
+      if (!onLogin) router.replace('/login');
+      return;
+    }
+
+    // Signed in — but Google users must have a profile to proceed.
+    if (!isAnonymous && profileChecked && !hasProfile) {
+      // Cast: the typed-routes generator re-runs on `expo start` and will
+      // learn about /invite-code then. Cast keeps TS happy in the meantime.
+      if (!onInvite) router.replace('/invite-code' as never);
+      return;
+    }
+
+    // Signed in and allowed into the app.
+    if (onLogin || onInvite) {
       router.replace('/(tabs)');
     }
-  }, [userId, isLoading, segments]);
+  }, [userId, isAnonymous, hasProfile, profileChecked, isLoading, segments]);
 
   return null;
 }
 
 export default function RootLayout() {
-  const { setUserId, setUserProfile, setBikes, setComponents, setStravaTokens, setLoading, isLoading } =
-    useAppStore();
+  const {
+    setUserId,
+    setUserProfile,
+    setHasProfile,
+    setProfileChecked,
+    setBikes,
+    setComponents,
+    setStravaTokens,
+    setLoading,
+    isLoading,
+  } = useAppStore();
 
   // Load Ionicons from the local asset (gets hashed + deployed with the build).
   // fontError is captured so a load failure doesn't freeze the splash screen.
@@ -45,7 +70,21 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
+    const { setDataLoading } = useAppStore.getState();
+
+    // Safety net: if Firebase auth takes more than 5 s (slow network / cold start),
+    // drop the splash anyway so the user isn't stuck on a blank screen forever.
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false);
+      SplashScreen.hideAsync();
+    }, 5000);
+
+    const unsub = onAuthStateChanged(auth, (user) => {
+      // Auth state is resolved — clear the safety timeout and release the splash
+      // immediately. Firestore data will be fetched in the background so the user
+      // reaches the app screen without waiting for network round-trips.
+      clearTimeout(safetyTimeout);
+
       if (user) {
         setUserId(user.uid);
         setUserProfile({
@@ -54,34 +93,66 @@ export default function RootLayout() {
           email: user.email,
           photoUrl: user.photoURL,
         });
-        try {
-          if (user.isAnonymous) {
-            // Load demo data for anonymous/guest users
-            setBikes(DEMO_BIKES);
-            setComponents(DEMO_COMPONENTS);
-          } else {
-            const [bikes, components, stravaTokens] = await Promise.all([
-              fetchBikes(user.uid),
-              fetchAllComponents(user.uid),
-              loadStravaTokens(user.uid),
-            ]);
-            setBikes(bikes);
-            setComponents(components);
-            if (stravaTokens) setStravaTokens(stravaTokens);
-          }
-        } catch (e) {
-          console.error('Init load error:', e);
-        } finally {
-          setLoading(false);
-          SplashScreen.hideAsync();
+
+        // ── Release splash right away ──────────────────────────────────────
+        setLoading(false);
+        SplashScreen.hideAsync();
+
+        // ── Fetch data in the background ───────────────────────────────────
+        if (user.isAnonymous) {
+          // Anonymous users always have a "profile" (demo data)
+          setHasProfile(true);
+          setProfileChecked(true);
+          setBikes(DEMO_BIKES);
+          setComponents(DEMO_COMPONENTS);
+        } else {
+          setDataLoading(true);
+          // Check profile first — gate the rest of the loading on having one,
+          // so a first-time Google user doesn't hit Firestore-permission errors
+          // while they're still on the invite-code screen.
+          getUserProfile(user.uid)
+            .then((profile) => {
+              const has = profile !== null;
+              setHasProfile(has);
+              setProfileChecked(true);
+              if (!has) {
+                // New user — stop here; AuthGate will route to /invite-code.
+                setDataLoading(false);
+                return null;
+              }
+              return Promise.all([
+                fetchBikes(user.uid),
+                fetchAllComponents(user.uid),
+                loadStravaTokens(user.uid),
+              ]);
+            })
+            .then((result) => {
+              if (!result) return;
+              const [bikes, components, stravaTokens] = result;
+              setBikes(bikes);
+              setComponents(components);
+              if (stravaTokens) setStravaTokens(stravaTokens);
+            })
+            .catch((e) => {
+              console.error('Init load error:', e);
+              // Don't leave the user stuck on a splash if profile fetch blew up.
+              setProfileChecked(true);
+            })
+            .finally(() => setDataLoading(false));
         }
       } else {
         setUserId(null);
+        setHasProfile(false);
+        setProfileChecked(false);
         setLoading(false);
         SplashScreen.hideAsync();
       }
     });
-    return unsub;
+
+    return () => {
+      unsub();
+      clearTimeout(safetyTimeout);
+    };
   }, []);
 
   // Allow the app to proceed if fonts errored — icons degrade gracefully
@@ -112,6 +183,7 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="invite-code" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="bike/[id]"

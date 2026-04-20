@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useTopInset } from '../../hooks/useTopInset';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,7 @@ import {
   updateComponent,
   installOnBike,
 } from '../../services/componentsService';
+import { Analytics } from '../../services/analytics';
 import { Colors } from '../../constants/colors';
 import { calcWearPercent } from '../../types';
 import type { BikeComponent } from '../../types';
@@ -39,7 +41,7 @@ const FILTERS: { key: Filter; label: string; icon: string }[] = [
 
 export default function GarageScreen() {
   const topInset = useTopInset();
-  const { userId, bikes, components, updateComponentLocal, removeComponentLocal, addComponentLocal } =
+  const { userId, bikes, components, isDataLoading, updateComponentLocal, removeComponentLocal, addComponentLocal } =
     useAppStore();
   const [filter, setFilter] = useState<Filter>('all');
   const [sortMode, setSortMode] = useState<SortMode>('wear');
@@ -104,20 +106,26 @@ export default function GarageScreen() {
 
   const handleRetire = async (componentId: string) => {
     if (!userId) return;
+    const comp = components.find((c) => c.id === componentId);
     await retireComponent(userId, componentId);
     updateComponentLocal(componentId, { status: 'retired', updatedAt: Date.now() });
+    if (comp) Analytics.retireComponent(comp.category);
   };
 
   const handleMoveToStock = async (componentId: string) => {
     if (!userId) return;
+    const comp = components.find((c) => c.id === componentId);
     await moveToStock(userId, componentId);
     updateComponentLocal(componentId, { bikeId: null, status: 'in-stock', updatedAt: Date.now() });
+    if (comp) Analytics.moveToStock(comp.category);
   };
 
   const handleDelete = async (componentId: string) => {
     if (!userId) return;
+    const comp = components.find((c) => c.id === componentId);
     await deleteComponent(userId, componentId);
     removeComponentLocal(componentId);
+    if (comp) Analytics.deleteComponent(comp.category);
   };
 
   const handleEditSave = async (
@@ -127,6 +135,8 @@ export default function GarageScreen() {
     if (!userId) return;
     await updateComponent(userId, componentId, updates);
     updateComponentLocal(componentId, { ...updates, updatedAt: Date.now() });
+    const comp = components.find((c) => c.id === componentId);
+    if (comp) Analytics.editComponent(updates.category ?? comp.category);
   };
 
   const handleEditInstallOnBike = async (
@@ -135,6 +145,7 @@ export default function GarageScreen() {
     dist: number
   ) => {
     if (!userId) return;
+    const comp = components.find((c) => c.id === componentId);
     await installOnBike(userId, componentId, targetBikeId, dist);
     updateComponentLocal(componentId, {
       bikeId: targetBikeId,
@@ -142,6 +153,7 @@ export default function GarageScreen() {
       installDistance: dist,
       updatedAt: Date.now(),
     });
+    if (comp) Analytics.installOnBike(comp.category);
   };
 
   const handleAddToStock = async (data: {
@@ -173,6 +185,7 @@ export default function GarageScreen() {
       chargeIntervalDays: data.chargeIntervalDays,
     });
     addComponentLocal(newComp);
+    Analytics.addComponent(data.category, data.isElectric);
     setSuccessName(newComp.name);
     setShowSuccess(true);
   };
@@ -288,33 +301,41 @@ export default function GarageScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         {sorted.length === 0 ? (
-          <EmptyState
-            icon={
-              filter === 'attention'
-                ? 'checkmark-circle-outline'
-                : filter === 'retired'
-                ? 'archive-outline'
-                : filter === 'in-stock'
-                ? 'archive-outline'
-                : 'construct-outline'
-            }
-            title={
-              filter === 'attention'
-                ? 'All components look good!'
-                : filter === 'retired'
-                ? 'No retired components'
-                : filter === 'in-stock'
-                ? 'No components in stock'
-                : 'No components yet'
-            }
-            subtitle={
-              filter === 'all'
-                ? 'Add bikes and components to start tracking wear.'
-                : filter === 'in-stock'
-                ? 'Tap + to add a component to your stock.'
-                : undefined
-            }
-          />
+          isDataLoading ? (
+            // Data is still fetching in the background — show a spinner instead
+            // of the empty state so it doesn't flash misleadingly.
+            <View style={styles.loadingCenter}>
+              <ActivityIndicator size="large" color={Colors.accent} />
+            </View>
+          ) : (
+            <EmptyState
+              icon={
+                filter === 'attention'
+                  ? 'checkmark-circle-outline'
+                  : filter === 'retired'
+                  ? 'archive-outline'
+                  : filter === 'in-stock'
+                  ? 'archive-outline'
+                  : 'construct-outline'
+              }
+              title={
+                filter === 'attention'
+                  ? 'All components look good!'
+                  : filter === 'retired'
+                  ? 'No retired components'
+                  : filter === 'in-stock'
+                  ? 'No components in stock'
+                  : 'No components yet'
+              }
+              subtitle={
+                filter === 'all'
+                  ? 'Add bikes and components to start tracking wear.'
+                  : filter === 'in-stock'
+                  ? 'Tap + to add a component to your stock.'
+                  : undefined
+              }
+            />
+          )
         ) : (
           sorted.map((comp, idx) => {
             const bike = comp.bikeId ? getBike(comp.bikeId) : undefined;
@@ -474,6 +495,7 @@ const styles = StyleSheet.create({
   },
   filterBadgeText: { fontSize: 10, fontWeight: '700', color: Colors.black },
   content: { paddingHorizontal: 20, paddingBottom: 24, flexGrow: 1 },
+  loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80 },
   bikeLabel: {
     fontSize: 11,
     fontWeight: '600',

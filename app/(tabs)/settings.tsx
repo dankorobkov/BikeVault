@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Switch,
+  Platform,
 } from 'react-native';
 import { useTopInset } from '../../hooks/useTopInset';
 import * as AuthSession from 'expo-auth-session';
@@ -22,9 +23,8 @@ import { useAppStore } from '../../store/useAppStore';
 import {
   exchangeCodeForTokens,
   clearStravaTokens,
-  getValidToken,
-  fetchAthlete,
 } from '../../services/stravaService';
+import { deleteUserAccount } from '../../services/userService';
 import { STRAVA_CONFIG } from '../../config/strava';
 import { Colors } from '../../constants/colors';
 import { useSync } from '../../hooks/useSync';
@@ -36,6 +36,8 @@ const discovery = {
   authorizationEndpoint: STRAVA_CONFIG.authEndpoint,
   tokenEndpoint: STRAVA_CONFIG.tokenEndpoint,
 };
+
+const STRAVA_CONFIGURED = !!STRAVA_CONFIG.clientId && STRAVA_CONFIG.clientId !== 'your_strava_client_id';
 
 export default function SettingsScreen() {
   const topInset = useTopInset();
@@ -51,12 +53,11 @@ export default function SettingsScreen() {
     isSyncing,
     notificationPrefs,
     setNotificationPrefs,
-    useMetric,
-    setUseMetric,
     signOut,
   } = useAppStore();
   const { syncStrava, loadLastSync } = useSync();
   const [connecting, setConnecting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [athleteAvatar, setAthleteAvatar] = useState<string | null>(null);
 
   const redirectUri = AuthSession.makeRedirectUri({
@@ -89,6 +90,10 @@ export default function SettingsScreen() {
         .then((tokens) => {
           setStravaTokens(tokens);
           setAthleteAvatar(tokens.athleteAvatar);
+          // Kick off an initial sync so distances show up immediately.
+          return syncStrava().catch(() => {
+            /* initial sync failure is non-fatal; user can retry from button */
+          });
         })
         .catch((e) => Alert.alert('Connection failed', e.message))
         .finally(() => setConnecting(false));
@@ -97,7 +102,16 @@ export default function SettingsScreen() {
     }
   }, [response]);
 
-  const handleConnectStrava = () => promptAsync();
+  const handleConnectStrava = () => {
+    if (!STRAVA_CONFIGURED) {
+      Alert.alert(
+        'Strava not configured',
+        'Strava API credentials are missing from this build. Add EXPO_PUBLIC_STRAVA_CLIENT_ID and EXPO_PUBLIC_STRAVA_CLIENT_SECRET to .env.'
+      );
+      return;
+    }
+    promptAsync();
+  };
 
   const handleDisconnect = () => {
     Alert.alert('Disconnect Strava', 'This will stop automatic distance sync. Continue?', [
@@ -124,18 +138,84 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out',
-        style: 'destructive',
-        onPress: async () => {
-          await firebaseSignOut(auth);
-          signOut();
+  const handleSignOut = async () => {
+    // Alert.alert button callbacks are unreliable on React Native Web,
+    // so use window.confirm on web and Alert.alert on native.
+    if (Platform.OS === 'web') {
+      const label = isAnonymous ? 'Leave this anonymous session?' : 'Are you sure you want to sign out?';
+      if (!window.confirm(label)) return;
+      await firebaseSignOut(auth);
+      signOut();
+    } else {
+      Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await firebaseSignOut(auth);
+            signOut();
+          },
         },
-      },
-    ]);
+      ]);
+    }
+  };
+
+  // ── Delete account (two-step confirmation) ────────────────────────────────
+  const performDelete = async () => {
+    if (!userId || !auth.currentUser) return;
+    setDeleting(true);
+    try {
+      await deleteUserAccount(userId, auth.currentUser);
+      signOut();
+      // deleteUser also signs the Firebase session out, so the AuthGate
+      // in _layout will route back to /login automatically.
+    } catch (e: unknown) {
+      let msg = e instanceof Error ? e.message : 'Could not delete account';
+      // Firebase returns auth/requires-recent-login if the token is stale.
+      if (msg.includes('requires-recent-login')) {
+        msg =
+          'For security, please sign out and sign back in, then try deleting your account again.';
+      }
+      Alert.alert('Delete failed', msg);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    const primary =
+      'Delete your BikeVault account?';
+    const secondary =
+      'This permanently removes all your bikes, components, and Strava connection. This cannot be undone.';
+
+    if (Platform.OS === 'web') {
+      if (!window.confirm(primary + '\n\n' + secondary)) return;
+      if (!window.confirm('Really delete everything? This cannot be undone.')) return;
+      performDelete();
+    } else {
+      Alert.alert(primary, secondary, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Are you absolutely sure?',
+              'All your data will be permanently deleted. You cannot undo this.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete forever',
+                  style: 'destructive',
+                  onPress: performDelete,
+                },
+              ]
+            );
+          },
+        },
+      ]);
+    }
   };
 
   const isConnected = !!stravaTokens;
@@ -195,83 +275,96 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Strava section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>STRAVA</Text>
-          <View style={styles.card}>
-            {isConnected ? (
-              <>
-                <View style={styles.stravaRow}>
-                  <View style={styles.stravaLogo}>
-                    {athleteAvatar ? (
-                      <Image source={{ uri: athleteAvatar }} style={styles.stravaAvatar} />
-                    ) : (
-                      <Ionicons name="person-circle-outline" size={36} color={Colors.accent} />
-                    )}
-                  </View>
-                  <View style={styles.stravaInfo}>
-                    <Text style={styles.stravaName}>{stravaTokens.athleteName}</Text>
-                    <View style={styles.connectedBadge}>
-                      <View style={styles.dot} />
-                      <Text style={styles.connectedText}>Connected</Text>
+        {/* Strava section — only for signed-in users (Firestore-backed) */}
+        {!isAnonymous && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>STRAVA</Text>
+            <View style={styles.card}>
+              {isConnected ? (
+                <>
+                  <View style={styles.stravaRow}>
+                    <View style={styles.stravaLogo}>
+                      {athleteAvatar ? (
+                        <Image source={{ uri: athleteAvatar }} style={styles.stravaAvatar} />
+                      ) : (
+                        <Ionicons name="person-circle-outline" size={36} color={Colors.accent} />
+                      )}
+                    </View>
+                    <View style={styles.stravaInfo}>
+                      <Text style={styles.stravaName}>{stravaTokens.athleteName}</Text>
+                      <View style={styles.connectedBadge}>
+                        <View style={styles.dot} />
+                        <Text style={styles.connectedText}>Connected</Text>
+                      </View>
                     </View>
                   </View>
-                </View>
 
-                <View style={styles.divider} />
+                  <View style={styles.divider} />
 
-                <TouchableOpacity style={styles.row} onPress={handleSync} disabled={isSyncing}>
-                  <View style={styles.rowLeft}>
-                    <Ionicons name="sync-outline" size={20} color={Colors.accent} />
-                    <View>
-                      <Text style={styles.rowTitle}>Sync Activities</Text>
-                      <Text style={styles.rowSub}>
-                        {lastSyncAt
-                          ? 'Last synced ' + dayjs(lastSyncAt).fromNow() + ' · ' + dayjs(lastSyncAt).format('D MMM YYYY, HH:mm')
-                          : 'Never synced'}
+                  <TouchableOpacity style={styles.row} onPress={handleSync} disabled={isSyncing}>
+                    <View style={styles.rowLeft}>
+                      <Ionicons name="sync-outline" size={20} color={Colors.accent} />
+                      <View>
+                        <Text style={styles.rowTitle}>Sync Activities</Text>
+                        <Text style={styles.rowSub}>
+                          {lastSyncAt
+                            ? 'Last synced ' + dayjs(lastSyncAt).fromNow() + ' · ' + dayjs(lastSyncAt).format('D MMM YYYY, HH:mm')
+                            : 'Never synced'}
+                        </Text>
+                      </View>
+                    </View>
+                    {isSyncing ? (
+                      <ActivityIndicator color={Colors.accent} size="small" />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+                    )}
+                  </TouchableOpacity>
+
+                  <View style={styles.divider} />
+
+                  <TouchableOpacity style={styles.row} onPress={handleDisconnect}>
+                    <View style={styles.rowLeft}>
+                      <Ionicons name="unlink-outline" size={20} color={Colors.danger} />
+                      <Text style={[styles.rowTitle, { color: Colors.danger }]}>
+                        Disconnect Strava
                       </Text>
                     </View>
-                  </View>
-                  {isSyncing ? (
-                    <ActivityIndicator color={Colors.accent} size="small" />
-                  ) : (
                     <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
-                  )}
-                </TouchableOpacity>
-
-                <View style={styles.divider} />
-
-                <TouchableOpacity style={styles.row} onPress={handleDisconnect}>
-                  <View style={styles.rowLeft}>
-                    <Ionicons name="unlink-outline" size={20} color={Colors.danger} />
-                    <Text style={[styles.rowTitle, { color: Colors.danger }]}>
-                      Disconnect Strava
-                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={styles.connectBox}>
+                  <View style={styles.stravaIconBox}>
+                    <Ionicons name="fitness-outline" size={28} color={Colors.accent} />
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
-                </TouchableOpacity>
-              </>
-            ) : (
-              <View style={styles.connectBox}>
-                <View style={styles.stravaIconBox}>
-                  <Ionicons name="fitness-outline" size={28} color={Colors.accent} />
+                  <Text style={styles.connectTitle}>Connect Strava</Text>
+                  <Text style={styles.connectSub}>
+                    Link your Strava account to automatically sync bike distances and track component wear.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.connectBtn, (connecting || !request) && styles.connectBtnDisabled]}
+                    onPress={handleConnectStrava}
+                    disabled={connecting || !request}
+                  >
+                    {connecting ? (
+                      <ActivityIndicator color={Colors.white} />
+                    ) : (
+                      <>
+                        <Ionicons name="flash-outline" size={18} color={Colors.white} />
+                        <Text style={styles.connectBtnText}>Connect with Strava</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                  {!STRAVA_CONFIGURED && (
+                    <Text style={styles.connectComingSoon}>
+                      Strava credentials missing — see .env
+                    </Text>
+                  )}
                 </View>
-                <Text style={styles.connectTitle}>Connect Strava</Text>
-                <Text style={styles.connectSub}>
-                  Link your Strava account to automatically sync bike distances and track component wear.
-                </Text>
-                <TouchableOpacity
-                  style={[styles.connectBtn, styles.connectBtnDisabled]}
-                  disabled
-                >
-                  <Ionicons name="flash-outline" size={18} color={Colors.white} />
-                  <Text style={styles.connectBtnText}>Connect with Strava</Text>
-                </TouchableOpacity>
-                <Text style={styles.connectComingSoon}>Coming soon</Text>
-              </View>
-            )}
+              )}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Notifications section */}
         <View style={styles.section}>
@@ -360,7 +453,7 @@ export default function SettingsScreen() {
                 <Ionicons name="bicycle-outline" size={20} color={Colors.accent} />
                 <Text style={styles.rowTitle}>BikeVault</Text>
               </View>
-              <Text style={styles.rowSub}>v0.1</Text>
+              <Text style={styles.rowSub}>v0.2</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.row}>
@@ -374,6 +467,40 @@ export default function SettingsScreen() {
             Wear is based on the distance ridden since a component was installed. Connect Strava to sync automatically, or add rides manually.
           </Text>
         </View>
+
+        {/* Danger zone — delete account (only for signed-in users) */}
+        {!isAnonymous && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>DANGER ZONE</Text>
+            <View style={styles.card}>
+              <TouchableOpacity
+                style={styles.row}
+                onPress={handleDeleteAccount}
+                disabled={deleting}
+              >
+                <View style={styles.rowLeft}>
+                  <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.rowTitle, { color: Colors.danger }]}>
+                      Delete Account & Data
+                    </Text>
+                    <Text style={styles.rowSub}>
+                      Permanently remove your profile, bikes, components, and Strava connection
+                    </Text>
+                  </View>
+                </View>
+                {deleting ? (
+                  <ActivityIndicator color={Colors.danger} size="small" />
+                ) : (
+                  <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+                )}
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.hint}>
+              Deletion is immediate and irreversible. Your invite code cannot be reused.
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </View>
   );

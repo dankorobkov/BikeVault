@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
@@ -52,9 +52,6 @@ export default function AppTabBar({ active }: Props) {
               size={24}
               color={isActive ? Colors.accent : Colors.textTertiary}
             />
-            <Text style={[styles.label, isActive && styles.labelActive]}>
-              {tab.label}
-            </Text>
           </TouchableOpacity>
         );
       })}
@@ -75,13 +72,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.textTertiary,
-  },
-  labelActive: {
-    color: Colors.accent,
   },
 });

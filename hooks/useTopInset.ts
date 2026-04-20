@@ -29,9 +29,14 @@ function readCssEnvTop(): number {
   return val;
 }
 
-function isIosDevice(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+/** Returns true only when running as an installed PWA on iOS (standalone mode). */
+function isIosPwa(): boolean {
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone =
+    (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+  return isIos && isStandalone;
 }
 
 export function useTopInset(base = 8): number {
@@ -53,7 +58,7 @@ export function useTopInset(base = 8): number {
       const afterPaint = readCssEnvTop();
       if (afterPaint > 0) {
         setWebTop(afterPaint);
-      } else if (isIosDevice()) {
+      } else if (isIosPwa()) {
         // Fallback for iOS PWA when env() measurement still returns 0
         // 44 px covers all notch iPhones; Dynamic Island models need ~59 px
         // Use 54 as a safe midpoint that clears every modern iPhone.

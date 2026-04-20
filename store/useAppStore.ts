@@ -8,6 +8,11 @@ interface AppState {
   userDisplayName: string | null;
   userEmail: string | null;
   userPhotoUrl: string | null;
+  // True once the authenticated user has redeemed an invite code and has
+  // a profile document in Firestore. Always true for anonymous users.
+  hasProfile: boolean;
+  // null = we haven't checked yet (show loader); true/false = known state.
+  profileChecked: boolean;
 
   // Data
   bikes: Bike[];
@@ -24,6 +29,7 @@ interface AppState {
 
   // UI
   isLoading: boolean;
+  isDataLoading: boolean; // true while Firestore data is being fetched in the background
 
   // ─── Actions ──────────────────────────────────────────────────────────────
   setUserId: (id: string | null) => void;
@@ -33,6 +39,8 @@ interface AppState {
     email: string | null;
     photoUrl: string | null;
   }) => void;
+  setHasProfile: (v: boolean) => void;
+  setProfileChecked: (v: boolean) => void;
   signOut: () => void;
 
   setBikes: (bikes: Bike[]) => void;
@@ -53,6 +61,7 @@ interface AppState {
   setUseMetric: (v: boolean) => void;
 
   setLoading: (v: boolean) => void;
+  setDataLoading: (v: boolean) => void;
 }
 
 const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
@@ -68,6 +77,8 @@ export const useAppStore = create<AppState>((set) => ({
   userDisplayName: null,
   userEmail: null,
   userPhotoUrl: null,
+  hasProfile: false,
+  profileChecked: false,
   bikes: [],
   components: [],
   stravaTokens: null,
@@ -76,6 +87,7 @@ export const useAppStore = create<AppState>((set) => ({
   notificationPrefs: DEFAULT_NOTIFICATION_PREFS,
   useMetric: true,
   isLoading: true,
+  isDataLoading: false,
 
   setUserId: (id) => set({ userId: id }),
   setUserProfile: (p) =>
@@ -85,6 +97,8 @@ export const useAppStore = create<AppState>((set) => ({
       userEmail: p.email,
       userPhotoUrl: p.photoUrl,
     }),
+  setHasProfile: (v) => set({ hasProfile: v }),
+  setProfileChecked: (v) => set({ profileChecked: v }),
   signOut: () =>
     set({
       userId: null,
@@ -92,6 +106,8 @@ export const useAppStore = create<AppState>((set) => ({
       userDisplayName: null,
       userEmail: null,
       userPhotoUrl: null,
+      hasProfile: false,
+      profileChecked: false,
       bikes: [],
       components: [],
       stravaTokens: null,
@@ -129,4 +145,5 @@ export const useAppStore = create<AppState>((set) => ({
   setUseMetric: (v) => set({ useMetric: v }),
 
   setLoading: (v) => set({ isLoading: v }),
+  setDataLoading: (v) => set({ isDataLoading: v }),
 }));

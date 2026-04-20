@@ -1,11 +1,32 @@
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
+import { useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { Colors } from '../../constants/colors';
+import { Analytics } from '../../services/analytics';
+
+function ScreenViewTracker() {
+  const pathname = usePathname();
+  useEffect(() => {
+    // Map route paths to human-readable screen names
+    const nameMap: Record<string, string> = {
+      '/': 'Bikes',
+      '/(tabs)': 'Bikes',
+      '/(tabs)/': 'Bikes',
+      '/(tabs)/garage': 'Garage',
+      '/(tabs)/settings': 'Settings',
+    };
+    const screenName = nameMap[pathname] ?? pathname;
+    Analytics.screenView(screenName);
+  }, [pathname]);
+  return null;
+}
 
 export default function TabsLayout() {
   return (
-    <Tabs
+    <>
+      <ScreenViewTracker />
+      <Tabs
       screenOptions={{
         // Each tab screen manages its own title; disable Navigator-level header
         headerShown: false,
@@ -50,5 +71,6 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
+    </>
   );
 }

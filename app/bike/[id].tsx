@@ -25,6 +25,7 @@ import {
 } from '../../services/componentsService';
 import { deleteBike, updateBike } from '../../services/bikesService';
 import { getValidToken } from '../../services/stravaService';
+import { Analytics } from '../../services/analytics';
 import { Colors } from '../../constants/colors';
 import { BIKE_TYPE_LABELS, BRAKE_SYSTEM_LABELS, COMPONENT_TYPES } from '../../constants/componentTypes';
 import ComponentCard from '../../components/ComponentCard';
@@ -140,6 +141,7 @@ export default function BikeDetailScreen() {
       chargeIntervalDays: data.chargeIntervalDays,
     });
     addComponentLocal(newComp);
+    Analytics.addComponent(data.category, data.isElectric);
     setSuccessName(newComp.name);
     setShowSuccess(true);
   };
@@ -202,6 +204,7 @@ export default function BikeDetailScreen() {
     if (!userId) return;
     await updateComponent(userId, componentId, updates);
     updateComponentLocal(componentId, { ...updates, updatedAt: Date.now() });
+    if (updates.category) Analytics.editComponent(updates.category);
   };
 
   const handleEditInstallOnBike = async (
@@ -210,6 +213,7 @@ export default function BikeDetailScreen() {
     dist: number
   ) => {
     if (!userId) return;
+    const comp = components.find((c) => c.id === componentId);
     await installOnBike(userId, componentId, targetBikeId, dist);
     updateComponentLocal(componentId, {
       bikeId: targetBikeId,
@@ -217,24 +221,31 @@ export default function BikeDetailScreen() {
       installDistance: dist,
       updatedAt: Date.now(),
     });
+    if (comp) Analytics.installOnBike(comp.category);
   };
 
   const handleRetire = async (componentId: string) => {
     if (!userId) return;
+    const comp = components.find((c) => c.id === componentId);
     await retireComponent(userId, componentId);
     updateComponentLocal(componentId, { status: 'retired', updatedAt: Date.now() });
+    if (comp) Analytics.retireComponent(comp.category);
   };
 
   const handleMoveToStock = async (componentId: string) => {
     if (!userId) return;
+    const comp = components.find((c) => c.id === componentId);
     await moveToStock(userId, componentId);
     updateComponentLocal(componentId, { bikeId: null, status: 'in-stock', updatedAt: Date.now() });
+    if (comp) Analytics.moveToStock(comp.category);
   };
 
   const handleDeleteComponent = async (componentId: string) => {
     if (!userId) return;
+    const comp = components.find((c) => c.id === componentId);
     await deleteComponent(userId, componentId);
     removeComponentLocal(componentId);
+    if (comp) Analytics.deleteComponent(comp.category);
   };
 
   const handleDeleteBike = () => {
@@ -250,6 +261,7 @@ export default function BikeDetailScreen() {
             if (!userId) return;
             await deleteBike(userId, id);
             removeBikeLocal(id);
+            Analytics.deleteBike();
             router.back();
           },
         },
@@ -267,6 +279,7 @@ export default function BikeDetailScreen() {
     if (!userId) return;
     await updateBike(userId, id, data);
     updateBikeLocal(id, { ...data, updatedAt: Date.now() });
+    Analytics.editBike();
   };
 
   const handleAddRide = async () => {
