@@ -83,6 +83,10 @@ export default function SettingsScreen() {
   }, [stravaTokens]);
 
   useEffect(() => {
+    // On web, the OAuth flow redirects to /strava-callback which handles
+    // the token exchange itself — this effect only fires on native, where
+    // expo-auth-session surfaces the response in-place via `useAuthRequest`.
+    if (Platform.OS === 'web') return;
     if (response?.type === 'success' && userId) {
       const { code } = response.params;
       setConnecting(true);
