@@ -157,9 +157,16 @@ export async function fetchActivitiesSince(
 /**
  * Compute per-bike distance totals from Strava athlete bikes array.
  * Strava returns cumulative totals in meters.
+ *
+ * Defensive against an undefined/missing `bikes` field — the athlete
+ * summary representation (returned when the token lacks profile:read_all)
+ * has no bikes array at all, and we don't want that to throw.
  */
-export function buildBikeDistanceMap(stravaBikes: StravaBike[]): Record<string, number> {
+export function buildBikeDistanceMap(
+  stravaBikes: StravaBike[] | undefined | null
+): Record<string, number> {
   const map: Record<string, number> = {};
+  if (!stravaBikes) return map;
   for (const b of stravaBikes) {
     map[b.id] = Math.round(b.distance / 1000); // convert to km
   }

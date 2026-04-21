@@ -26,6 +26,16 @@ export function useSync() {
     try {
       const validTokens = await getValidToken(userId, stravaTokens);
       const athlete = await fetchAthlete(validTokens.accessToken);
+
+      // /athlete returns the `bikes` array only when the token carries
+      // profile:read_all. If it's missing, surface a helpful error so the
+      // user knows to re-authorise.
+      if (!athlete.bikes) {
+        throw new Error(
+          'Strava did not return your bikes list — the profile:read_all scope is missing. Disconnect and reconnect Strava to refresh permissions.'
+        );
+      }
+
       const distanceMap = buildBikeDistanceMap(athlete.bikes);
 
       // Update bike distances for bikes linked to Strava
@@ -39,6 +49,8 @@ export function useSync() {
         }
       }
 
+      // Persist the sync timestamp even when no local bikes are linked to
+      // Strava yet — a successful API call counts as a sync.
       const now = Date.now();
       setLastSyncAt(now);
       await AsyncStorage.setItem(LAST_SYNC_KEY, String(now));
