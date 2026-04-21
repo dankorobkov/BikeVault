@@ -121,19 +121,32 @@ export default function SettingsScreen() {
     promptAsync();
   };
 
+  const doDisconnect = async () => {
+    if (!userId) return;
+    // Clear Firestore first, but never let a failure (e.g. Safari ITP
+    // blocking the Firestore channel) leave the user stuck with a dead
+    // connection they can't remove. Local state is the source of truth
+    // for the UI, so we always null it even if the server delete fails.
+    try {
+      await clearStravaTokens(userId);
+    } catch (e) {
+      console.warn('clearStravaTokens failed (continuing with local disconnect):', e);
+    }
+    setStravaTokens(null);
+  };
+
   const handleDisconnect = () => {
-    Alert.alert('Disconnect Strava', 'This will stop automatic distance sync. Continue?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Disconnect',
-        style: 'destructive',
-        onPress: async () => {
-          if (!userId) return;
-          await clearStravaTokens(userId);
-          setStravaTokens(null);
-        },
-      },
-    ]);
+    // Alert.alert button callbacks are unreliable on RN Web, so branch
+    // on platform the same way we do for Sign Out below.
+    if (Platform.OS === 'web') {
+      if (!window.confirm('Disconnect Strava? This will stop automatic distance sync.')) return;
+      doDisconnect();
+    } else {
+      Alert.alert('Disconnect Strava', 'This will stop automatic distance sync. Continue?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Disconnect', style: 'destructive', onPress: doDisconnect },
+      ]);
+    }
   };
 
   const handleSync = async () => {

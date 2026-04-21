@@ -1,6 +1,10 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, initializeAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+} from 'firebase/firestore';
 import { Platform } from 'react-native';
 
 const firebaseConfig = {
@@ -32,6 +36,29 @@ function createAuth() {
 }
 
 export const auth = createAuth();
-export const db = getFirestore(app);
+
+// Firestore on web needs long-polling auto-detection to work around
+// Safari's Intelligent Tracking Prevention, which blocks the default
+// WebChannel transport with "Fetch API cannot load ... due to access
+// control checks". `experimentalAutoDetectLongPolling` lets Firestore
+// detect the block and fall back to long polling automatically.
+//
+// On native (iOS/Android) the gRPC transport is used anyway, so we just
+// use the default getFirestore. initializeFirestore throws if Firestore
+// has already been initialized for this app (e.g. on Expo fast refresh),
+// so we fall back to getFirestore in that case.
+function createDb() {
+  if (Platform.OS !== 'web') return getFirestore(app);
+  try {
+    return initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+      localCache: persistentLocalCache(),
+    });
+  } catch {
+    return getFirestore(app);
+  }
+}
+
+export const db = createDb();
 
 export default app;
