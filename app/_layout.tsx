@@ -10,7 +10,7 @@ import { auth } from '../config/firebase';
 import { useAppStore } from '../store/useAppStore';
 import { fetchBikes } from '../services/bikesService';
 import { fetchAllComponents } from '../services/componentsService';
-import { loadStravaTokens } from '../services/stravaService';
+import { loadStravaTokens, validateStravaTokens } from '../services/stravaService';
 import { getUserProfile } from '../services/userService';
 import { Colors } from '../constants/colors';
 import { DEMO_BIKES, DEMO_COMPONENTS } from '../constants/demoData';
@@ -131,7 +131,18 @@ export default function RootLayout() {
               const [bikes, components, stravaTokens] = result;
               setBikes(bikes);
               setComponents(components);
-              if (stravaTokens) setStravaTokens(stravaTokens);
+              if (stravaTokens) {
+                // Set optimistically so the UI shows "Connected" while we
+                // validate — then probe /athlete and clear if the token
+                // has been revoked at strava.com.
+                setStravaTokens(stravaTokens);
+                validateStravaTokens(user.uid, stravaTokens)
+                  .then((valid) => {
+                    if (!valid) setStravaTokens(null);
+                    else if (valid !== stravaTokens) setStravaTokens(valid);
+                  })
+                  .catch((e) => console.warn('Strava token validation failed:', e));
+              }
             })
             .catch((e) => {
               console.error('Init load error:', e);

@@ -5,6 +5,8 @@ import {
   fetchAthlete,
   getValidToken,
   buildBikeDistanceMap,
+  clearStravaTokens,
+  StravaAuthError,
 } from '../services/stravaService';
 import { updateBike } from '../services/bikesService';
 
@@ -17,6 +19,7 @@ export function useSync() {
     bikes,
     setIsSyncing,
     setLastSyncAt,
+    setStravaTokens,
     updateBikeLocal,
   } = useAppStore();
 
@@ -24,8 +27,29 @@ export function useSync() {
     if (!userId || !stravaTokens) return;
     setIsSyncing(true);
     try {
-      const validTokens = await getValidToken(userId, stravaTokens);
-      const athlete = await fetchAthlete(validTokens.accessToken);
+      let validTokens;
+      let athlete;
+      try {
+        validTokens = await getValidToken(userId, stravaTokens);
+        athlete = await fetchAthlete(validTokens.accessToken);
+      } catch (e) {
+        // If Strava rejects our tokens (refresh 400/401 or /athlete 401),
+        // the user revoked access on strava.com. Clear the stored tokens
+        // so the UI goes back to the Connect Strava button, and surface a
+        // clear message to the caller instead of a cryptic 401.
+        if (e instanceof StravaAuthError) {
+          try {
+            await clearStravaTokens(userId);
+          } catch {
+            /* local state still updated below */
+          }
+          setStravaTokens(null);
+          throw new Error(
+            'Strava access was revoked. Please reconnect Strava in Settings.'
+          );
+        }
+        throw e;
+      }
 
       // /athlete returns the `bikes` array only when the token carries
       // profile:read_all. If it's missing, surface a helpful error so the
@@ -57,7 +81,7 @@ export function useSync() {
     } finally {
       setIsSyncing(false);
     }
-  }, [userId, stravaTokens, bikes, setIsSyncing, setLastSyncAt, updateBikeLocal]);
+  }, [userId, stravaTokens, bikes, setIsSyncing, setLastSyncAt, setStravaTokens, updateBikeLocal]);
 
   const loadLastSync = useCallback(async () => {
     const stored = await AsyncStorage.getItem(LAST_SYNC_KEY);

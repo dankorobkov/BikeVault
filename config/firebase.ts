@@ -37,11 +37,16 @@ function createAuth() {
 
 export const auth = createAuth();
 
-// Firestore on web needs long-polling auto-detection to work around
-// Safari's Intelligent Tracking Prevention, which blocks the default
-// WebChannel transport with "Fetch API cannot load ... due to access
-// control checks". `experimentalAutoDetectLongPolling` lets Firestore
-// detect the block and fall back to long polling automatically.
+// Firestore on web needs long polling to work around Safari's Intelligent
+// Tracking Prevention, which blocks the default WebChannel transport with
+// "Fetch API cannot load ... due to access control checks".
+//
+// We use `experimentalForceLongPolling: true` rather than
+// `experimentalAutoDetectLongPolling` because auto-detect relies on
+// observing a failed WebChannel to fall back, and in practice Safari's
+// block surfaces as a stalled connection rather than a clean error — the
+// auto-detector never fires and the app hangs. Forcing long polling is
+// slightly slower on Chrome/Firefox but guaranteed to work everywhere.
 //
 // On native (iOS/Android) the gRPC transport is used anyway, so we just
 // use the default getFirestore. initializeFirestore throws if Firestore
@@ -51,7 +56,7 @@ function createDb() {
   if (Platform.OS !== 'web') return getFirestore(app);
   try {
     return initializeFirestore(app, {
-      experimentalAutoDetectLongPolling: true,
+      experimentalForceLongPolling: true,
       localCache: persistentLocalCache(),
     });
   } catch {
