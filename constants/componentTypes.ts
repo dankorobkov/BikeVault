@@ -344,7 +344,7 @@ export const BIKE_TYPE_LABELS: Record<BikeType, string> = {
   city: 'City / Commuter',
   ebike: 'E-Bike',
   'trainer-direct-drive': 'Direct-Drive Trainer',
-  rollers: 'Rollers',
+  rollers: 'Roller Trainers',
   other: 'Other',
 };
 

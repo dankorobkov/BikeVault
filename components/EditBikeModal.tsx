@@ -148,7 +148,7 @@ export default function EditBikeModal({ visible, bike, onClose, onSave }: Props)
               <Text style={styles.hint}>
                 {type === 'trainer-direct-drive'
                   ? 'Direct-drive trainer: rear-wheel components are hidden on the detail screen.'
-                  : 'Rollers: expect the rear tyre to wear faster than outdoors.'}
+                  : 'Roller trainers: expect the rear tyre to wear faster than outdoors.'}
               </Text>
             )}
           </View>

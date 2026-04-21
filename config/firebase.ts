@@ -37,33 +37,39 @@ function createAuth() {
 
 export const auth = createAuth();
 
-// Firestore on web needs long polling to work around Safari's Intelligent
-// Tracking Prevention, which blocks the default WebChannel transport with
-// "Fetch API cannot load ... due to access control checks".
+// Firestore on web needs long polling + XHR transport to work around
+// Safari's Intelligent Tracking Prevention, which blocks the default
+// WebChannel / Fetch Streams transport with "Fetch API cannot load ...
+// due to access control checks".
 //
-// `experimentalForceLongPolling: true` switches to the XHR-based long
-// polling transport, which Safari allows. Auto-detect tried before but
-// the Safari block surfaces as a stalled connection, not a clean error,
-// so the auto-detector never fires the fallback.
+// `experimentalForceLongPolling: true` switches to long polling.
+// `useFetchStreams: false` additionally forces the underlying requests
+// over XHR instead of the Fetch Streams API — without this opt-out the
+// SDK still hits /Listen/channel via Fetch under ITP rules, which
+// Safari blocks as a third-party-cookie violation even though long
+// polling over XHR is otherwise fine.
 //
 // `memoryLocalCache()` avoids the persistent IndexedDB cache. The
-// persistent cache opens a Listen stream internally to keep itself in
-// sync, which Safari ITP blocks ("Fetch API cannot load .../Listen/
-// channel due to access control checks"). Since the app only does
-// one-shot reads (getDoc/getDocs), the cache gives no real benefit
-// here — memory cache is lighter and has no background listener.
+// persistent cache opens its own Listen stream to keep itself in sync,
+// which Safari ITP also blocks. Since the app only does one-shot reads
+// (getDoc/getDocs), the cache gives no real benefit here — memory
+// cache is lighter and has no background listener.
 //
-// On native (iOS/Android) the gRPC transport is used anyway, so we just
-// use the default getFirestore. initializeFirestore throws if Firestore
-// has already been initialized for this app (e.g. on Expo fast refresh),
-// so we fall back to getFirestore in that case.
+// On native (iOS/Android) the gRPC transport is used anyway, so we
+// just use the default getFirestore. initializeFirestore throws if
+// Firestore has already been initialized for this app (e.g. on Expo
+// fast refresh), so we fall back to getFirestore in that case.
 function createDb() {
   if (Platform.OS !== 'web') return getFirestore(app);
   try {
+    // `useFetchStreams` lives on Firestore's internal PrivateSettings,
+    // not the public FirestoreSettings surface — it's honoured at
+    // runtime but not in the public .d.ts, so we cast through unknown.
     return initializeFirestore(app, {
       experimentalForceLongPolling: true,
+      useFetchStreams: false,
       localCache: memoryLocalCache(),
-    });
+    } as unknown as Parameters<typeof initializeFirestore>[1]);
   } catch {
     return getFirestore(app);
   }

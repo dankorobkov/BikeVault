@@ -204,7 +204,7 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
               <Text style={styles.hint}>
                 {type === 'trainer-direct-drive'
                   ? 'Direct-drive trainer: we\'ll track chain, cassette and chainring wear. Wheel, tyre and brake components are hidden because the rear wheel is off the bike.'
-                  : 'Rollers: everything wears like outdoors. Expect the rear tyre to wear significantly faster against the drums — set a shorter lifespan when you add it.'}
+                  : 'Roller trainers: everything wears like outdoors. Expect the rear tyre to wear significantly faster against the drums — set a shorter lifespan when you add it.'}
               </Text>
             )}
           </View>

@@ -257,22 +257,41 @@ export default function BikeDetailScreen() {
   };
 
   const handleDeleteBike = () => {
+    const run = async () => {
+      if (!userId) return;
+      try {
+        await deleteBike(userId, id);
+      } catch (e) {
+        // Surface the error but still clear local state — otherwise the
+        // user is stuck on a phantom bike card they can't remove.
+        const msg = e instanceof Error ? e.message : 'Delete failed';
+        if (Platform.OS === 'web') {
+          window.alert('Could not delete from the server: ' + msg);
+        } else {
+          Alert.alert('Delete failed', msg);
+        }
+      }
+      removeBikeLocal(id);
+      Analytics.deleteBike();
+      router.back();
+    };
+
+    // Alert.alert button callbacks don't reliably fire on RN Web, so
+    // branch on platform — window.confirm is synchronous and works
+    // everywhere a browser runs.
+    if (Platform.OS === 'web') {
+      const ok = window.confirm(
+        'Delete "' + bike.name + '" and all its components? This cannot be undone.'
+      );
+      if (ok) run();
+      return;
+    }
     Alert.alert(
       'Delete Bike',
       'Delete "' + bike.name + '" and all its components? This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            if (!userId) return;
-            await deleteBike(userId, id);
-            removeBikeLocal(id);
-            Analytics.deleteBike();
-            router.back();
-          },
-        },
+        { text: 'Delete', style: 'destructive', onPress: run },
       ]
     );
   };
@@ -410,7 +429,7 @@ export default function BikeDetailScreen() {
               <Text style={styles.indoorTitle}>
                 {bike.type === 'trainer-direct-drive'
                   ? 'Direct-Drive Trainer'
-                  : 'Rollers'}
+                  : 'Roller Trainers'}
               </Text>
               <Text style={styles.indoorText}>
                 {bike.type === 'trainer-direct-drive'
