@@ -3,7 +3,7 @@ import { getAuth, initializeAuth } from 'firebase/auth';
 import {
   getFirestore,
   initializeFirestore,
-  persistentLocalCache,
+  memoryLocalCache,
 } from 'firebase/firestore';
 import { Platform } from 'react-native';
 
@@ -41,12 +41,17 @@ export const auth = createAuth();
 // Tracking Prevention, which blocks the default WebChannel transport with
 // "Fetch API cannot load ... due to access control checks".
 //
-// We use `experimentalForceLongPolling: true` rather than
-// `experimentalAutoDetectLongPolling` because auto-detect relies on
-// observing a failed WebChannel to fall back, and in practice Safari's
-// block surfaces as a stalled connection rather than a clean error — the
-// auto-detector never fires and the app hangs. Forcing long polling is
-// slightly slower on Chrome/Firefox but guaranteed to work everywhere.
+// `experimentalForceLongPolling: true` switches to the XHR-based long
+// polling transport, which Safari allows. Auto-detect tried before but
+// the Safari block surfaces as a stalled connection, not a clean error,
+// so the auto-detector never fires the fallback.
+//
+// `memoryLocalCache()` avoids the persistent IndexedDB cache. The
+// persistent cache opens a Listen stream internally to keep itself in
+// sync, which Safari ITP blocks ("Fetch API cannot load .../Listen/
+// channel due to access control checks"). Since the app only does
+// one-shot reads (getDoc/getDocs), the cache gives no real benefit
+// here — memory cache is lighter and has no background listener.
 //
 // On native (iOS/Android) the gRPC transport is used anyway, so we just
 // use the default getFirestore. initializeFirestore throws if Firestore
@@ -57,7 +62,7 @@ function createDb() {
   try {
     return initializeFirestore(app, {
       experimentalForceLongPolling: true,
-      localCache: persistentLocalCache(),
+      localCache: memoryLocalCache(),
     });
   } catch {
     return getFirestore(app);

@@ -68,7 +68,13 @@ export default function SettingsScreen() {
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
       clientId: STRAVA_CONFIG.clientId,
-      scopes: STRAVA_CONFIG.scopes,
+      // Strava's OAuth requires COMMA-separated scopes, not the OAuth 2.0
+      // standard space-separated list. If we pass the scopes as a normal
+      // array, expo-auth-session joins them with spaces and Strava
+      // responds with "Bad Request / field: scope / code: invalid".
+      // Packing them into a single array element keeps the library from
+      // splitting them, and the comma lands literally in the query string.
+      scopes: [STRAVA_CONFIG.scopes.join(',')],
       redirectUri,
       usePKCE: false,
       // `force` makes Strava re-show the consent screen on every connect.
