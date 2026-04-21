@@ -70,9 +70,13 @@ export default function StravaCallback() {
       .then((tokens) => {
         if (cancelled) return;
         setStravaTokens(tokens);
-        // Best-effort initial sync — non-fatal if it fails; user can retry
-        // from the Sync Activities button.
-        return syncStrava().catch(() => undefined);
+        // Initial sync after connect. Surface any error so the user knows
+        // why distances / timestamps aren't updating (most common cause is
+        // a missing scope on an old token reused by Strava).
+        return syncStrava().catch((e: unknown) => {
+          const msg = e instanceof Error ? e.message : 'Initial sync failed';
+          Alert.alert('Strava connected, but sync failed', msg);
+        });
       })
       .catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : 'Token exchange failed';

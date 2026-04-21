@@ -71,7 +71,11 @@ export default function SettingsScreen() {
       scopes: STRAVA_CONFIG.scopes,
       redirectUri,
       usePKCE: false,
-      extraParams: { approval_prompt: 'auto' },
+      // `force` makes Strava re-show the consent screen on every connect.
+      // This matters when scopes change (e.g. we added profile:read_all)
+      // — with `auto`, Strava can silently reuse the previously-granted
+      // scope set and hand back a token missing the new permission.
+      extraParams: { approval_prompt: 'force' },
     },
     discovery
   );
