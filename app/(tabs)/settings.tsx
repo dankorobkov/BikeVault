@@ -23,6 +23,7 @@ import { useAppStore } from '../../store/useAppStore';
 import {
   exchangeCodeForTokens,
   clearStravaTokens,
+  loadStravaTokens,
 } from '../../services/stravaService';
 import { deleteUserAccount } from '../../services/userService';
 import { STRAVA_CONFIG } from '../../config/strava';
@@ -91,6 +92,36 @@ export default function SettingsScreen() {
   useEffect(() => {
     if (stravaTokens?.athleteAvatar) setAthleteAvatar(stravaTokens.athleteAvatar);
   }, [stravaTokens]);
+
+  // Cross-tab update: the OAuth popup lands on /strava-callback in its
+  // own tab, writes tokens to Firestore, and broadcasts "connected".
+  // Without this, the Settings tab that initiated the flow still shows
+  // the Connect button until the user manually reloads, because each
+  // tab has its own in-memory Zustand store.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !userId) return;
+    if (typeof BroadcastChannel === 'undefined') return;
+    const bc = new BroadcastChannel('bikevault-strava');
+    bc.onmessage = async (ev: MessageEvent) => {
+      if (ev.data?.type !== 'connected') return;
+      try {
+        const tokens = await loadStravaTokens(userId);
+        if (tokens) {
+          setStravaTokens(tokens);
+          if (tokens.athleteAvatar) setAthleteAvatar(tokens.athleteAvatar);
+          // Kick off a sync so the "Last synced" timestamp updates
+          // without a manual tap.
+          syncStrava().catch(() => undefined);
+          // Refresh the locally-stored last-sync timestamp too, in case
+          // the callback tab wrote it.
+          loadLastSync();
+        }
+      } catch (e) {
+        console.warn('Cross-tab Strava refresh failed:', e);
+      }
+    };
+    return () => bc.close();
+  }, [userId, setStravaTokens, syncStrava, loadLastSync]);
 
   useEffect(() => {
     // On web, the OAuth flow redirects to /strava-callback which handles

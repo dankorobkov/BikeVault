@@ -78,6 +78,21 @@ export default function StravaCallback() {
           Alert.alert('Strava connected, but sync failed', msg);
         });
       })
+      .then(() => {
+        // Let any other tab with BikeVault open (typically the Settings
+        // tab that kicked off the OAuth flow) know we just connected, so
+        // it can refresh its Zustand state without a manual page reload.
+        // Zustand stores are per-tab — no cross-tab sync out of the box.
+        if (typeof BroadcastChannel !== 'undefined') {
+          try {
+            const bc = new BroadcastChannel('bikevault-strava');
+            bc.postMessage({ type: 'connected' });
+            bc.close();
+          } catch {
+            /* browser too old — falls back to manual reload */
+          }
+        }
+      })
       .catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : 'Token exchange failed';
         Alert.alert('Strava connection failed', msg);
