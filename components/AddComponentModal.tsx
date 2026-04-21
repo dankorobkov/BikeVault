@@ -19,15 +19,16 @@ import {
   COMPONENT_GROUP_LABELS,
   getGroupedComponents,
 } from '../constants/componentTypes';
-import { ELECTRIC_CATEGORIES } from '../types';
+import { ELECTRIC_CATEGORIES, hiddenComponentCategoriesForBike } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { unitLabel } from '../constants/units';
-import type { ComponentCategory, BrakeSystem } from '../types';
+import type { ComponentCategory, BrakeSystem, BikeType } from '../types';
 
 interface Props {
   visible: boolean;
   bikeDistance: number;
   brakeSystem?: BrakeSystem;
+  bikeType?: BikeType;
   inStockMode?: boolean;
   onClose: () => void;
   onAdd: (data: {
@@ -48,6 +49,7 @@ export default function AddComponentModal({
   visible,
   bikeDistance,
   brakeSystem,
+  bikeType,
   inStockMode = false,
   onClose,
   onAdd,
@@ -67,7 +69,18 @@ export default function AddComponentModal({
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<'category' | 'details'>('category');
 
-  const grouped = getGroupedComponents(brakeSystem);
+  // Hide component categories that don't apply to this bike's setup
+  // (e.g. rear-wheel components on a direct-drive trainer). When adding
+  // to stock we don't know the destination bike, so nothing is hidden.
+  const hiddenCategories = inStockMode || !bikeType
+    ? []
+    : hiddenComponentCategoriesForBike(bikeType);
+  const groupedAll = getGroupedComponents(brakeSystem);
+  const grouped = Object.fromEntries(
+    Object.entries(groupedAll)
+      .map(([g, cats]) => [g, (cats ?? []).filter((c) => !hiddenCategories.includes(c))])
+      .filter(([, cats]) => (cats as ComponentCategory[]).length > 0)
+  ) as typeof groupedAll;
   const typeInfo = COMPONENT_TYPES[category];
   const canBeElectric = ELECTRIC_CATEGORIES.includes(category);
 

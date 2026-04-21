@@ -481,22 +481,10 @@ export default function SettingsScreen() {
                   />
                 </View>
 
-                <View style={styles.divider} />
-                <View style={styles.switchRow}>
-                  <View style={styles.rowLeft}>
-                    <Ionicons name="battery-dead-outline" size={20} color={Colors.textSecondary} />
-                    <View>
-                      <Text style={styles.rowTitle}>Battery Low Alert</Text>
-                      <Text style={styles.rowSub}>When estimated charge drops below 20%</Text>
-                    </View>
-                  </View>
-                  <Switch
-                    value={notificationPrefs.batteryLow}
-                    onValueChange={(v) => setNotificationPrefs({ batteryLow: v })}
-                    trackColor={{ true: Colors.accent, false: Colors.border }}
-                    thumbColor={Colors.white}
-                  />
-                </View>
+                {/* Battery Low Alert is hidden — the feature isn't wired up
+                    to a real charge-estimate yet. Stub remains in the data
+                    model (NotificationPrefs.batteryLow) so we can surface
+                    it again once component charge tracking ships. */}
               </>
             )}
           </View>

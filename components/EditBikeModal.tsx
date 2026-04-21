@@ -15,10 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import {
   BIKE_TYPE_LABELS,
+  BIKE_TYPE_ICONS,
   BIKE_COLORS,
   BRAKE_SYSTEM_LABELS,
 } from '../constants/componentTypes';
-import type { Bike, BikeType, BrakeSystem } from '../types';
+import { isIndoorBike, type Bike, type BikeType, type BrakeSystem } from '../types';
 
 interface Props {
   visible: boolean;
@@ -131,12 +132,25 @@ export default function EditBikeModal({ visible, bike, onClose, onSave }: Props)
                   style={[styles.chip, type === key && styles.chipActive]}
                   onPress={() => setType(key)}
                 >
+                  <Ionicons
+                    name={BIKE_TYPE_ICONS[key] as any}
+                    size={13}
+                    color={type === key ? Colors.accent : Colors.textSecondary}
+                    style={styles.chipIcon}
+                  />
                   <Text style={[styles.chipText, type === key && styles.chipTextActive]}>
                     {label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
+            {isIndoorBike(type) && (
+              <Text style={styles.hint}>
+                {type === 'trainer-direct-drive'
+                  ? 'Direct-drive trainer: rear-wheel components are hidden on the detail screen.'
+                  : 'Rollers: expect the rear tyre to wear faster than outdoors.'}
+              </Text>
+            )}
           </View>
 
           {/* Brake system */}
@@ -214,6 +228,8 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: Colors.border, marginLeft: 16 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 99,
@@ -221,6 +237,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
+  chipIcon: { marginRight: 6 },
+  hint: { fontSize: 12, color: Colors.textTertiary, lineHeight: 17, marginTop: 4 },
   chipActive: { backgroundColor: Colors.accentDim, borderColor: Colors.accent },
   chipText: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },
   chipTextActive: { color: Colors.accent },

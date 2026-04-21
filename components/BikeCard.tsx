@@ -7,8 +7,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
-import { BIKE_TYPE_LABELS } from '../constants/componentTypes';
-import { calcWearPercent, getWearLevel, type Bike, type BikeComponent } from '../types';
+import { BIKE_TYPE_LABELS, BIKE_TYPE_ICONS } from '../constants/componentTypes';
+import {
+  calcWearPercent,
+  getWearLevel,
+  isIndoorBike,
+  type Bike,
+  type BikeComponent,
+} from '../types';
 
 interface Props {
   bike: Bike;
@@ -43,6 +49,16 @@ export default function BikeCard({ bike, components, onPress }: Props) {
             <Text style={styles.name} numberOfLines={1}>{bike.name}</Text>
             <Text style={styles.brand}>{bike.brand || BIKE_TYPE_LABELS[bike.type]}</Text>
           </View>
+          {isIndoorBike(bike.type) && (
+            <View style={styles.indoorBadge}>
+              <Ionicons
+                name={BIKE_TYPE_ICONS[bike.type] as any}
+                size={11}
+                color={Colors.accent}
+              />
+              <Text style={styles.indoorText}>Indoor</Text>
+            </View>
+          )}
           {criticalCount > 0 && (
             <View style={styles.alertBadge}>
               <Ionicons name="warning" size={12} color={Colors.danger} />
@@ -122,6 +138,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     marginTop: 2,
+  },
+  indoorBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.accentDim,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 99,
+  },
+  indoorText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.accent,
+    letterSpacing: 0.3,
   },
   alertBadge: {
     flexDirection: 'row',

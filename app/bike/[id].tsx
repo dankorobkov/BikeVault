@@ -36,7 +36,15 @@ import EmptyState from '../../components/EmptyState';
 import SuccessBanner from '../../components/SuccessBanner';
 import AppTabBar from '../../components/AppTabBar';
 import { useTopInset } from '../../hooks/useTopInset';
-import type { BikeComponent, ComponentCategory, StravaActivity, BikeType, BrakeSystem } from '../../types';
+import {
+  isIndoorBike,
+  hiddenComponentCategoriesForBike,
+  type BikeComponent,
+  type ComponentCategory,
+  type StravaActivity,
+  type BikeType,
+  type BrakeSystem,
+} from '../../types';
 
 const STRAVA_API = 'https://www.strava.com/api/v3';
 
@@ -384,6 +392,57 @@ export default function BikeDetailScreen() {
           </View>
         </View>
 
+        {/* Indoor setup info card */}
+        {isIndoorBike(bike.type) && (
+          <View style={styles.indoorCard}>
+            <View style={styles.indoorIconWrap}>
+              <Ionicons
+                name={
+                  bike.type === 'trainer-direct-drive'
+                    ? 'barbell-outline'
+                    : 'sync-circle-outline'
+                }
+                size={20}
+                color={Colors.accent}
+              />
+            </View>
+            <View style={styles.indoorBody}>
+              <Text style={styles.indoorTitle}>
+                {bike.type === 'trainer-direct-drive'
+                  ? 'Direct-Drive Trainer'
+                  : 'Rollers'}
+              </Text>
+              <Text style={styles.indoorText}>
+                {bike.type === 'trainer-direct-drive'
+                  ? 'Track wear on the chain, cassette, chainring and pulleys — that\'s what your trainer actually grinds through. Rear-wheel, tyre and brake components are hidden because the rear wheel is off the bike.'
+                  : 'Everything wears like outdoors, but the rear tyre wears significantly faster against the drums. When you add it, set a shorter lifespan (roughly half of what you\'d use outdoors).'}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Irrelevant component warning: any tracked parts that don't apply
+            to this indoor setup (e.g. a front tyre left over from a bike
+            that was converted to trainer use). */}
+        {(() => {
+          const hidden = hiddenComponentCategoriesForBike(bike.type);
+          if (hidden.length === 0) return null;
+          const stray = bikeComponents.filter(
+            (c) => c.status === 'active' && hidden.includes(c.category)
+          );
+          if (stray.length === 0) return null;
+          return (
+            <View style={styles.strayCard}>
+              <Ionicons name="warning-outline" size={18} color={Colors.warning} />
+              <Text style={styles.strayText}>
+                {stray.length} active part
+                {stray.length === 1 ? '' : 's'} don't apply to this setup —
+                move them to stock or retire them.
+              </Text>
+            </View>
+          );
+        })()}
+
         {/* Last rides from Strava */}
         {bike.stravaId && (
           <View style={styles.section}>
@@ -468,6 +527,7 @@ export default function BikeDetailScreen() {
         visible={showAdd}
         bikeDistance={bike.totalDistance}
         brakeSystem={bike.brakeSystem}
+        bikeType={bike.type}
         onClose={() => setShowAdd(false)}
         onAdd={handleAddComponent}
       />
@@ -620,6 +680,40 @@ const styles = StyleSheet.create({
   heroStatValue: { fontSize: 18, fontWeight: '700', color: Colors.text },
   heroStatLabel: { fontSize: 11, color: Colors.textSecondary },
   heroStatDivider: { width: 1, height: 32, backgroundColor: Colors.border },
+
+  indoorCard: {
+    flexDirection: 'row',
+    gap: 12,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.accentDim,
+  },
+  indoorIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.accentDim,
+  },
+  indoorBody: { flex: 1, gap: 4 },
+  indoorTitle: { fontSize: 15, fontWeight: '700', color: Colors.text },
+  indoorText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
+  strayCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: Colors.dangerDim,
+  },
+  strayText: { flex: 1, fontSize: 13, color: Colors.warning, lineHeight: 18 },
 
   section: { paddingHorizontal: 20, marginBottom: 20 },
   sectionHeader: {

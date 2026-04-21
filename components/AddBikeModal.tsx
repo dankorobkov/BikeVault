@@ -15,10 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import {
   BIKE_TYPE_LABELS,
+  BIKE_TYPE_ICONS,
   BIKE_COLORS,
   BRAKE_SYSTEM_LABELS,
 } from '../constants/componentTypes';
-import type { BikeType, BrakeSystem } from '../types';
+import { isIndoorBike, type BikeType, type BrakeSystem } from '../types';
 
 interface Props {
   visible: boolean;
@@ -187,12 +188,25 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
                   style={[styles.chip, type === key && styles.chipActive]}
                   onPress={() => setType(key)}
                 >
+                  <Ionicons
+                    name={BIKE_TYPE_ICONS[key] as any}
+                    size={14}
+                    color={type === key ? Colors.accent : Colors.textSecondary}
+                    style={styles.chipIcon}
+                  />
                   <Text style={[styles.chipText, type === key && styles.chipTextActive]}>
                     {label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
+            {isIndoorBike(type) && (
+              <Text style={styles.hint}>
+                {type === 'trainer-direct-drive'
+                  ? 'Direct-drive trainer: we\'ll track chain, cassette and chainring wear. Wheel, tyre and brake components are hidden because the rear wheel is off the bike.'
+                  : 'Rollers: everything wears like outdoors. Expect the rear tyre to wear significantly faster against the drums — set a shorter lifespan when you add it.'}
+              </Text>
+            )}
           </View>
 
           {/* Brake System */}
@@ -300,11 +314,14 @@ const styles = StyleSheet.create({
   unitTag: { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 99,
     backgroundColor: Colors.card,
   },
+  chipIcon: { marginRight: 6 },
   chipActive: { backgroundColor: Colors.accentDim },
   chipText: { fontSize: 14, color: Colors.textSecondary },
   chipTextActive: { color: Colors.accent, fontWeight: '600' },

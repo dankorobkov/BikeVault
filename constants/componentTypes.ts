@@ -1,4 +1,4 @@
-import type { ComponentCategory, ComponentGroup, BrakeSystem } from '../types';
+import type { ComponentCategory, ComponentGroup, BrakeSystem, BikeType } from '../types';
 
 export interface ComponentTypeInfo {
   label: string;
@@ -336,14 +336,33 @@ export function getGroupedComponents(brakeSystem?: BrakeSystem) {
   return groups;
 }
 
-export const BIKE_TYPE_LABELS: Record<string, string> = {
+export const BIKE_TYPE_LABELS: Record<BikeType, string> = {
   road: 'Road',
   mtb: 'Mountain',
   gravel: 'Gravel',
   cyclocross: 'Cyclocross',
   city: 'City / Commuter',
   ebike: 'E-Bike',
+  'trainer-direct-drive': 'Direct-Drive Trainer',
+  rollers: 'Rollers',
   other: 'Other',
+};
+
+/**
+ * Ionicons used to visually distinguish bike types in chips, cards, and
+ * the add/edit modals. Indoor setups get their own glyphs so they read as
+ * clearly different from outdoor bikes at a glance.
+ */
+export const BIKE_TYPE_ICONS: Record<BikeType, string> = {
+  road: 'bicycle-outline',
+  mtb: 'bicycle-outline',
+  gravel: 'bicycle-outline',
+  cyclocross: 'bicycle-outline',
+  city: 'bicycle-outline',
+  ebike: 'flash-outline',
+  'trainer-direct-drive': 'barbell-outline',
+  rollers: 'sync-circle-outline',
+  other: 'ellipsis-horizontal-outline',
 };
 
 export const BRAKE_SYSTEM_LABELS: Record<BrakeSystem, string> = {

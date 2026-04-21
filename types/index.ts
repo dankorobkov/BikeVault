@@ -5,7 +5,65 @@ export type BikeType =
   | 'cyclocross'
   | 'city'
   | 'ebike'
+  // ── Indoor setups ─────────────────────────────────────────────────────────
+  // Direct-drive trainer: rear wheel is removed, chain engages with the
+  // trainer's own cassette. Cassette + chain + pulleys wear; tyres, rear
+  // hub, rear rotor don't apply (wheel isn't there).
+  | 'trainer-direct-drive'
+  // Rollers: bike spins freely on drums, both wheels turn. Everything
+  // wears like outdoors — except the rear tyre wears significantly faster
+  // because of heat and the hard drum surface.
+  | 'rollers'
   | 'other';
+
+/**
+ * Whether a bike is an indoor-only setup. Drives UI hints (info card,
+ * badge on BikeCard) and component-category filtering.
+ */
+export function isIndoorBike(type: BikeType): boolean {
+  return type === 'trainer-direct-drive' || type === 'rollers';
+}
+
+/**
+ * Component categories that don't apply to a given bike type.
+ * Used by AddComponentModal to hide irrelevant options and by the bike
+ * detail screen to flag invalid installs.
+ *
+ * Direct-drive: the rear wheel is removed, so everything attached to it
+ * is irrelevant. The cassette the chain actually engages with lives on
+ * the trainer, but we still track it here because users swap BikeVault
+ * bikes onto the same trainer (so the cassette "belongs" to the trainer
+ * bike entry).
+ */
+export function hiddenComponentCategoriesForBike(
+  type: BikeType
+): ComponentCategory[] {
+  if (type === 'trainer-direct-drive') {
+    return [
+      'rear-hub',
+      'rear-rim',
+      'rear-spokes',
+      'rear-tyre',
+      'rear-tube',
+      'rear-tubeless-sealant',
+      'rear-disc-rotor',
+      'rear-brake-pads',
+      'rear-brake-cable',
+      // Front wheel doesn't move either on a direct-drive trainer
+      'front-hub',
+      'front-rim',
+      'front-spokes',
+      'front-tyre',
+      'front-tube',
+      'front-tubeless-sealant',
+      'front-disc-rotor',
+      'front-brake-pads',
+      'front-brake-cable',
+    ];
+  }
+  // Rollers & outdoor bikes: everything is fair game.
+  return [];
+}
 
 export type BrakeSystem = 'disc-hydraulic' | 'disc-cable' | 'rim';
 
