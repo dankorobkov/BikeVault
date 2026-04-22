@@ -111,10 +111,18 @@ export async function updateComponent(
   componentId: string,
   updates: Partial<Omit<BikeComponent, 'id' | 'createdAt'>>
 ): Promise<void> {
-  await updateDoc(componentDoc(userId, componentId), {
-    ...updates,
-    updatedAt: serverTimestamp(),
-  });
+  // Firestore rejects `undefined` values ("Unsupported field value:
+  // undefined"), but the Edit modal happily sends `notes: undefined`
+  // when a user clears a text field (since `trim() || undefined` was
+  // used to avoid writing empty strings). Strip those before the call.
+  // This keeps cleared-but-previously-set fields at their old value
+  // rather than removing them, which is fine for the current UX — the
+  // optional fields are all free-form text / metadata.
+  const clean: Record<string, unknown> = { updatedAt: serverTimestamp() };
+  for (const [k, v] of Object.entries(updates)) {
+    if (v !== undefined) clean[k] = v;
+  }
+  await updateDoc(componentDoc(userId, componentId), clean);
 }
 
 export async function retireComponent(userId: string, componentId: string): Promise<void> {

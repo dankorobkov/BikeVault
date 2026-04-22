@@ -77,10 +77,13 @@ export async function updateBike(
   bikeId: string,
   updates: Partial<Omit<Bike, 'id' | 'createdAt'>>
 ): Promise<void> {
-  await updateDoc(bikeDoc(userId, bikeId), {
-    ...updates,
-    updatedAt: serverTimestamp(),
-  });
+  // Firestore rejects `undefined`; callers may send cleared-optional
+  // fields (e.g. stravaId) as undefined. Strip before writing.
+  const clean: Record<string, unknown> = { updatedAt: serverTimestamp() };
+  for (const [k, v] of Object.entries(updates)) {
+    if (v !== undefined) clean[k] = v;
+  }
+  await updateDoc(bikeDoc(userId, bikeId), clean);
 }
 
 export async function deleteBike(userId: string, bikeId: string): Promise<void> {
