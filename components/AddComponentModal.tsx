@@ -22,6 +22,7 @@ import {
 import { ELECTRIC_CATEGORIES, hiddenComponentCategoriesForBike } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { unitLabel } from '../constants/units';
+import DateField from './DateField';
 import type { ComponentCategory, BrakeSystem, BikeType } from '../types';
 
 interface Props {
@@ -35,6 +36,7 @@ interface Props {
     name: string;
     category: ComponentCategory;
     brand: string;
+    installDate: number;
     installDistance: number;
     maxLifespan: number;
     attentionFrequency?: number;
@@ -71,6 +73,11 @@ export default function AddComponentModal({
   const [notes, setNotes] = useState('');
   const [isElectric, setIsElectric] = useState(false);
   const [chargeInterval, setChargeInterval] = useState('');
+  // Install date — defaults to today, but users adding a part they
+  // fitted weeks/months ago can back-date it. Flows into time-based
+  // features (attention reminders, battery charge intervals) and is
+  // shown on the component card.
+  const [installDate, setInstallDate] = useState<number>(Date.now());
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<'category' | 'details'>('category');
 
@@ -123,12 +130,16 @@ export default function AddComponentModal({
         name: name.trim(),
         category,
         brand: brand.trim(),
+        installDate,
         installDistance,
         maxLifespan: parseNum(maxLifespan) || typeInfo.defaultLifespan,
         attentionFrequency: attentionFreq ? parseNum(attentionFreq) : undefined,
         notes: notes.trim(),
         isElectric: canBeElectric && isElectric,
-        lastCharged: isElectric ? Date.now() : undefined,
+        // For back-dated parts, assume the battery was fresh on
+        // install — lets the charge-interval alert fire on schedule
+        // rather than instantly.
+        lastCharged: isElectric ? installDate : undefined,
         chargeIntervalDays:
           isElectric && chargeInterval ? parseNum(chargeInterval) : undefined,
       });
@@ -149,6 +160,7 @@ export default function AddComponentModal({
     setNotes('');
     setIsElectric(false);
     setChargeInterval('');
+    setInstallDate(Date.now());
     setStep('category');
   };
 
@@ -251,6 +263,21 @@ export default function AddComponentModal({
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>WEAR TRACKING</Text>
               <View style={styles.inputGroup}>
+                {/* Install date — back-datable for parts fitted earlier */}
+                <View style={styles.labeledRow}>
+                  <View style={styles.labelCol}>
+                    <Text style={styles.fieldLabel}>Date added</Text>
+                    <Text style={styles.fieldSub}>
+                      When this part was installed on the bike
+                    </Text>
+                  </View>
+                  <DateField
+                    value={installDate}
+                    onChange={setInstallDate}
+                    maxDate={Date.now()}
+                  />
+                </View>
+                <View style={styles.inputDivider} />
                 {!inStockMode && (
                   <>
                     <View style={styles.inputWithUnit}>
@@ -398,6 +425,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.card,
   },
+  labeledRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  labelCol: { flex: 1 },
+  fieldLabel: { fontSize: 15, fontWeight: '500', color: Colors.text },
+  fieldSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
   input: { paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: Colors.text },
   unitLabel: {
     fontSize: 14,

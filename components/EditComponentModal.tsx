@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import { COMPONENT_TYPES, BRAKE_SYSTEM_LABELS } from '../constants/componentTypes';
 import { ELECTRIC_CATEGORIES } from '../types';
+import DateField from './DateField';
 import type { BikeComponent, Bike } from '../types';
 
 interface Props {
@@ -56,6 +57,9 @@ export default function EditComponentModal({
   const [isElectric, setIsElectric] = useState(false);
   const [chargeInterval, setChargeInterval] = useState('');
   const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null);
+  // Editable install date — back-date for parts fitted before the user
+  // started tracking them, or correct a mistake on a recent add.
+  const [installDate, setInstallDate] = useState<number>(Date.now());
   const [saving, setSaving] = useState(false);
 
   // Strip commas/spaces before parsing so "1,000" doesn't become NaN.
@@ -82,6 +86,7 @@ export default function EditComponentModal({
       setIsElectric(component.isElectric ?? false);
       setChargeInterval(component.chargeIntervalDays ? String(component.chargeIntervalDays) : '');
       setSelectedBikeId(component.bikeId);
+      setInstallDate(component.installDate || Date.now());
     }
   }, [component, visible, bikes]);
 
@@ -128,6 +133,7 @@ export default function EditComponentModal({
         notes: notes.trim() || undefined,
         maxLifespan: parseNum(maxLifespan) || component.maxLifespan,
         attentionFrequency: attentionFreq ? parseNum(attentionFreq) : undefined,
+        installDate,
         installDistance: nextInstallDistance,
         isElectric: canBeElectric && isElectric,
         chargeIntervalDays:
@@ -237,6 +243,18 @@ export default function EditComponentModal({
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>WEAR TRACKING</Text>
               <View style={styles.inputGroup}>
+                <View style={styles.labeledRow}>
+                  <View style={styles.labelCol}>
+                    <Text style={styles.fieldLabel}>Date added</Text>
+                    <Text style={styles.fieldSub}>When it was installed</Text>
+                  </View>
+                  <DateField
+                    value={installDate}
+                    onChange={setInstallDate}
+                    maxDate={Date.now()}
+                  />
+                </View>
+                <View style={styles.divider} />
                 <View style={styles.labeledRow}>
                   <View style={styles.labelCol}>
                     <Text style={styles.fieldLabel}>Already ridden</Text>

@@ -160,6 +160,7 @@ export default function GarageScreen() {
     name: string;
     category: any;
     brand: string;
+    installDate: number;
     installDistance: number;
     maxLifespan: number;
     attentionFrequency?: number;
@@ -174,7 +175,7 @@ export default function GarageScreen() {
       name: data.name,
       category: data.category,
       brand: data.brand || undefined,
-      installDate: Date.now(),
+      installDate: data.installDate,
       installDistance: 0,
       maxLifespan: data.maxLifespan,
       attentionFrequency: data.attentionFrequency,
