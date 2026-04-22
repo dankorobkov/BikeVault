@@ -9,6 +9,14 @@ interface Props {
   onChange: (timestamp: number) => void;
   /** Optional upper-bound timestamp (e.g. Date.now() to disallow future dates). */
   maxDate?: number;
+  /** Horizontal alignment of the displayed date. Defaults to 'left'. */
+  align?: 'left' | 'right';
+  /** Text colour. Defaults to Colors.text. Use Colors.accent to match
+   * numeric value rows in forms. */
+  color?: string;
+  /** Font weight. Defaults to 'normal'. */
+  fontWeight?: TextStyle['fontWeight'];
+  /** Extra native-only style overrides (TextInput). */
   style?: StyleProp<TextStyle>;
 }
 
@@ -22,11 +30,18 @@ interface Props {
  * just for the web build.
  *
  * On native we fall back to a plain TextInput with a `YYYY-MM-DD`
- * format hint (same approach the Add-Ride modal already uses). If/when
- * native dates become important we can swap this one place for a
- * proper wheel picker.
+ * format hint. If/when native dates become important we can swap this
+ * one place for a proper wheel picker.
  */
-export default function DateField({ value, onChange, maxDate, style }: Props) {
+export default function DateField({
+  value,
+  onChange,
+  maxDate,
+  align = 'left',
+  color = Colors.text,
+  fontWeight = 'normal',
+  style,
+}: Props) {
   if (Platform.OS === 'web') {
     return React.createElement('input', {
       type: 'date',
@@ -42,14 +57,16 @@ export default function DateField({ value, onChange, maxDate, style }: Props) {
       },
       style: {
         fontSize: 15,
-        color: Colors.text,
+        fontWeight,
+        color,
         backgroundColor: 'transparent',
         border: 'none',
         outline: 'none',
         padding: 0,
         fontFamily: 'inherit',
-        // Makes the field take its share of a flex row.
-        flex: 1,
+        textAlign: align,
+        // Intrinsic width — matches the numeric inputs in the same
+        // row which size to their content, not flex-grow.
         minWidth: 130,
       },
     });
@@ -76,7 +93,13 @@ export default function DateField({ value, onChange, maxDate, style }: Props) {
       placeholder="YYYY-MM-DD"
       placeholderTextColor={Colors.textTertiary}
       style={[
-        { fontSize: 15, color: Colors.text, flex: 1, minWidth: 130 },
+        {
+          fontSize: 15,
+          fontWeight,
+          color,
+          minWidth: 130,
+          textAlign: align,
+        },
         style,
       ]}
     />

@@ -252,6 +252,9 @@ export default function EditComponentModal({
                     value={installDate}
                     onChange={setInstallDate}
                     maxDate={Date.now()}
+                    align="right"
+                    color={Colors.accent}
+                    fontWeight="500"
                   />
                 </View>
                 <View style={styles.divider} />

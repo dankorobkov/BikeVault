@@ -275,6 +275,9 @@ export default function AddComponentModal({
                     value={installDate}
                     onChange={setInstallDate}
                     maxDate={Date.now()}
+                    align="right"
+                    color={Colors.accent}
+                    fontWeight="500"
                   />
                 </View>
                 <View style={styles.inputDivider} />
