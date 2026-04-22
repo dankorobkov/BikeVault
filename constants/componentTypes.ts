@@ -1,4 +1,10 @@
-import type { ComponentCategory, ComponentGroup, BrakeSystem, BikeType } from '../types';
+import type {
+  ComponentCategory,
+  ComponentGroup,
+  BrakeSystem,
+  BikeType,
+  StravaActivityType,
+} from '../types';
 
 export interface ComponentTypeInfo {
   label: string;
@@ -369,6 +375,29 @@ export const BRAKE_SYSTEM_LABELS: Record<BrakeSystem, string> = {
   'disc-hydraulic': 'Disc – Hydraulic',
   'disc-cable': 'Disc – Cable',
   rim: 'Rim Brake',
+};
+
+/**
+ * Human-readable labels for the Strava activity types we surface as
+ * selectable bike defaults. Keep keys aligned with `StravaActivityType`.
+ */
+export const STRAVA_ACTIVITY_LABELS: Record<StravaActivityType, string> = {
+  Ride: 'Road Ride',
+  VirtualRide: 'Virtual Ride',
+  MountainBikeRide: 'Mountain Bike Ride',
+  GravelRide: 'Gravel Ride',
+  EBikeRide: 'E-Bike Ride',
+  EMountainBikeRide: 'E-Mountain Bike',
+};
+
+/** Icons used on the default-activity chips across the app. */
+export const STRAVA_ACTIVITY_ICONS: Record<StravaActivityType, string> = {
+  Ride: 'bicycle-outline',
+  VirtualRide: 'desktop-outline',
+  MountainBikeRide: 'leaf-outline',
+  GravelRide: 'trail-sign-outline',
+  EBikeRide: 'flash-outline',
+  EMountainBikeRide: 'flash-outline',
 };
 
 export const BIKE_COLORS = [

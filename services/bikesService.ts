@@ -11,7 +11,8 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { Bike, BikeType, BrakeSystem } from '../types';
+import { defaultActivityForBikeType } from '../types';
+import type { Bike, BikeType, BrakeSystem, StravaActivityType } from '../types';
 
 function bikesRef(userId: string) {
   return collection(db, 'users', userId, 'bikes');
@@ -23,15 +24,21 @@ function bikeDoc(userId: string, bikeId: string) {
 
 function fromFirestore(d: { id: string; data: () => Record<string, unknown> }): Bike {
   const data = d.data();
+  const type = (data.type as BikeType) ?? 'road';
   return {
     id: d.id,
     name: data.name as string,
     brand: (data.brand as string) ?? '',
-    type: (data.type as BikeType) ?? 'road',
+    type,
     brakeSystem: (data.brakeSystem as BrakeSystem) ?? 'disc-hydraulic',
     color: (data.color as string) ?? '#FF6B35',
     stravaId: (data.stravaId as string) ?? undefined,
     totalDistance: (data.totalDistance as number) ?? 0,
+    // Back-fill defaultActivity for old bike documents so existing
+    // data reads as if the feature had always been there.
+    defaultActivity:
+      (data.defaultActivity as StravaActivityType) ??
+      defaultActivityForBikeType(type),
     createdAt:
       data.createdAt instanceof Timestamp
         ? data.createdAt.toMillis()
@@ -55,6 +62,8 @@ export async function addBike(
   userId: string,
   bike: Omit<Bike, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<Bike> {
+  const defaultActivity =
+    bike.defaultActivity ?? defaultActivityForBikeType(bike.type);
   const data: Record<string, unknown> = {
     name: bike.name,
     brand: bike.brand ?? '',
@@ -62,6 +71,7 @@ export async function addBike(
     brakeSystem: bike.brakeSystem ?? 'disc-hydraulic',
     color: bike.color ?? '#FF6B35',
     totalDistance: bike.totalDistance ?? 0,
+    defaultActivity,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -69,7 +79,13 @@ export async function addBike(
 
   const ref = await addDoc(bikesRef(userId), data);
   const now = Date.now();
-  return { id: ref.id, ...bike, createdAt: now, updatedAt: now };
+  return {
+    id: ref.id,
+    ...bike,
+    defaultActivity,
+    createdAt: now,
+    updatedAt: now,
+  };
 }
 
 export async function updateBike(

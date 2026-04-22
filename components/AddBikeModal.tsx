@@ -18,8 +18,16 @@ import {
   BIKE_TYPE_ICONS,
   BIKE_COLORS,
   BRAKE_SYSTEM_LABELS,
+  STRAVA_ACTIVITY_LABELS,
+  STRAVA_ACTIVITY_ICONS,
 } from '../constants/componentTypes';
-import { isIndoorBike, type BikeType, type BrakeSystem } from '../types';
+import {
+  isIndoorBike,
+  defaultActivityForBikeType,
+  type BikeType,
+  type BrakeSystem,
+  type StravaActivityType,
+} from '../types';
 
 interface Props {
   visible: boolean;
@@ -33,11 +41,16 @@ interface Props {
     color: string;
     stravaId?: string;
     totalDistance: number;
+    defaultActivity: StravaActivityType;
   }) => Promise<void>;
 }
 
 const BIKE_TYPES = Object.entries(BIKE_TYPE_LABELS) as [BikeType, string][];
 const BRAKE_SYSTEMS = Object.entries(BRAKE_SYSTEM_LABELS) as [BrakeSystem, string][];
+const STRAVA_ACTIVITIES = Object.entries(STRAVA_ACTIVITY_LABELS) as [
+  StravaActivityType,
+  string,
+][];
 
 export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: Props) {
   const [name, setName] = useState('');
@@ -47,7 +60,29 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
   const [color, setColor] = useState<string>(Colors.accent);
   const [stravaId, setStravaId] = useState<string | undefined>();
   const [manualDistance, setManualDistance] = useState('0');
+  // Default Strava activity for rides on this bike. Tracked separately
+  // from the auto-derived-from-type default so we know whether the user
+  // has made an explicit choice — if they haven't, changing the bike
+  // type updates the activity to match.
+  const [defaultActivity, setDefaultActivity] = useState<StravaActivityType>(
+    defaultActivityForBikeType('road')
+  );
+  const [activityTouched, setActivityTouched] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const handleTypeChange = (next: BikeType) => {
+    setType(next);
+    // Follow bike-type unless the user has explicitly picked an
+    // activity already.
+    if (!activityTouched) {
+      setDefaultActivity(defaultActivityForBikeType(next));
+    }
+  };
+
+  const handleActivityChange = (next: StravaActivityType) => {
+    setDefaultActivity(next);
+    setActivityTouched(true);
+  };
 
   const handleSelectStrava = (id: string, bikeName: string, distanceKm: number) => {
     if (stravaId === id) {
@@ -71,6 +106,7 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
         color,
         stravaId,
         totalDistance: Number(manualDistance) || 0,
+        defaultActivity,
       });
       resetForm();
       onClose();
@@ -87,6 +123,8 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
     setColor(Colors.accent);
     setStravaId(undefined);
     setManualDistance('0');
+    setDefaultActivity(defaultActivityForBikeType('road'));
+    setActivityTouched(false);
   };
 
   return (
@@ -186,7 +224,7 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
                 <TouchableOpacity
                   key={key}
                   style={[styles.chip, type === key && styles.chipActive]}
-                  onPress={() => setType(key)}
+                  onPress={() => handleTypeChange(key)}
                 >
                   <Ionicons
                     name={BIKE_TYPE_ICONS[key] as any}
@@ -207,6 +245,41 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
                   : 'Roller trainers: everything wears like outdoors. Expect the rear tyre to wear significantly faster against the drums — set a shorter lifespan when you add it.'}
               </Text>
             )}
+          </View>
+
+          {/* Default activity */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>DEFAULT ACTIVITY</Text>
+            <View style={styles.chipGrid}>
+              {STRAVA_ACTIVITIES.map(([key, label]) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.chip, defaultActivity === key && styles.chipActive]}
+                  onPress={() => handleActivityChange(key)}
+                >
+                  <Ionicons
+                    name={STRAVA_ACTIVITY_ICONS[key] as any}
+                    size={14}
+                    color={
+                      defaultActivity === key ? Colors.accent : Colors.textSecondary
+                    }
+                    style={styles.chipIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.chipText,
+                      defaultActivity === key && styles.chipTextActive,
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.hint}>
+              We pre-select this from the bike type. Used as the canonical activity
+              label for rides on this bike.
+            </Text>
           </View>
 
           {/* Brake System */}

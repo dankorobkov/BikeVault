@@ -67,6 +67,49 @@ export function hiddenComponentCategoriesForBike(
 
 export type BrakeSystem = 'disc-hydraulic' | 'disc-cable' | 'rim';
 
+/**
+ * Strava `sport_type` values we surface as selectable defaults.
+ *
+ * Only cycling-adjacent sport types. Strava has dozens more (Run,
+ * Hike, Swim, AlpineSki, Kayaking, etc.) but none of them apply to a
+ * bike, so we don't show them.
+ *
+ * Reference:
+ *   https://developers.strava.com/docs/reference/#api-models-SportType
+ */
+export type StravaActivityType =
+  | 'Ride'
+  | 'VirtualRide'
+  | 'MountainBikeRide'
+  | 'GravelRide'
+  | 'EBikeRide'
+  | 'EMountainBikeRide';
+
+/**
+ * Default activity for a bike type. Picked as the best-fitting Strava
+ * `sport_type` so if we later auto-categorize Strava activities by
+ * bike, the mapping is already in place.
+ */
+export function defaultActivityForBikeType(type: BikeType): StravaActivityType {
+  switch (type) {
+    case 'mtb':
+      return 'MountainBikeRide';
+    case 'gravel':
+    case 'cyclocross':
+      return 'GravelRide';
+    case 'ebike':
+      return 'EBikeRide';
+    case 'trainer-direct-drive':
+    case 'rollers':
+      return 'VirtualRide';
+    case 'road':
+    case 'city':
+    case 'other':
+    default:
+      return 'Ride';
+  }
+}
+
 export interface Bike {
   id: string;
   name: string;
@@ -76,6 +119,14 @@ export interface Bike {
   color: string;
   stravaId?: string;
   totalDistance: number; // km
+  /**
+   * Default Strava activity for rides on this bike. Auto-derived from
+   * `type` when the bike is created, but user-overridable from Add/Edit
+   * Bike and from Settings. Used as the canonical label for the bike's
+   * rides and will drive future auto-categorisation of untagged Strava
+   * activities.
+   */
+  defaultActivity?: StravaActivityType;
   createdAt: number;
   updatedAt: number;
 }

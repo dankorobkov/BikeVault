@@ -18,8 +18,17 @@ import {
   BIKE_TYPE_ICONS,
   BIKE_COLORS,
   BRAKE_SYSTEM_LABELS,
+  STRAVA_ACTIVITY_LABELS,
+  STRAVA_ACTIVITY_ICONS,
 } from '../constants/componentTypes';
-import { isIndoorBike, type Bike, type BikeType, type BrakeSystem } from '../types';
+import {
+  isIndoorBike,
+  defaultActivityForBikeType,
+  type Bike,
+  type BikeType,
+  type BrakeSystem,
+  type StravaActivityType,
+} from '../types';
 
 interface Props {
   visible: boolean;
@@ -31,11 +40,16 @@ interface Props {
     type: BikeType;
     brakeSystem: BrakeSystem;
     color: string;
+    defaultActivity: StravaActivityType;
   }) => Promise<void>;
 }
 
 const BIKE_TYPES = Object.entries(BIKE_TYPE_LABELS) as [BikeType, string][];
 const BRAKE_SYSTEMS = Object.entries(BRAKE_SYSTEM_LABELS) as [BrakeSystem, string][];
+const STRAVA_ACTIVITIES = Object.entries(STRAVA_ACTIVITY_LABELS) as [
+  StravaActivityType,
+  string,
+][];
 
 export default function EditBikeModal({ visible, bike, onClose, onSave }: Props) {
   const [name, setName] = useState('');
@@ -43,6 +57,11 @@ export default function EditBikeModal({ visible, bike, onClose, onSave }: Props)
   const [type, setType] = useState<BikeType>('road');
   const [brakeSystem, setBrakeSystem] = useState<BrakeSystem>('disc-hydraulic');
   const [color, setColor] = useState<string>(Colors.accent);
+  const [defaultActivity, setDefaultActivity] = useState<StravaActivityType>('Ride');
+  // Tracks whether the user has explicitly picked an activity this
+  // session. If they haven't, changing the bike type updates the
+  // activity to the matching default — matches the Add flow UX.
+  const [activityTouched, setActivityTouched] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Sync fields whenever the bike changes or modal opens
@@ -53,8 +72,24 @@ export default function EditBikeModal({ visible, bike, onClose, onSave }: Props)
       setType(bike.type);
       setBrakeSystem(bike.brakeSystem ?? 'disc-hydraulic');
       setColor(bike.color ?? Colors.accent);
+      setDefaultActivity(
+        bike.defaultActivity ?? defaultActivityForBikeType(bike.type)
+      );
+      setActivityTouched(false);
     }
   }, [bike, visible]);
+
+  const handleTypeChange = (next: BikeType) => {
+    setType(next);
+    if (!activityTouched) {
+      setDefaultActivity(defaultActivityForBikeType(next));
+    }
+  };
+
+  const handleActivityChange = (next: StravaActivityType) => {
+    setDefaultActivity(next);
+    setActivityTouched(true);
+  };
 
   const handleSave = async () => {
     if (!name.trim()) return;
@@ -66,6 +101,7 @@ export default function EditBikeModal({ visible, bike, onClose, onSave }: Props)
         type,
         brakeSystem,
         color,
+        defaultActivity,
       });
       onClose();
     } finally {
@@ -130,7 +166,7 @@ export default function EditBikeModal({ visible, bike, onClose, onSave }: Props)
                 <TouchableOpacity
                   key={key}
                   style={[styles.chip, type === key && styles.chipActive]}
-                  onPress={() => setType(key)}
+                  onPress={() => handleTypeChange(key)}
                 >
                   <Ionicons
                     name={BIKE_TYPE_ICONS[key] as any}
@@ -151,6 +187,37 @@ export default function EditBikeModal({ visible, bike, onClose, onSave }: Props)
                   : 'Roller trainers: expect the rear tyre to wear faster than outdoors.'}
               </Text>
             )}
+          </View>
+
+          {/* Default activity */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>DEFAULT ACTIVITY</Text>
+            <View style={styles.chipRow}>
+              {STRAVA_ACTIVITIES.map(([key, label]) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.chip, defaultActivity === key && styles.chipActive]}
+                  onPress={() => handleActivityChange(key)}
+                >
+                  <Ionicons
+                    name={STRAVA_ACTIVITY_ICONS[key] as any}
+                    size={13}
+                    color={
+                      defaultActivity === key ? Colors.accent : Colors.textSecondary
+                    }
+                    style={styles.chipIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.chipText,
+                      defaultActivity === key && styles.chipTextActive,
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
           {/* Brake system */}

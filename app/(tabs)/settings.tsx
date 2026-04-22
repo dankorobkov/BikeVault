@@ -26,8 +26,17 @@ import {
   loadStravaTokens,
 } from '../../services/stravaService';
 import { deleteUserAccount } from '../../services/userService';
+import { updateBike } from '../../services/bikesService';
 import { STRAVA_CONFIG } from '../../config/strava';
 import { Colors } from '../../constants/colors';
+import {
+  STRAVA_ACTIVITY_LABELS,
+  STRAVA_ACTIVITY_ICONS,
+} from '../../constants/componentTypes';
+import {
+  defaultActivityForBikeType,
+  type StravaActivityType,
+} from '../../types';
 import { useSync } from '../../hooks/useSync';
 
 dayjs.extend(relativeTime);
@@ -39,6 +48,11 @@ const discovery = {
 };
 
 const STRAVA_CONFIGURED = !!STRAVA_CONFIG.clientId && STRAVA_CONFIG.clientId !== 'your_strava_client_id';
+
+const STRAVA_ACTIVITIES = Object.entries(STRAVA_ACTIVITY_LABELS) as [
+  StravaActivityType,
+  string,
+][];
 
 export default function SettingsScreen() {
   const topInset = useTopInset();
@@ -55,11 +69,29 @@ export default function SettingsScreen() {
     notificationPrefs,
     setNotificationPrefs,
     signOut,
+    bikes,
+    updateBikeLocal,
   } = useAppStore();
   const { syncStrava, loadLastSync } = useSync();
   const [connecting, setConnecting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [athleteAvatar, setAthleteAvatar] = useState<string | null>(null);
+  // Which bike is expanded in the Default Activities section. Only one
+  // can be open at a time to keep the scroll length manageable on
+  // larger garages.
+  const [expandedBikeId, setExpandedBikeId] = useState<string | null>(null);
+
+  const handleSetActivity = async (bikeId: string, activity: StravaActivityType) => {
+    if (!userId) return;
+    // Optimistic local update first so the tap feels instant even on
+    // slow Firestore writes (web long-polling can take a second).
+    updateBikeLocal(bikeId, { defaultActivity: activity, updatedAt: Date.now() });
+    try {
+      await updateBike(userId, bikeId, { defaultActivity: activity });
+    } catch (e) {
+      console.warn('Failed to update default activity:', e);
+    }
+  };
 
   const redirectUri = AuthSession.makeRedirectUri({
     scheme: 'bikevault',
@@ -490,6 +522,96 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Default activities — only render if there are bikes to configure */}
+        {bikes.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>DEFAULT ACTIVITIES</Text>
+            <View style={styles.card}>
+              {bikes.map((bike, idx) => {
+                const current =
+                  bike.defaultActivity ?? defaultActivityForBikeType(bike.type);
+                const expanded = expandedBikeId === bike.id;
+                return (
+                  <View key={bike.id}>
+                    {idx > 0 && <View style={styles.divider} />}
+                    <TouchableOpacity
+                      style={styles.activityRow}
+                      onPress={() =>
+                        setExpandedBikeId(expanded ? null : bike.id)
+                      }
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.rowLeft}>
+                        <View
+                          style={[
+                            styles.bikeDot,
+                            { backgroundColor: bike.color ?? Colors.accent },
+                          ]}
+                        />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.rowTitle} numberOfLines={1}>
+                            {bike.name}
+                          </Text>
+                          <Text style={styles.rowSub}>
+                            {STRAVA_ACTIVITY_LABELS[current]}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.activityCurrent}>
+                        <Ionicons
+                          name={STRAVA_ACTIVITY_ICONS[current] as any}
+                          size={14}
+                          color={Colors.accent}
+                        />
+                        <Ionicons
+                          name={expanded ? 'chevron-up' : 'chevron-down'}
+                          size={16}
+                          color={Colors.textTertiary}
+                        />
+                      </View>
+                    </TouchableOpacity>
+                    {expanded && (
+                      <View style={styles.activityChipWrap}>
+                        {STRAVA_ACTIVITIES.map(([key, label]) => {
+                          const active = current === key;
+                          return (
+                            <TouchableOpacity
+                              key={key}
+                              style={[styles.chip, active && styles.chipActive]}
+                              onPress={() => handleSetActivity(bike.id, key)}
+                            >
+                              <Ionicons
+                                name={STRAVA_ACTIVITY_ICONS[key] as any}
+                                size={13}
+                                color={
+                                  active ? Colors.accent : Colors.textSecondary
+                                }
+                                style={styles.chipIcon}
+                              />
+                              <Text
+                                style={[
+                                  styles.chipText,
+                                  active && styles.chipTextActive,
+                                ]}
+                              >
+                                {label}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+            <Text style={styles.hint}>
+              Used when logging manual rides and matching Strava activities to
+              the right bike.
+            </Text>
+          </View>
+        )}
+
         {/* About section */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>ABOUT</Text>
@@ -650,4 +772,46 @@ const styles = StyleSheet.create({
   connectComingSoon: { fontSize: 12, color: Colors.textTertiary, textAlign: 'center', marginTop: 2 },
 
   hint: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18, paddingHorizontal: 4 },
+
+  // Default-activity picker rows
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    gap: 12,
+  },
+  bikeDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  activityCurrent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  activityChipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 99,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  chipIcon: { marginRight: 6 },
+  chipActive: { backgroundColor: Colors.accentDim, borderColor: Colors.accent },
+  chipText: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },
+  chipTextActive: { color: Colors.accent },
 });

@@ -44,6 +44,7 @@ import {
   type StravaActivity,
   type BikeType,
   type BrakeSystem,
+  type StravaActivityType,
 } from '../../types';
 
 const STRAVA_API = 'https://www.strava.com/api/v3';
@@ -124,6 +125,7 @@ export default function BikeDetailScreen() {
     name: string;
     category: ComponentCategory;
     brand: string;
+    installDate: number;
     installDistance: number;
     maxLifespan: number;
     attentionFrequency?: number;
@@ -138,7 +140,7 @@ export default function BikeDetailScreen() {
       name: data.name,
       category: data.category,
       brand: data.brand || undefined,
-      installDate: Date.now(),
+      installDate: data.installDate,
       installDistance: data.installDistance,
       maxLifespan: data.maxLifespan,
       attentionFrequency: data.attentionFrequency,
@@ -158,6 +160,7 @@ export default function BikeDetailScreen() {
     name: string;
     category: ComponentCategory;
     brand: string;
+    installDate: number;
     installDistance: number;
     maxLifespan: number;
     attentionFrequency?: number;
@@ -302,6 +305,7 @@ export default function BikeDetailScreen() {
     type: BikeType;
     brakeSystem: BrakeSystem;
     color: string;
+    defaultActivity: StravaActivityType;
   }) => {
     if (!userId) return;
     await updateBike(userId, id, data);

@@ -20,7 +20,7 @@ import BikeCard from '../../components/BikeCard';
 import AddBikeModal from '../../components/AddBikeModal';
 import EmptyState from '../../components/EmptyState';
 import SuccessBanner from '../../components/SuccessBanner';
-import type { BikeType, BrakeSystem } from '../../types';
+import type { BikeType, BrakeSystem, StravaActivityType } from '../../types';
 
 export default function BikesScreen() {
   const topInset = useTopInset();
@@ -62,6 +62,7 @@ export default function BikesScreen() {
     color: string;
     stravaId?: string;
     totalDistance: number;
+    defaultActivity: StravaActivityType;
   }) => {
     if (!userId) return;
     const newBike = await addBike(userId, data);
