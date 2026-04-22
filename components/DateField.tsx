@@ -63,7 +63,12 @@ export default function DateField({
         border: 'none',
         outline: 'none',
         padding: 0,
-        fontFamily: 'inherit',
+        // Match react-native-web's default font stack explicitly —
+        // `inherit` doesn't cascade into form controls reliably, so
+        // browsers fall back to their UA-sheet "system" font which
+        // is slightly different from what RN Text renders beside it.
+        fontFamily:
+          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
         textAlign: align,
         // Intrinsic width — matches the numeric inputs in the same
         // row which size to their content, not flex-grow.
