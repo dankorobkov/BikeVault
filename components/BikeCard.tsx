@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import { BIKE_TYPE_LABELS, BIKE_TYPE_ICONS } from '../constants/componentTypes';
+import { formatNumber } from '../constants/units';
 import {
   calcWearPercent,
   getWearLevel,
@@ -72,7 +73,7 @@ export default function BikeCard({ bike, components, onPress }: Props) {
         <View style={styles.statsRow}>
           <View style={styles.stat}>
             <Ionicons name="speedometer-outline" size={13} color={Colors.accent} />
-            <Text style={styles.statValue}>{bike.totalDistance.toLocaleString()}</Text>
+            <Text style={styles.statValue}>{formatNumber(bike.totalDistance)}</Text>
             <Text style={styles.statUnit}>km</Text>
           </View>
           <View style={styles.divider} />

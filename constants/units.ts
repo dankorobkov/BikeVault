@@ -1,13 +1,23 @@
 export const KM_TO_MILES = 0.621371;
 
+/**
+ * Format an integer with thousands separators.
+ * Forces en-US grouping so every locale shows commas (e.g. 10000 ->
+ * "10,000"); relying on the user's default locale makes distances
+ * read inconsistently across devices.
+ */
+export function formatNumber(n: number): string {
+  return Math.round(n).toLocaleString('en-US');
+}
+
 export function formatDist(km: number, useMetric: boolean): string {
-  if (useMetric) return km.toLocaleString() + ' km';
-  return Math.round(km * KM_TO_MILES).toLocaleString() + ' mi';
+  if (useMetric) return formatNumber(km) + ' km';
+  return formatNumber(km * KM_TO_MILES) + ' mi';
 }
 
 export function formatDistShort(km: number, useMetric: boolean): string {
-  if (useMetric) return km.toLocaleString() + ' km';
-  return Math.round(km * KM_TO_MILES).toLocaleString() + ' mi';
+  if (useMetric) return formatNumber(km) + ' km';
+  return formatNumber(km * KM_TO_MILES) + ' mi';
 }
 
 export function unitLabel(useMetric: boolean): string {

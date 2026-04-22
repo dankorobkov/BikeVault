@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
+import { formatNumber } from '../constants/units';
 import {
   BIKE_TYPE_LABELS,
   BIKE_TYPE_ICONS,
@@ -90,7 +91,7 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
     } else {
       setStravaId(id);
       if (!name) setName(bikeName);
-      setManualDistance(String(distanceKm));
+      setManualDistance(formatNumber(distanceKm));
     }
   };
 
@@ -105,7 +106,7 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
         brakeSystem,
         color,
         stravaId,
-        totalDistance: Number(manualDistance) || 0,
+        totalDistance: Number(manualDistance.replace(/[,\s]/g, '')) || 0,
         defaultActivity,
       });
       resetForm();
@@ -167,7 +168,7 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
                   />
                   <View style={styles.stravaInfo}>
                     <Text style={styles.stravaName}>{sb.name}</Text>
-                    <Text style={styles.stravaDist}>{sb.distanceKm.toLocaleString()} km</Text>
+                    <Text style={styles.stravaDist}>{formatNumber(sb.distanceKm)} km</Text>
                   </View>
                   {stravaId === sb.id && (
                     <Ionicons name="checkmark-circle" size={20} color={Colors.accent} />

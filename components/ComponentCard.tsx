@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import { Colors } from '../constants/colors';
+import { formatNumber } from '../constants/units';
 import { COMPONENT_TYPES } from '../constants/componentTypes';
 import WearBar from './WearBar';
 import {
@@ -129,8 +130,8 @@ export default function ComponentCard({
             <WearBar percent={percent} showLabel showPercent height={5} />
             <Text style={styles.remaining}>
               {remaining > 0
-                ? '~' + remaining.toLocaleString() + ' km remaining'
-                : Math.abs(remaining) + ' km overdue'}
+                ? '~' + formatNumber(remaining) + ' km remaining'
+                : formatNumber(Math.abs(remaining)) + ' km overdue'}
             </Text>
           </>
         )}
@@ -140,7 +141,7 @@ export default function ComponentCard({
           <View style={styles.attentionRow}>
             <Ionicons name="time-outline" size={11} color={Colors.textTertiary} />
             <Text style={styles.attentionText}>
-              Service every {component.attentionFrequency.toLocaleString()} km
+              Service every {formatNumber(component.attentionFrequency)} km
             </Text>
           </View>
         )}

@@ -21,7 +21,7 @@ import {
 } from '../constants/componentTypes';
 import { ELECTRIC_CATEGORIES, hiddenComponentCategoriesForBike } from '../types';
 import { useAppStore } from '../store/useAppStore';
-import { unitLabel } from '../constants/units';
+import { unitLabel, formatNumber } from '../constants/units';
 import DateField from './DateField';
 import type { ComponentCategory, BrakeSystem, BikeType } from '../types';
 
@@ -300,7 +300,7 @@ export default function AddComponentModal({
                 <View style={styles.inputWithUnit}>
                   <TextInput
                     style={[styles.input, { flex: 1 }]}
-                    placeholder={'Max lifespan — default: ' + typeInfo.defaultLifespan.toLocaleString()}
+                    placeholder={'Max lifespan — default: ' + formatNumber(typeInfo.defaultLifespan)}
                     placeholderTextColor={Colors.textTertiary}
                     value={maxLifespan}
                     onChangeText={setMaxLifespan}
@@ -323,7 +323,7 @@ export default function AddComponentModal({
               </View>
               {attentionFreq ? (
                 <Text style={styles.hint}>
-                  You'll be reminded every {Number(attentionFreq).toLocaleString()} {unit}.
+                  You'll be reminded every {formatNumber(Number(attentionFreq.replace(/[,\s]/g, '')))} {unit}.
                 </Text>
               ) : null}
             </View>
