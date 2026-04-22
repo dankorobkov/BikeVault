@@ -10,14 +10,14 @@
  */
 
 import { Platform } from 'react-native';
-import { getAnalytics, logEvent, isSupported, type Analytics } from 'firebase/analytics';
+import { getAnalytics, logEvent, isSupported, type Analytics as FirebaseAnalytics } from 'firebase/analytics';
 import app from '../config/firebase';
 
 // Lazily resolved analytics instance (null = not supported or not configured)
-let analyticsInstance: Analytics | null = null;
-let initPromise: Promise<Analytics | null> | null = null;
+let analyticsInstance: FirebaseAnalytics | null = null;
+let initPromise: Promise<FirebaseAnalytics | null> | null = null;
 
-async function getInstance(): Promise<Analytics | null> {
+async function getInstance(): Promise<FirebaseAnalytics | null> {
   if (Platform.OS !== 'web') return null;
   if (analyticsInstance) return analyticsInstance;
   if (initPromise) return initPromise;
