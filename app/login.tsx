@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -21,6 +20,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { auth } from '../config/firebase';
 import { Analytics } from '../services/analytics';
 import { Colors } from '../constants/colors';
+import { dialog } from '../components/AppDialog';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -82,7 +82,11 @@ export default function LoginScreen() {
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Sign-in failed';
-      Alert.alert('Sign-in error', msg);
+      dialog.alert({
+        title: 'Sign-in error',
+        message: msg,
+        tone: 'destructive',
+      });
       setLoading(null);
     }
   };
@@ -95,7 +99,11 @@ export default function LoginScreen() {
       // Root layout will react to auth state change
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Could not sign in';
-      Alert.alert('Error', msg);
+      dialog.alert({
+        title: 'Error',
+        message: msg,
+        tone: 'destructive',
+      });
       setLoading(null);
     }
   };

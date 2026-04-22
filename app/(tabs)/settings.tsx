@@ -6,11 +6,11 @@ import {
   ScrollView,
   StyleSheet,
   Image,
-  Alert,
   ActivityIndicator,
   Switch,
   Platform,
 } from 'react-native';
+import { dialog } from '../../components/AppDialog';
 import { useTopInset } from '../../hooks/useTopInset';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
@@ -172,19 +172,25 @@ export default function SettingsScreen() {
             /* initial sync failure is non-fatal; user can retry from button */
           });
         })
-        .catch((e) => Alert.alert('Connection failed', e.message))
+        .catch((e) => dialog.alert({ title: 'Connection failed', message: e.message, tone: 'destructive' }))
         .finally(() => setConnecting(false));
     } else if (response?.type === 'error') {
-      Alert.alert('Strava error', response.error?.message ?? 'Unknown error');
+      dialog.alert({
+        title: 'Strava error',
+        message: response.error?.message ?? 'Unknown error',
+        tone: 'destructive',
+      });
     }
   }, [response]);
 
   const handleConnectStrava = () => {
     if (!STRAVA_CONFIGURED) {
-      Alert.alert(
-        'Strava not configured',
-        'Strava API credentials are missing from this build. Add EXPO_PUBLIC_STRAVA_CLIENT_ID and EXPO_PUBLIC_STRAVA_CLIENT_SECRET to .env.'
-      );
+      dialog.alert({
+        title: 'Strava not configured',
+        message:
+          'Strava API credentials are missing from this build. Add EXPO_PUBLIC_STRAVA_CLIENT_ID and EXPO_PUBLIC_STRAVA_CLIENT_SECRET to .env.',
+        tone: 'warning',
+      });
       return;
     }
     promptAsync();
@@ -204,51 +210,42 @@ export default function SettingsScreen() {
     setStravaTokens(null);
   };
 
-  const handleDisconnect = () => {
-    // Alert.alert button callbacks are unreliable on RN Web, so branch
-    // on platform the same way we do for Sign Out below.
-    if (Platform.OS === 'web') {
-      if (!window.confirm('Disconnect Strava? This will stop automatic distance sync.')) return;
-      doDisconnect();
-    } else {
-      Alert.alert('Disconnect Strava', 'This will stop automatic distance sync. Continue?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Disconnect', style: 'destructive', onPress: doDisconnect },
-      ]);
-    }
+  const handleDisconnect = async () => {
+    const ok = await dialog.confirm({
+      title: 'Disconnect Strava',
+      message: 'This will stop automatic distance sync. Continue?',
+      confirmLabel: 'Disconnect',
+      tone: 'destructive',
+    });
+    if (ok) doDisconnect();
   };
 
   const handleSync = async () => {
     try {
       await syncStrava();
-      Alert.alert('Sync complete', 'Bike distances updated from Strava.');
+      dialog.alert({
+        title: 'Sync complete',
+        message: 'Bike distances updated from Strava.',
+        tone: 'info',
+      });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Sync failed';
-      Alert.alert('Sync failed', msg);
+      dialog.alert({ title: 'Sync failed', message: msg, tone: 'destructive' });
     }
   };
 
   const handleSignOut = async () => {
-    // Alert.alert button callbacks are unreliable on React Native Web,
-    // so use window.confirm on web and Alert.alert on native.
-    if (Platform.OS === 'web') {
-      const label = isAnonymous ? 'Leave this anonymous session?' : 'Are you sure you want to sign out?';
-      if (!window.confirm(label)) return;
-      await firebaseSignOut(auth);
-      signOut();
-    } else {
-      Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            await firebaseSignOut(auth);
-            signOut();
-          },
-        },
-      ]);
-    }
+    const ok = await dialog.confirm({
+      title: isAnonymous ? 'Leave anonymous session' : 'Sign Out',
+      message: isAnonymous
+        ? 'Your anonymous session data is only kept on this device and will be discarded.'
+        : 'Are you sure you want to sign out?',
+      confirmLabel: isAnonymous ? 'Leave' : 'Sign Out',
+      tone: 'destructive',
+    });
+    if (!ok) return;
+    await firebaseSignOut(auth);
+    signOut();
   };
 
   // ── Delete account (two-step confirmation) ────────────────────────────────
@@ -267,45 +264,29 @@ export default function SettingsScreen() {
         msg =
           'For security, please sign out and sign back in, then try deleting your account again.';
       }
-      Alert.alert('Delete failed', msg);
+      dialog.alert({ title: 'Delete failed', message: msg, tone: 'destructive' });
     } finally {
       setDeleting(false);
     }
   };
 
-  const handleDeleteAccount = () => {
-    const primary =
-      'Delete your BikeVault account?';
-    const secondary =
-      'This permanently removes all your bikes, components, and Strava connection. This cannot be undone.';
-
-    if (Platform.OS === 'web') {
-      if (!window.confirm(primary + '\n\n' + secondary)) return;
-      if (!window.confirm('Really delete everything? This cannot be undone.')) return;
-      performDelete();
-    } else {
-      Alert.alert(primary, secondary, [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert(
-              'Are you absolutely sure?',
-              'All your data will be permanently deleted. You cannot undo this.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Delete forever',
-                  style: 'destructive',
-                  onPress: performDelete,
-                },
-              ]
-            );
-          },
-        },
-      ]);
-    }
+  const handleDeleteAccount = async () => {
+    const first = await dialog.confirm({
+      title: 'Delete your BikeVault account?',
+      message:
+        'This permanently removes all your bikes, components, and Strava connection. This cannot be undone.',
+      confirmLabel: 'Continue',
+      tone: 'destructive',
+    });
+    if (!first) return;
+    const second = await dialog.confirm({
+      title: 'Are you absolutely sure?',
+      message: 'All your data will be permanently deleted. You cannot undo this.',
+      confirmLabel: 'Delete forever',
+      tone: 'destructive',
+    });
+    if (!second) return;
+    performDelete();
   };
 
   const isConnected = !!stravaTokens;

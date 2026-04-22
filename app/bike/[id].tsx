@@ -5,12 +5,11 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   TextInput,
   Modal,
-  Platform,
   ActivityIndicator,
 } from 'react-native';
+import { dialog } from '../../components/AppDialog';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
@@ -27,6 +26,7 @@ import { deleteBike, updateBike } from '../../services/bikesService';
 import { getValidToken } from '../../services/stravaService';
 import { Analytics } from '../../services/analytics';
 import { Colors } from '../../constants/colors';
+import { formatNumber } from '../../constants/units';
 import { BIKE_TYPE_LABELS, BRAKE_SYSTEM_LABELS, COMPONENT_TYPES } from '../../constants/componentTypes';
 import ComponentCard from '../../components/ComponentCard';
 import AddComponentModal from '../../components/AddComponentModal';
@@ -178,30 +178,24 @@ export default function BikeDetailScreen() {
 
     if (existing) {
       const typeLabel = COMPONENT_TYPES[data.category]?.label ?? data.category;
-      Alert.alert(
-        typeLabel + ' already installed',
-        `"${existing.name}" is currently on this bike. What should happen to it?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Move to Stock',
-            onPress: async () => {
-              await moveToStock(userId, existing.id);
-              updateComponentLocal(existing.id, { bikeId: null, status: 'in-stock', updatedAt: Date.now() });
-              await doAddComponent(data);
-            },
-          },
-          {
-            text: 'Retire It',
-            style: 'destructive',
-            onPress: async () => {
-              await retireComponent(userId, existing.id);
-              updateComponentLocal(existing.id, { status: 'retired', updatedAt: Date.now() });
-              await doAddComponent(data);
-            },
-          },
-        ]
-      );
+      const choice = await dialog.choose<'stock' | 'retire'>({
+        title: typeLabel + ' already installed',
+        message: `"${existing.name}" is currently on this bike. What should happen to it?`,
+        options: [
+          { label: 'Cancel', value: 'stock', cancel: true },
+          { label: 'Move to Stock', value: 'stock' },
+          { label: 'Retire It', value: 'retire', tone: 'destructive' },
+        ],
+      });
+      if (choice === null) return;
+      if (choice === 'stock') {
+        await moveToStock(userId, existing.id);
+        updateComponentLocal(existing.id, { bikeId: null, status: 'in-stock', updatedAt: Date.now() });
+      } else {
+        await retireComponent(userId, existing.id);
+        updateComponentLocal(existing.id, { status: 'retired', updatedAt: Date.now() });
+      }
+      await doAddComponent(data);
       return;
     }
 
@@ -259,44 +253,29 @@ export default function BikeDetailScreen() {
     if (comp) Analytics.deleteComponent(comp.category);
   };
 
-  const handleDeleteBike = () => {
-    const run = async () => {
-      if (!userId) return;
-      try {
-        await deleteBike(userId, id);
-      } catch (e) {
-        // Surface the error but still clear local state — otherwise the
-        // user is stuck on a phantom bike card they can't remove.
-        const msg = e instanceof Error ? e.message : 'Delete failed';
-        if (Platform.OS === 'web') {
-          window.alert('Could not delete from the server: ' + msg);
-        } else {
-          Alert.alert('Delete failed', msg);
-        }
-      }
-      removeBikeLocal(id);
-      Analytics.deleteBike();
-      router.back();
-    };
-
-    // Alert.alert button callbacks don't reliably fire on RN Web, so
-    // branch on platform — window.confirm is synchronous and works
-    // everywhere a browser runs.
-    if (Platform.OS === 'web') {
-      const ok = window.confirm(
-        'Delete "' + bike.name + '" and all its components? This cannot be undone.'
-      );
-      if (ok) run();
-      return;
+  const handleDeleteBike = async () => {
+    const ok = await dialog.confirm({
+      title: 'Delete Bike',
+      message: 'Delete "' + bike.name + '" and all its components? This cannot be undone.',
+      confirmLabel: 'Delete',
+      tone: 'destructive',
+    });
+    if (!ok || !userId) return;
+    try {
+      await deleteBike(userId, id);
+    } catch (e) {
+      // Surface the error but still clear local state — otherwise the
+      // user is stuck on a phantom bike card they can't remove.
+      const msg = e instanceof Error ? e.message : 'Delete failed';
+      dialog.alert({
+        title: 'Delete failed',
+        message: 'Could not delete from the server: ' + msg,
+        tone: 'destructive',
+      });
     }
-    Alert.alert(
-      'Delete Bike',
-      'Delete "' + bike.name + '" and all its components? This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: run },
-      ]
-    );
+    removeBikeLocal(id);
+    Analytics.deleteBike();
+    router.back();
   };
 
   const handleSaveBike = async (data: {
@@ -314,7 +293,7 @@ export default function BikeDetailScreen() {
   };
 
   const handleAddRide = async () => {
-    const km = Number(rideKm);
+    const km = Number(rideKm.replace(/[,\s]/g, ''));
     if (!km || !userId) return;
     setAddingRide(true);
     try {
@@ -397,7 +376,7 @@ export default function BikeDetailScreen() {
             <View style={styles.heroStats}>
               <View style={styles.heroStat}>
                 <Text style={styles.heroStatValue}>
-                  {bike.totalDistance.toLocaleString()}
+                  {formatNumber(bike.totalDistance)}
                 </Text>
                 <Text style={styles.heroStatLabel}>total km</Text>
               </View>
@@ -486,7 +465,7 @@ export default function BikeDetailScreen() {
                         {act.name}
                       </Text>
                       <Text style={styles.rideMeta}>
-                        {Math.round(act.distance / 1000)} km
+                        {formatNumber(act.distance / 1000)} km
                         {' · '}
                         {formatMovingTime(act.moving_time)}
                         {' · '}
@@ -640,7 +619,7 @@ export default function BikeDetailScreen() {
                   <ActivityIndicator color={Colors.white} />
                 ) : (
                   <Text style={{ color: Colors.white, fontWeight: '700', fontSize: 15 }}>
-                    {rideKm ? 'Add ' + Number(rideKm).toLocaleString() + ' km' : 'Add Ride'}
+                    {rideKm ? 'Add ' + formatNumber(Number(rideKm.replace(/[,\s]/g, ''))) + ' km' : 'Add Ride'}
                   </Text>
                 )}
               </TouchableOpacity>

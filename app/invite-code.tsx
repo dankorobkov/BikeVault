@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Platform,
   KeyboardAvoidingView,
   ScrollView,
@@ -22,6 +21,7 @@ import {
 } from '../services/inviteCodesService';
 import { createUserProfile } from '../services/userService';
 import { Colors } from '../constants/colors';
+import { dialog } from '../components/AppDialog';
 
 export default function InviteCodeScreen() {
   const router = useRouter();
@@ -38,11 +38,19 @@ export default function InviteCodeScreen() {
 
   const handleSubmit = async () => {
     if (!userId) {
-      Alert.alert('Not signed in', 'Please sign in again.');
+      dialog.alert({
+        title: 'Not signed in',
+        message: 'Please sign in again.',
+        tone: 'warning',
+      });
       return;
     }
     if (!code.trim()) {
-      Alert.alert('Missing code', 'Enter your invite code to continue.');
+      dialog.alert({
+        title: 'Missing code',
+        message: 'Enter your invite code to continue.',
+        tone: 'warning',
+      });
       return;
     }
     setSubmitting(true);
@@ -75,7 +83,11 @@ export default function InviteCodeScreen() {
       } else if (e instanceof Error) {
         message = e.message;
       }
-      Alert.alert('Invalid code', message);
+      dialog.alert({
+        title: 'Invalid code',
+        message,
+        tone: 'destructive',
+      });
     } finally {
       setSubmitting(false);
     }

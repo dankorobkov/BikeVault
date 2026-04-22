@@ -11,11 +11,12 @@ import {
   Platform,
   ActivityIndicator,
   Switch,
-  Alert,
 } from 'react-native';
+import { dialog } from './AppDialog';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import { COMPONENT_TYPES, BRAKE_SYSTEM_LABELS } from '../constants/componentTypes';
+import { formatNumber } from '../constants/units';
 import { ELECTRIC_CATEGORIES } from '../types';
 import DateField from './DateField';
 import type { BikeComponent, Bike } from '../types';
@@ -74,15 +75,15 @@ export default function EditComponentModal({
       setName(component.name);
       setBrand(component.brand ?? '');
       setNotes(component.notes ?? '');
-      setMaxLifespan(String(component.maxLifespan));
-      setAttentionFreq(component.attentionFrequency ? String(component.attentionFrequency) : '');
+      setMaxLifespan(formatNumber(component.maxLifespan));
+      setAttentionFreq(component.attentionFrequency ? formatNumber(component.attentionFrequency) : '');
       // Seed priorDistance from the current (bikeDistance - installDistance)
       // so the user sees "X km already ridden" rather than a raw odometer.
       // For in-stock / retired parts with no current bike, fall back to 0.
       const currentBike = bikes.find((b) => b.id === component.bikeId);
       const bikeKm = currentBike?.totalDistance ?? 0;
       const prior = Math.max(0, bikeKm - component.installDistance);
-      setPriorDistance(prior > 0 ? String(prior) : '');
+      setPriorDistance(prior > 0 ? formatNumber(prior) : '');
       setIsElectric(component.isElectric ?? false);
       setChargeInterval(component.chargeIntervalDays ? String(component.chargeIntervalDays) : '');
       setSelectedBikeId(component.bikeId);
@@ -159,18 +160,16 @@ export default function EditComponentModal({
     }
   };
 
-  const handleRetire = () => {
-    Alert.alert('Retire Component', 'Mark "' + component.name + '" as retired?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Retire',
-        style: 'destructive',
-        onPress: async () => {
-          await onRetire(component.id);
-          onClose();
-        },
-      },
-    ]);
+  const handleRetire = async () => {
+    const ok = await dialog.confirm({
+      title: 'Retire Component',
+      message: 'Mark "' + component.name + '" as retired?',
+      confirmLabel: 'Retire',
+      tone: 'warning',
+    });
+    if (!ok) return;
+    await onRetire(component.id);
+    onClose();
   };
 
   const handleMoveToStock = async () => {
@@ -284,7 +283,7 @@ export default function EditComponentModal({
                   </View>
                   <TextInput
                     style={styles.inlineInput}
-                    placeholder={String(typeInfo.defaultLifespan)}
+                    placeholder={formatNumber(typeInfo.defaultLifespan)}
                     placeholderTextColor={Colors.textTertiary}
                     value={maxLifespan}
                     onChangeText={setMaxLifespan}

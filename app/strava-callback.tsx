@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { dialog } from '../components/AppDialog';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store/useAppStore';
@@ -48,10 +49,11 @@ export default function StravaCallback() {
     }
 
     if (params.error) {
-      Alert.alert(
-        'Strava connection cancelled',
-        params.error_description ?? params.error
-      );
+      dialog.alert({
+        title: 'Strava connection cancelled',
+        message: params.error_description ?? params.error,
+        tone: 'warning',
+      });
       goBack();
       return () => {
         cancelled = true;
@@ -75,7 +77,11 @@ export default function StravaCallback() {
         // a missing scope on an old token reused by Strava).
         return syncStrava().catch((e: unknown) => {
           const msg = e instanceof Error ? e.message : 'Initial sync failed';
-          Alert.alert('Strava connected, but sync failed', msg);
+          dialog.alert({
+            title: 'Strava connected, but sync failed',
+            message: msg,
+            tone: 'warning',
+          });
         });
       })
       .then(() => {
@@ -95,7 +101,11 @@ export default function StravaCallback() {
       })
       .catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : 'Token exchange failed';
-        Alert.alert('Strava connection failed', msg);
+        dialog.alert({
+          title: 'Strava connection failed',
+          message: msg,
+          tone: 'destructive',
+        });
       })
       .finally(goBack);
 

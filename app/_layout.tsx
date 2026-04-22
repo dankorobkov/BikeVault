@@ -14,6 +14,7 @@ import { loadStravaTokens, validateStravaTokens } from '../services/stravaServic
 import { getUserProfile } from '../services/userService';
 import { Colors } from '../constants/colors';
 import { DEMO_BIKES, DEMO_COMPONENTS } from '../constants/demoData';
+import { DialogRoot } from '../components/AppDialog';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -202,6 +203,8 @@ export default function RootLayout() {
           options={{ headerShown: false }}
         />
       </Stack>
+      {/* Global app-styled dialog — replaces Alert.alert / window.confirm. */}
+      <DialogRoot />
     </>
   );
 }
