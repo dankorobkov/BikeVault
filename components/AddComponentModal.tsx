@@ -60,7 +60,12 @@ export default function AddComponentModal({
   const [name, setName] = useState('');
   const [category, setCategory] = useState<ComponentCategory>('chain');
   const [brand, setBrand] = useState('');
-  const [installDistance, setInstallDistance] = useState('');
+  // "Prior distance" — km this component has already been ridden before
+  // it was tracked in BikeVault. We convert to installDistance (=
+  // bikeDistance − priorDistance) on save, so the stored schema is
+  // unchanged. This reframes the input to match how riders think about
+  // used parts: "I've already put ~3,000 km on this cassette."
+  const [priorDistance, setPriorDistance] = useState('');
   const [maxLifespan, setMaxLifespan] = useState('');
   const [attentionFreq, setAttentionFreq] = useState('');
   const [notes, setNotes] = useState('');
@@ -68,6 +73,15 @@ export default function AddComponentModal({
   const [chargeInterval, setChargeInterval] = useState('');
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<'category' | 'details'>('category');
+
+  // Numeric inputs: strip commas, spaces, and anything that isn't a digit
+  // or minus sign so "1,000" parses as 1000 instead of NaN (which would
+  // silently fall back to bikeDistance = no wear).
+  const parseNum = (s: string): number => {
+    const cleaned = s.replace(/[,\s]/g, '');
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : 0;
+  };
 
   // Hide component categories that don't apply to this bike's setup
   // (e.g. rear-wheel components on a direct-drive trainer). When adding
@@ -98,17 +112,25 @@ export default function AddComponentModal({
     if (!name.trim()) return;
     setSaving(true);
     try {
+      // Convert "km already ridden on this part" → install-time odometer
+      // reading. Negative results (a used part with more wear than the
+      // bike has total km, e.g. migrated from another bike) are fine —
+      // calcWearPercent clamps ridden with Math.max(0, ...) on the
+      // other side, and the stored value is just an arithmetic anchor.
+      const prior = parseNum(priorDistance);
+      const installDistance = inStockMode ? 0 : bikeDistance - prior;
       await onAdd({
         name: name.trim(),
         category,
         brand: brand.trim(),
-        installDistance: inStockMode ? 0 : (Number(installDistance) || bikeDistance || 0),
-        maxLifespan: Number(maxLifespan) || typeInfo.defaultLifespan,
-        attentionFrequency: attentionFreq ? Number(attentionFreq) : undefined,
+        installDistance,
+        maxLifespan: parseNum(maxLifespan) || typeInfo.defaultLifespan,
+        attentionFrequency: attentionFreq ? parseNum(attentionFreq) : undefined,
         notes: notes.trim(),
         isElectric: canBeElectric && isElectric,
         lastCharged: isElectric ? Date.now() : undefined,
-        chargeIntervalDays: isElectric && chargeInterval ? Number(chargeInterval) : undefined,
+        chargeIntervalDays:
+          isElectric && chargeInterval ? parseNum(chargeInterval) : undefined,
       });
       resetForm();
       onClose();
@@ -121,7 +143,7 @@ export default function AddComponentModal({
     setName('');
     setCategory('chain');
     setBrand('');
-    setInstallDistance('');
+    setPriorDistance('');
     setMaxLifespan('');
     setAttentionFreq('');
     setNotes('');
@@ -234,14 +256,10 @@ export default function AddComponentModal({
                     <View style={styles.inputWithUnit}>
                       <TextInput
                         style={[styles.input, { flex: 1 }]}
-                        placeholder={
-                          bikeDistance > 0
-                            ? 'Odometer when installed — e.g. ' + bikeDistance.toLocaleString()
-                            : 'Odometer when installed — e.g. 12,500'
-                        }
+                        placeholder="Already ridden on this part — leave blank if brand new"
                         placeholderTextColor={Colors.textTertiary}
-                        value={installDistance}
-                        onChangeText={setInstallDistance}
+                        value={priorDistance}
+                        onChangeText={setPriorDistance}
                         keyboardType="numeric"
                       />
                       <Text style={styles.unitLabel}>{unit}</Text>

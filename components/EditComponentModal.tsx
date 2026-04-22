@@ -48,11 +48,22 @@ export default function EditComponentModal({
   const [notes, setNotes] = useState('');
   const [maxLifespan, setMaxLifespan] = useState('');
   const [attentionFreq, setAttentionFreq] = useState('');
-  const [installDistance, setInstallDistance] = useState('');
+  // Distance already ridden on this part. Internally this corresponds
+  // to (bikeDistance - installDistance). Reframing as "prior distance"
+  // matches how riders think about used parts and avoids the footgun
+  // of entering the bike's odometer when they meant the part's wear.
+  const [priorDistance, setPriorDistance] = useState('');
   const [isElectric, setIsElectric] = useState(false);
   const [chargeInterval, setChargeInterval] = useState('');
   const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Strip commas/spaces before parsing so "1,000" doesn't become NaN.
+  const parseNum = (s: string): number => {
+    const cleaned = s.replace(/[,\s]/g, '');
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : 0;
+  };
 
   useEffect(() => {
     if (component && visible) {
@@ -61,14 +72,18 @@ export default function EditComponentModal({
       setNotes(component.notes ?? '');
       setMaxLifespan(String(component.maxLifespan));
       setAttentionFreq(component.attentionFrequency ? String(component.attentionFrequency) : '');
-      setInstallDistance(
-        component.installDistance ? String(component.installDistance) : ''
-      );
+      // Seed priorDistance from the current (bikeDistance - installDistance)
+      // so the user sees "X km already ridden" rather than a raw odometer.
+      // For in-stock / retired parts with no current bike, fall back to 0.
+      const currentBike = bikes.find((b) => b.id === component.bikeId);
+      const bikeKm = currentBike?.totalDistance ?? 0;
+      const prior = Math.max(0, bikeKm - component.installDistance);
+      setPriorDistance(prior > 0 ? String(prior) : '');
       setIsElectric(component.isElectric ?? false);
       setChargeInterval(component.chargeIntervalDays ? String(component.chargeIntervalDays) : '');
       setSelectedBikeId(component.bikeId);
     }
-  }, [component, visible]);
+  }, [component, visible, bikes]);
 
   if (!component) return null;
 
@@ -98,16 +113,27 @@ export default function EditComponentModal({
     if (!name.trim()) return;
     setSaving(true);
     try {
+      // Convert priorDistance → installDistance relative to whatever bike
+      // the component is (now) assigned to. If it's going to stock we
+      // just zero it out — stock parts have no install anchor.
+      const prior = parseNum(priorDistance);
+      const targetBike = bikes.find((b) => b.id === selectedBikeId);
+      const targetBikeKm = targetBike?.totalDistance ?? 0;
+      const nextInstallDistance =
+        selectedBikeId === null ? 0 : targetBikeKm - prior;
+
       const updates: Partial<Omit<BikeComponent, 'id' | 'createdAt'>> = {
         name: name.trim(),
         brand: brand.trim() || undefined,
         notes: notes.trim() || undefined,
-        maxLifespan: Number(maxLifespan) || component.maxLifespan,
-        attentionFrequency: attentionFreq ? Number(attentionFreq) : undefined,
-        installDistance: Number(installDistance) || 0,
+        maxLifespan: parseNum(maxLifespan) || component.maxLifespan,
+        attentionFrequency: attentionFreq ? parseNum(attentionFreq) : undefined,
+        installDistance: nextInstallDistance,
         isElectric: canBeElectric && isElectric,
         chargeIntervalDays:
-          canBeElectric && isElectric && chargeInterval ? Number(chargeInterval) : undefined,
+          canBeElectric && isElectric && chargeInterval
+            ? parseNum(chargeInterval)
+            : undefined,
         updatedAt: Date.now(),
       };
       await onSave(component.id, updates);
@@ -117,7 +143,7 @@ export default function EditComponentModal({
         if (selectedBikeId === null) {
           await onMoveToStock(component.id);
         } else {
-          await onInstallOnBike(component.id, selectedBikeId, Number(installDistance) || 0);
+          await onInstallOnBike(component.id, selectedBikeId, nextInstallDistance);
         }
       }
 
@@ -213,15 +239,17 @@ export default function EditComponentModal({
               <View style={styles.inputGroup}>
                 <View style={styles.labeledRow}>
                   <View style={styles.labelCol}>
-                    <Text style={styles.fieldLabel}>Installed at</Text>
-                    <Text style={styles.fieldSub}>Bike odometer at install</Text>
+                    <Text style={styles.fieldLabel}>Already ridden</Text>
+                    <Text style={styles.fieldSub}>
+                      Distance already on this part
+                    </Text>
                   </View>
                   <TextInput
                     style={styles.inlineInput}
                     placeholder="0"
                     placeholderTextColor={Colors.textTertiary}
-                    value={installDistance}
-                    onChangeText={setInstallDistance}
+                    value={priorDistance}
+                    onChangeText={setPriorDistance}
                     keyboardType="numeric"
                     textAlign="right"
                   />
