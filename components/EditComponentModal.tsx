@@ -19,7 +19,8 @@ import { COMPONENT_TYPES, BRAKE_SYSTEM_LABELS } from '../constants/componentType
 import { formatNumber } from '../constants/units';
 import { ELECTRIC_CATEGORIES } from '../types';
 import DateField from './DateField';
-import type { BikeComponent, Bike } from '../types';
+import { CHAIN_LUBE_TYPES, CHAIN_LUBE_ORDER } from '../constants/chainLube';
+import type { BikeComponent, Bike, ChainLubeType } from '../types';
 
 interface Props {
   visible: boolean;
@@ -57,6 +58,10 @@ export default function EditComponentModal({
   const [priorDistance, setPriorDistance] = useState('');
   const [isElectric, setIsElectric] = useState(false);
   const [chargeInterval, setChargeInterval] = useState('');
+  // Chain-lube tracking (only shown when component.category === 'chain').
+  const [lubeType, setLubeType] = useState<ChainLubeType | null>(null);
+  const [lubeIntervalOverride, setLubeIntervalOverride] = useState('');
+  const [lastLubedAt, setLastLubedAt] = useState<number>(Date.now());
   const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null);
   // Editable install date — back-date for parts fitted before the user
   // started tracking them, or correct a mistake on a recent add.
@@ -88,6 +93,11 @@ export default function EditComponentModal({
       setChargeInterval(component.chargeIntervalDays ? String(component.chargeIntervalDays) : '');
       setSelectedBikeId(component.bikeId);
       setInstallDate(component.installDate || Date.now());
+      setLubeType(component.lubeType ?? null);
+      setLubeIntervalOverride(
+        component.lubeIntervalKm ? String(component.lubeIntervalKm) : ''
+      );
+      setLastLubedAt(component.lastLubedAt ?? component.installDate ?? Date.now());
     }
   }, [component, visible, bikes]);
 
@@ -143,6 +153,37 @@ export default function EditComponentModal({
             : undefined,
         updatedAt: Date.now(),
       };
+
+      // Chain-lube fields — only relevant for chains. Firestore rejects
+      // plain `undefined`; `updateComponent` strips undefined keys, so
+      // using `undefined` here leaves the existing value alone. To
+      // actively clear a field (user turned tracking off), we'd need
+      // `deleteField()` — for now the scanner / UI both gate on a
+      // truthy `lubeType`, so writing null is enough to disable alerts.
+      if (component.category === 'chain') {
+        if (lubeType) {
+          updates.lubeType = lubeType;
+          updates.lastLubedAt = lastLubedAt;
+          updates.lubeIntervalKm = lubeIntervalOverride
+            ? parseNum(lubeIntervalOverride)
+            : undefined;
+          // If the user just logged a re-lube (or moved the date), anchor
+          // lubeDistanceAtLastLube to the currently assigned bike's
+          // odometer. This is the only sensible mapping from
+          // "I lubed at date X" to a km baseline, since we don't keep a
+          // per-day ride history. If they didn't change the date, preserve
+          // the existing anchor.
+          if (lastLubedAt !== component.lastLubedAt) {
+            const currentBike = bikes.find((b) => b.id === selectedBikeId);
+            updates.lubeDistanceAtLastLube = currentBike?.totalDistance ?? 0;
+          }
+        } else if (component.lubeType) {
+          // User has turned off lube tracking on a chain that had it.
+          // Cast through unknown so we can write the "disable" sentinel
+          // without widening the BikeComponent type.
+          (updates as Record<string, unknown>).lubeType = null;
+        }
+      }
       await onSave(component.id, updates);
 
       // Handle bike reassignment separately
@@ -310,6 +351,118 @@ export default function EditComponentModal({
                   <Text style={styles.unitTag}>km</Text>
                 </View>
               </View>
+            </View>
+          )}
+
+          {/* Chain lube — only for chains, not when retired */}
+          {component.category === 'chain' && !isRetired && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>CHAIN LUBE</Text>
+              <Text style={styles.hint}>
+                Track what you lube with and we'll remind you when it's due.
+              </Text>
+              <View style={styles.bubblesRow}>
+                <TouchableOpacity
+                  style={[styles.bubble, lubeType === null && styles.bubbleActive]}
+                  onPress={() => setLubeType(null)}
+                >
+                  <Text
+                    style={[
+                      styles.bubbleText,
+                      lubeType === null && styles.bubbleTextActive,
+                    ]}
+                  >
+                    Not tracking
+                  </Text>
+                </TouchableOpacity>
+                {CHAIN_LUBE_ORDER.map((lt) => {
+                  const meta = CHAIN_LUBE_TYPES[lt];
+                  const isSelected = lubeType === lt;
+                  return (
+                    <TouchableOpacity
+                      key={lt}
+                      style={[styles.bubble, isSelected && styles.bubbleActive]}
+                      onPress={() => setLubeType(lt)}
+                    >
+                      <View style={styles.lubeBubbleInner}>
+                        <Ionicons
+                          name={meta.icon}
+                          size={14}
+                          color={isSelected ? Colors.accent : Colors.textSecondary}
+                        />
+                        <Text
+                          style={[
+                            styles.bubbleText,
+                            isSelected && styles.bubbleTextActive,
+                          ]}
+                        >
+                          {meta.shortLabel}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {lubeType && (
+                <>
+                  <Text style={styles.hint}>
+                    {CHAIN_LUBE_TYPES[lubeType].description}
+                  </Text>
+                  <View style={[styles.inputGroup, { marginTop: 4 }]}>
+                    <View style={styles.labeledRow}>
+                      <View style={styles.labelCol}>
+                        <Text style={styles.fieldLabel}>Last lubed</Text>
+                        <Text style={styles.fieldSub}>
+                          When you most recently applied lube
+                        </Text>
+                      </View>
+                      <DateField
+                        value={lastLubedAt}
+                        onChange={setLastLubedAt}
+                        maxDate={Date.now()}
+                        align="right"
+                        color={Colors.accent}
+                        fontWeight="500"
+                      />
+                    </View>
+                    <View style={styles.divider} />
+                    <View style={styles.labeledRow}>
+                      <View style={styles.labelCol}>
+                        <Text style={styles.fieldLabel}>Re-lube every</Text>
+                        <Text style={styles.fieldSub}>
+                          Default:{' '}
+                          {formatNumber(CHAIN_LUBE_TYPES[lubeType].defaultIntervalKm)} km
+                        </Text>
+                      </View>
+                      <TextInput
+                        style={styles.inlineInput}
+                        placeholder={formatNumber(
+                          CHAIN_LUBE_TYPES[lubeType].defaultIntervalKm
+                        )}
+                        placeholderTextColor={Colors.textTertiary}
+                        value={lubeIntervalOverride}
+                        onChangeText={setLubeIntervalOverride}
+                        keyboardType="numeric"
+                        textAlign="right"
+                      />
+                      <Text style={styles.unitTag}>km</Text>
+                    </View>
+                  </View>
+
+                  {/* "Log re-lube" — shortcut: sets lastLubed=now and
+                      anchors the odometer to the current bike distance. */}
+                  <TouchableOpacity
+                    style={styles.relubeBtn}
+                    onPress={() => {
+                      setLastLubedAt(Date.now());
+                    }}
+                  >
+                    <Ionicons name="refresh-outline" size={16} color={Colors.accent} />
+                    <Text style={styles.relubeBtnText}>Log re-lube — set to today</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           )}
 
@@ -584,4 +737,32 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   actionText: { flex: 1, fontSize: 15, fontWeight: '500', color: Colors.text },
+  hint: { fontSize: 12, color: Colors.textTertiary, lineHeight: 17 },
+  bubblesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  bubble: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 99,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  bubbleActive: {
+    backgroundColor: Colors.accentDim,
+    borderColor: Colors.accent,
+  },
+  bubbleText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '500' },
+  bubbleTextActive: { color: Colors.accent, fontWeight: '600' },
+  lubeBubbleInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  relubeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.accentDim,
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  relubeBtnText: { fontSize: 14, fontWeight: '600', color: Colors.accent },
 });

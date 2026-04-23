@@ -12,6 +12,7 @@ import { fetchBikes } from '../services/bikesService';
 import { fetchAllComponents } from '../services/componentsService';
 import { loadStravaTokens, validateStravaTokens } from '../services/stravaService';
 import { getUserProfile } from '../services/userService';
+import { scanAndNotify } from '../services/notifications';
 import { Colors } from '../constants/colors';
 import { DEMO_BIKES, DEMO_COMPONENTS } from '../constants/demoData';
 import { DialogRoot } from '../components/AppDialog';
@@ -132,6 +133,19 @@ export default function RootLayout() {
               const [bikes, components, stravaTokens] = result;
               setBikes(bikes);
               setComponents(components);
+              // Scan for anything needing attention (chain lube due,
+              // components past 80%, service intervals). Safe no-op if
+              // permission hasn't been granted or the user turned
+              // notifications off. Deferred so it doesn't block the
+              // splash→app transition.
+              setTimeout(() => {
+                try {
+                  const { notificationPrefs } = useAppStore.getState();
+                  scanAndNotify(bikes, components, notificationPrefs);
+                } catch (e) {
+                  console.warn('scanAndNotify failed:', e);
+                }
+              }, 500);
               if (stravaTokens) {
                 // Set optimistically so the UI shows "Connected" while we
                 // validate — then probe /athlete and clear if the token

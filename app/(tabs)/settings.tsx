@@ -27,6 +27,11 @@ import {
 } from '../../services/stravaService';
 import { deleteUserAccount } from '../../services/userService';
 import { updateBike } from '../../services/bikesService';
+import {
+  getNotificationPermission,
+  requestNotificationPermission,
+  fireTestNotification,
+} from '../../services/notifications';
 import { STRAVA_CONFIG } from '../../config/strava';
 import { Colors } from '../../constants/colors';
 import {
@@ -80,6 +85,51 @@ export default function SettingsScreen() {
   // can be open at a time to keep the scroll length manageable on
   // larger garages.
   const [expandedBikeId, setExpandedBikeId] = useState<string | null>(null);
+  // Live-tracked browser permission state. Initialised from the Notifications
+  // API and re-read after every request so the UI doesn't lag reality.
+  const [notifPermission, setNotifPermission] = useState<
+    'granted' | 'denied' | 'default' | 'unsupported'
+  >(getNotificationPermission());
+
+  const handleToggleNotifications = async (v: boolean) => {
+    setNotificationPrefs({ enabled: v });
+    if (!v) return;
+    // User just turned notifications on — ask the browser for permission.
+    // If they've already denied once, browsers won't re-prompt; surface
+    // that to the user so they know to flip it back in their browser
+    // settings.
+    const perm = await requestNotificationPermission();
+    setNotifPermission(perm);
+    if (perm === 'denied') {
+      dialog.alert({
+        title: 'Notifications blocked',
+        message:
+          'Your browser is blocking notifications for BikeVault. Enable them in site settings (padlock icon in the address bar) to get reminders.',
+        tone: 'warning',
+      });
+    } else if (perm === 'unsupported') {
+      dialog.alert({
+        title: 'Not supported here',
+        message:
+          'Browser notifications aren\u2019t available on this platform yet. We\u2019ll show in-app reminders instead.',
+        tone: 'info',
+      });
+    }
+  };
+
+  const handleTestNotification = () => {
+    const ok = fireTestNotification();
+    if (!ok) {
+      dialog.alert({
+        title: 'Could not send test',
+        message:
+          notifPermission === 'denied'
+            ? 'Notifications are blocked for this site. Enable them in your browser settings to test.'
+            : 'Your browser did not allow the notification. Try again after granting permission.',
+        tone: 'warning',
+      });
+    }
+  };
 
   const handleSetActivity = async (bikeId: string, activity: StravaActivityType) => {
     if (!userId) return;
@@ -452,7 +502,7 @@ export default function SettingsScreen() {
               </View>
               <Switch
                 value={notificationPrefs.enabled}
-                onValueChange={(v) => setNotificationPrefs({ enabled: v })}
+                onValueChange={handleToggleNotifications}
                 trackColor={{ true: Colors.accent, false: Colors.border }}
                 thumbColor={Colors.white}
               />
@@ -460,13 +510,70 @@ export default function SettingsScreen() {
 
             {notificationPrefs.enabled && (
               <>
+                {/* Permission banner — shown only when the browser hasn't
+                    granted permission yet (denied / default / unsupported).
+                    Masked entirely when everything's ready so the UI stays
+                    quiet in the happy path. */}
+                {notifPermission !== 'granted' && (
+                  <>
+                    <View style={styles.divider} />
+                    <TouchableOpacity
+                      style={styles.row}
+                      onPress={() => handleToggleNotifications(true)}
+                      activeOpacity={notifPermission === 'denied' ? 1 : 0.7}
+                      disabled={notifPermission === 'denied' || notifPermission === 'unsupported'}
+                    >
+                      <View style={styles.rowLeft}>
+                        <Ionicons
+                          name={
+                            notifPermission === 'denied'
+                              ? 'close-circle-outline'
+                              : notifPermission === 'unsupported'
+                              ? 'alert-circle-outline'
+                              : 'help-circle-outline'
+                          }
+                          size={20}
+                          color={
+                            notifPermission === 'denied'
+                              ? Colors.danger
+                              : Colors.warning
+                          }
+                        />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.rowTitle}>
+                            {notifPermission === 'denied'
+                              ? 'Blocked by your browser'
+                              : notifPermission === 'unsupported'
+                              ? 'Not supported on this device'
+                              : 'Permission needed'}
+                          </Text>
+                          <Text style={styles.rowSub}>
+                            {notifPermission === 'denied'
+                              ? 'Enable in your browser\u2019s site settings to get reminders.'
+                              : notifPermission === 'unsupported'
+                              ? 'We\u2019ll show in-app reminders instead.'
+                              : 'Tap to grant notification permission.'}
+                          </Text>
+                        </View>
+                      </View>
+                      {notifPermission === 'default' && (
+                        <Ionicons
+                          name="chevron-forward"
+                          size={18}
+                          color={Colors.textTertiary}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  </>
+                )}
+
                 <View style={styles.divider} />
                 <View style={styles.switchRow}>
                   <View style={styles.rowLeft}>
                     <Ionicons name="water-outline" size={20} color={Colors.textSecondary} />
                     <View>
                       <Text style={styles.rowTitle}>Chain Lube Reminder</Text>
-                      <Text style={styles.rowSub}>When less than 100 km to next service</Text>
+                      <Text style={styles.rowSub}>When a chain passes its re-lube interval</Text>
                     </View>
                   </View>
                   <Switch
@@ -482,8 +589,10 @@ export default function SettingsScreen() {
                   <View style={styles.rowLeft}>
                     <Ionicons name="warning-outline" size={20} color={Colors.textSecondary} />
                     <View>
-                      <Text style={styles.rowTitle}>Component Wear Alert</Text>
-                      <Text style={styles.rowSub}>When less than 100 km lifespan remaining</Text>
+                      <Text style={styles.rowTitle}>Wear & Service Alerts</Text>
+                      <Text style={styles.rowSub}>
+                        Nearing end of life, overdue replacement, service intervals
+                      </Text>
                     </View>
                   </View>
                   <Switch
@@ -493,6 +602,30 @@ export default function SettingsScreen() {
                     thumbColor={Colors.white}
                   />
                 </View>
+
+                {/* Test button — only enabled when permission is granted.
+                    Helps users confirm that OS-level delivery is set up
+                    without needing to wait for a real alert. */}
+                {notifPermission === 'granted' && (
+                  <>
+                    <View style={styles.divider} />
+                    <TouchableOpacity style={styles.row} onPress={handleTestNotification}>
+                      <View style={styles.rowLeft}>
+                        <Ionicons
+                          name="send-outline"
+                          size={20}
+                          color={Colors.accent}
+                        />
+                        <Text style={styles.rowTitle}>Send test notification</Text>
+                      </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={18}
+                        color={Colors.textTertiary}
+                      />
+                    </TouchableOpacity>
+                  </>
+                )}
 
                 {/* Battery Low Alert is hidden — the feature isn't wired up
                     to a real charge-estimate yet. Stub remains in the data

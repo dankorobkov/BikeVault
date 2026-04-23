@@ -214,6 +214,33 @@ export const ELECTRIC_CATEGORIES: ComponentCategory[] = [
   'di2-battery',
 ];
 
+/**
+ * Chain lubrication strategies we support. Each entry drives a
+ * recommended re-lube interval and the UI icon/label in
+ * `constants/chainLube.ts`.
+ *
+ * Picked as the mainstream options cyclists talk about:
+ *   - 'hot-wax'   — immersive paraffin/wax-bath treatment (e.g. Silca
+ *                   Secret Chain Blend, Molten Speed Wax). Longest
+ *                   interval, cleanest drivetrain, most effort per
+ *                   application.
+ *   - 'drip-wax'  — emulsion drip wax (Silca Super Secret, Squirt, SILCA
+ *                   Synergetic's wax variants). Medium interval, easy
+ *                   to apply without removing the chain.
+ *   - 'wet-lube'  — oil-based wet lube (Finish Line Wet, Rock'n'Roll
+ *                   Absolute Dry). Best for rain/winter, attracts grit.
+ *   - 'dry-lube'  — thin oil lube (Finish Line Dry, White Lightning
+ *                   Clean Ride). For dry conditions, short interval.
+ *   - 'ceramic'   — ceramic/polymer lubes (Muc-Off Ludicrous AF, CeramicSpeed
+ *                   UFO). Premium, fairly long interval.
+ */
+export type ChainLubeType =
+  | 'hot-wax'
+  | 'drip-wax'
+  | 'wet-lube'
+  | 'dry-lube'
+  | 'ceramic';
+
 export interface BikeComponent {
   id: string;
   bikeId: string | null; // null = in stock, not installed on a bike
@@ -230,6 +257,17 @@ export interface BikeComponent {
   isElectric?: boolean;
   lastCharged?: number; // timestamp ms
   chargeIntervalDays?: number; // typical days between charges
+  // Chain-lube fields (only when category === 'chain' and user picked one)
+  lubeType?: ChainLubeType;
+  /** Timestamp of the most recent re-lube. */
+  lastLubedAt?: number;
+  /** User override for re-lube interval in km. Defaults to the value in
+   *  `CHAIN_LUBE_TYPES[lubeType].defaultIntervalKm`. */
+  lubeIntervalKm?: number;
+  /** Bike's total distance at the most recent re-lube. Used together with
+   *  the current bike distance to compute km-since-lube without needing
+   *  a ride log. */
+  lubeDistanceAtLastLube?: number;
   createdAt: number;
   updatedAt: number;
 }

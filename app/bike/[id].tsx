@@ -41,6 +41,7 @@ import {
   hiddenComponentCategoriesForBike,
   type BikeComponent,
   type ComponentCategory,
+  type ChainLubeType,
   type StravaActivity,
   type BikeType,
   type BrakeSystem,
@@ -157,6 +158,9 @@ export default function BikeDetailScreen() {
     isElectric: boolean;
     lastCharged?: number;
     chargeIntervalDays?: number;
+    lubeType?: ChainLubeType;
+    lastLubedAt?: number;
+    lubeIntervalKm?: number;
   }) => {
     if (!userId) return;
     const newComp = await addComponent(userId, {
@@ -173,6 +177,13 @@ export default function BikeDetailScreen() {
       isElectric: data.isElectric,
       lastCharged: data.lastCharged,
       chargeIntervalDays: data.chargeIntervalDays,
+      lubeType: data.lubeType,
+      lastLubedAt: data.lastLubedAt,
+      lubeIntervalKm: data.lubeIntervalKm,
+      // Anchor the re-lube odometer to today's bike distance so we
+      // correctly measure km-since-lube going forward.
+      lubeDistanceAtLastLube:
+        data.lubeType && bike ? bike.totalDistance : undefined,
     });
     addComponentLocal(newComp);
     Analytics.addComponent(data.category, data.isElectric);
@@ -192,6 +203,9 @@ export default function BikeDetailScreen() {
     isElectric: boolean;
     lastCharged?: number;
     chargeIntervalDays?: number;
+    lubeType?: ChainLubeType;
+    lastLubedAt?: number;
+    lubeIntervalKm?: number;
   }) => {
     if (!userId) return;
 

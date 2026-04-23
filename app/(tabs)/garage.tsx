@@ -168,6 +168,9 @@ export default function GarageScreen() {
     isElectric: boolean;
     lastCharged?: number;
     chargeIntervalDays?: number;
+    lubeType?: any;
+    lastLubedAt?: number;
+    lubeIntervalKm?: number;
   }) => {
     if (!userId) return;
     const newComp = await addComponent(userId, {
@@ -184,6 +187,12 @@ export default function GarageScreen() {
       isElectric: data.isElectric,
       lastCharged: data.lastCharged,
       chargeIntervalDays: data.chargeIntervalDays,
+      lubeType: data.lubeType,
+      lastLubedAt: data.lastLubedAt,
+      lubeIntervalKm: data.lubeIntervalKm,
+      // Parts added to stock haven't been ridden since the lube was
+      // applied, so km-since-lube starts at 0.
+      lubeDistanceAtLastLube: data.lubeType ? 0 : undefined,
     });
     addComponentLocal(newComp);
     Analytics.addComponent(data.category, data.isElectric);

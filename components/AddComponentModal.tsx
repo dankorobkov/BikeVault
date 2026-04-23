@@ -23,7 +23,8 @@ import { ELECTRIC_CATEGORIES, hiddenComponentCategoriesForBike } from '../types'
 import { useAppStore } from '../store/useAppStore';
 import { unitLabel, formatNumber } from '../constants/units';
 import DateField from './DateField';
-import type { ComponentCategory, BrakeSystem, BikeType } from '../types';
+import { CHAIN_LUBE_TYPES, CHAIN_LUBE_ORDER } from '../constants/chainLube';
+import type { ComponentCategory, BrakeSystem, BikeType, ChainLubeType } from '../types';
 
 interface Props {
   visible: boolean;
@@ -44,6 +45,9 @@ interface Props {
     isElectric: boolean;
     lastCharged?: number;
     chargeIntervalDays?: number;
+    lubeType?: ChainLubeType;
+    lastLubedAt?: number;
+    lubeIntervalKm?: number;
   }) => Promise<void>;
 }
 
@@ -73,6 +77,11 @@ export default function AddComponentModal({
   const [notes, setNotes] = useState('');
   const [isElectric, setIsElectric] = useState(false);
   const [chargeInterval, setChargeInterval] = useState('');
+  // Chain-lube tracking (only surfaced when category === 'chain').
+  // `lubeType === null` means the user hasn't opted into lube tracking.
+  const [lubeType, setLubeType] = useState<ChainLubeType | null>(null);
+  const [lubeIntervalOverride, setLubeIntervalOverride] = useState('');
+  const [lastLubedAt, setLastLubedAt] = useState<number>(Date.now());
   // Install date — defaults to today, but users adding a part they
   // fitted weeks/months ago can back-date it. Flows into time-based
   // features (attention reminders, battery charge intervals) and is
@@ -111,6 +120,9 @@ export default function AddComponentModal({
     setMaxLifespan('');
     setAttentionFreq(info.defaultAttentionFrequency ? String(info.defaultAttentionFrequency) : '');
     setIsElectric(false);
+    setLubeType(null);
+    setLubeIntervalOverride('');
+    setLastLubedAt(Date.now());
     setName(info.label);
     setStep('details');
   };
@@ -142,6 +154,14 @@ export default function AddComponentModal({
         lastCharged: isElectric ? installDate : undefined,
         chargeIntervalDays:
           isElectric && chargeInterval ? parseNum(chargeInterval) : undefined,
+        lubeType:
+          category === 'chain' && lubeType ? lubeType : undefined,
+        lastLubedAt:
+          category === 'chain' && lubeType ? lastLubedAt : undefined,
+        lubeIntervalKm:
+          category === 'chain' && lubeType && lubeIntervalOverride
+            ? parseNum(lubeIntervalOverride)
+            : undefined,
       });
       resetForm();
       onClose();
@@ -160,6 +180,9 @@ export default function AddComponentModal({
     setNotes('');
     setIsElectric(false);
     setChargeInterval('');
+    setLubeType(null);
+    setLubeIntervalOverride('');
+    setLastLubedAt(Date.now());
     setInstallDate(Date.now());
     setStep('category');
   };
@@ -359,6 +382,99 @@ export default function AddComponentModal({
               </View>
             )}
 
+            {/* Chain lube — only for chains */}
+            {category === 'chain' && (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>CHAIN LUBE</Text>
+                <Text style={styles.hint}>
+                  Track what you lube with and we'll remind you when it's due.
+                </Text>
+                <View style={styles.bubblesRow}>
+                  <TouchableOpacity
+                    style={[styles.bubble, lubeType === null && styles.bubbleActive]}
+                    onPress={() => setLubeType(null)}
+                  >
+                    <Text
+                      style={[
+                        styles.bubbleText,
+                        lubeType === null && styles.bubbleTextActive,
+                      ]}
+                    >
+                      Not tracking
+                    </Text>
+                  </TouchableOpacity>
+                  {CHAIN_LUBE_ORDER.map((lt) => {
+                    const meta = CHAIN_LUBE_TYPES[lt];
+                    const isSelected = lubeType === lt;
+                    return (
+                      <TouchableOpacity
+                        key={lt}
+                        style={[styles.bubble, isSelected && styles.bubbleActive]}
+                        onPress={() => setLubeType(lt)}
+                      >
+                        <View style={styles.lubeBubbleInner}>
+                          <Ionicons
+                            name={meta.icon}
+                            size={14}
+                            color={isSelected ? Colors.accent : Colors.textSecondary}
+                          />
+                          <Text
+                            style={[
+                              styles.bubbleText,
+                              isSelected && styles.bubbleTextActive,
+                            ]}
+                          >
+                            {meta.shortLabel}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {lubeType && (
+                  <>
+                    <Text style={styles.hint}>
+                      {CHAIN_LUBE_TYPES[lubeType].description}
+                    </Text>
+                    <View style={[styles.inputGroup, { marginTop: 4 }]}>
+                      <View style={styles.labeledRow}>
+                        <View style={styles.labelCol}>
+                          <Text style={styles.fieldLabel}>Last lubed</Text>
+                          <Text style={styles.fieldSub}>
+                            When you most recently applied lube
+                          </Text>
+                        </View>
+                        <DateField
+                          value={lastLubedAt}
+                          onChange={setLastLubedAt}
+                          maxDate={Date.now()}
+                          align="right"
+                          color={Colors.accent}
+                          fontWeight="500"
+                        />
+                      </View>
+                      <View style={styles.inputDivider} />
+                      <View style={styles.inputWithUnit}>
+                        <TextInput
+                          style={[styles.input, { flex: 1 }]}
+                          placeholder={
+                            'Re-lube every — default: ' +
+                            formatNumber(CHAIN_LUBE_TYPES[lubeType].defaultIntervalKm)
+                          }
+                          placeholderTextColor={Colors.textTertiary}
+                          value={lubeIntervalOverride}
+                          onChangeText={setLubeIntervalOverride}
+                          keyboardType="numeric"
+                        />
+                        <Text style={styles.unitLabel}>{unit}</Text>
+                      </View>
+                    </View>
+                  </>
+                )}
+              </View>
+            )}
+
             {/* Notes */}
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>NOTES</Text>
@@ -419,6 +535,7 @@ const styles = StyleSheet.create({
   },
   bubbleText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '500' },
   bubbleTextActive: { color: Colors.accent, fontWeight: '600' },
+  lubeBubbleInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 
   // ── Details step ──────────────────────────────────────────────────────────
   hint: { fontSize: 12, color: Colors.textTertiary, lineHeight: 17 },

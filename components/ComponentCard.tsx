@@ -10,6 +10,7 @@ import dayjs from 'dayjs';
 import { Colors } from '../constants/colors';
 import { formatNumber } from '../constants/units';
 import { COMPONENT_TYPES } from '../constants/componentTypes';
+import { CHAIN_LUBE_TYPES } from '../constants/chainLube';
 import WearBar from './WearBar';
 import {
   calcWearPercent,
@@ -70,6 +71,19 @@ export default function ComponentCard({
     const daysSinceCharge = (Date.now() - component.lastCharged) / 86400000;
     const pct = Math.max(0, Math.round(100 - (daysSinceCharge / component.chargeIntervalDays) * 100));
     return pct;
+  })();
+
+  // Chain-lube estimation — km since last lube compared to configured
+  // interval. Renders "Next lube in ~X km" / "Lube due" beneath the card.
+  const lubeStatus = (() => {
+    if (component.category !== 'chain') return null;
+    if (!component.lubeType || !isActive) return null;
+    const meta = CHAIN_LUBE_TYPES[component.lubeType];
+    const intervalKm = component.lubeIntervalKm ?? meta.defaultIntervalKm;
+    const baseline = component.lubeDistanceAtLastLube ?? component.installDistance;
+    const kmSince = Math.max(0, bikeDistance - baseline);
+    const dueIn = intervalKm - kmSince;
+    return { meta, intervalKm, kmSince, dueIn };
   })();
 
   return (
@@ -146,6 +160,33 @@ export default function ComponentCard({
           </View>
         )}
 
+        {/* Chain lube status */}
+        {lubeStatus && (
+          <View style={styles.lubeRow}>
+            <Ionicons
+              name={lubeStatus.meta.icon}
+              size={11}
+              color={lubeStatus.dueIn <= 0 ? Colors.danger : Colors.textTertiary}
+            />
+            <Text
+              style={[
+                styles.lubeText,
+                lubeStatus.dueIn <= 0 && { color: Colors.danger, fontWeight: '600' },
+              ]}
+            >
+              {lubeStatus.dueIn <= 0
+                ? lubeStatus.meta.shortLabel +
+                  ' · lube due (' +
+                  formatNumber(Math.round(-lubeStatus.dueIn)) +
+                  ' km over)'
+                : lubeStatus.meta.shortLabel +
+                  ' · next lube in ~' +
+                  formatNumber(Math.round(lubeStatus.dueIn)) +
+                  ' km'}
+            </Text>
+          </View>
+        )}
+
         {/* Electric battery indicator */}
         {component.isElectric && batteryPctLabel !== null && (
           <View style={styles.batteryRow}>
@@ -205,6 +246,8 @@ const styles = StyleSheet.create({
   remaining: { fontSize: 11, color: Colors.textSecondary },
   attentionRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   attentionText: { fontSize: 11, color: Colors.textTertiary },
+  lubeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  lubeText: { fontSize: 11, color: Colors.textTertiary },
   batteryRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   batteryText: { fontSize: 12 },
 });

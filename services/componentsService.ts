@@ -12,7 +12,12 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { BikeComponent, ComponentCategory, ComponentStatus } from '../types';
+import type {
+  BikeComponent,
+  ChainLubeType,
+  ComponentCategory,
+  ComponentStatus,
+} from '../types';
 
 function componentsRef(userId: string) {
   return collection(db, 'users', userId, 'components');
@@ -45,6 +50,14 @@ function fromFirestore(d: { id: string; data: () => Record<string, unknown> }): 
         ? data.lastCharged.toMillis()
         : (data.lastCharged as number) ?? undefined,
     chargeIntervalDays: (data.chargeIntervalDays as number) ?? undefined,
+    lubeType: (data.lubeType as ChainLubeType) ?? undefined,
+    lastLubedAt:
+      data.lastLubedAt instanceof Timestamp
+        ? data.lastLubedAt.toMillis()
+        : (data.lastLubedAt as number) ?? undefined,
+    lubeIntervalKm: (data.lubeIntervalKm as number) ?? undefined,
+    lubeDistanceAtLastLube:
+      (data.lubeDistanceAtLastLube as number) ?? undefined,
     createdAt:
       data.createdAt instanceof Timestamp
         ? data.createdAt.toMillis()
@@ -100,6 +113,14 @@ export async function addComponent(
   if (component.attentionFrequency) data.attentionFrequency = component.attentionFrequency;
   if (component.lastCharged) data.lastCharged = component.lastCharged;
   if (component.chargeIntervalDays) data.chargeIntervalDays = component.chargeIntervalDays;
+  if (component.lubeType) data.lubeType = component.lubeType;
+  if (component.lastLubedAt) data.lastLubedAt = component.lastLubedAt;
+  if (component.lubeIntervalKm) data.lubeIntervalKm = component.lubeIntervalKm;
+  if (component.lubeDistanceAtLastLube !== undefined) {
+    // 0 is a valid value (component lubed at the time of install), so
+    // explicitly gate on `!== undefined` rather than truthiness.
+    data.lubeDistanceAtLastLube = component.lubeDistanceAtLastLube;
+  }
 
   const ref = await addDoc(componentsRef(userId), data);
   const now = Date.now();
