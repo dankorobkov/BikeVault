@@ -113,7 +113,9 @@ export default function BikesScreen() {
           <EmptyState
             icon="bicycle-outline"
             title="No bikes yet"
-            subtitle="Tap + to add your first bike and start tracking component wear."
+            subtitle="Add your first bike to start tracking component wear."
+            actionLabel="Add your first bike"
+            onAction={openAddModal}
           />
           )
         ) : (

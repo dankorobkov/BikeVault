@@ -58,6 +58,7 @@ export default function BikeDetailScreen() {
     bikes,
     components,
     stravaTokens,
+    isDataLoading,
     addComponentLocal,
     updateComponentLocal,
     removeComponentLocal,
@@ -109,9 +110,32 @@ export default function BikeDetailScreen() {
   }, [bike?.stravaId, stravaTokens]);
 
   if (!bike) {
+    // While Firestore is still hydrating the store we can't know yet
+    // whether this bike exists. Show a loader instead of a jarring
+    // "Bike not found" flash that disappears once data arrives.
+    if (isDataLoading) {
+      return (
+        <View style={styles.notFound}>
+          <ActivityIndicator size="large" color={Colors.accent} />
+        </View>
+      );
+    }
     return (
       <View style={styles.notFound}>
+        <Ionicons
+          name="bicycle-outline"
+          size={44}
+          color={Colors.textTertiary}
+          style={{ marginBottom: 12 }}
+        />
         <Text style={styles.notFoundText}>Bike not found</Text>
+        <TouchableOpacity
+          onPress={() => router.replace('/(tabs)')}
+          style={styles.notFoundBtn}
+        >
+          <Ionicons name="arrow-back" size={16} color={Colors.white} />
+          <Text style={styles.notFoundBtnText}>Back to bikes</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -635,8 +659,25 @@ export default function BikeDetailScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
-  notFound: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  notFound: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.bg,
+    padding: 24,
+  },
   notFoundText: { color: Colors.textSecondary, fontSize: 16 },
+  notFoundBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 14,
+    marginTop: 18,
+  },
+  notFoundBtnText: { fontSize: 15, fontWeight: '700', color: Colors.white },
   content: { paddingBottom: 40 },
 
   backBtn: {
