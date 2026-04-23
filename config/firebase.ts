@@ -37,17 +37,20 @@ function createAuth() {
 
 export const auth = createAuth();
 
-// Firestore on web needs long polling + XHR transport to work around
-// Safari's Intelligent Tracking Prevention, which blocks the default
-// WebChannel / Fetch Streams transport with "Fetch API cannot load ...
-// due to access control checks".
+// Firestore on web needs long polling to work around Safari's
+// Intelligent Tracking Prevention, which blocks the default
+// WebChannel transport with "XMLHttpRequest cannot load ... due to
+// access control checks" on hanging-GET /Listen/channel requests.
 //
-// `experimentalForceLongPolling: true` switches to long polling.
-// `useFetchStreams: false` additionally forces the underlying requests
-// over XHR instead of the Fetch Streams API — without this opt-out the
-// SDK still hits /Listen/channel via Fetch under ITP rules, which
-// Safari blocks as a third-party-cookie violation even though long
-// polling over XHR is otherwise fine.
+// `experimentalForceLongPolling: true` switches to long polling so
+// the SDK never tries WebChannel in the first place — avoiding the
+// initial failing probe Safari complains about in the console.
+//
+// `experimentalLongPollingOptions.timeoutSeconds: 25` shortens the
+// hanging-GET from the default 30s so the request completes before
+// any intermediate proxy / ITP idle window considers it stale and
+// tears it down. Recommended by the Firebase team for ITP-style
+// blockers; see firebase/firebase-js-sdk#6987.
 //
 // `memoryLocalCache()` avoids the persistent IndexedDB cache. The
 // persistent cache opens its own Listen stream to keep itself in sync,
@@ -62,14 +65,11 @@ export const auth = createAuth();
 function createDb() {
   if (Platform.OS !== 'web') return getFirestore(app);
   try {
-    // `useFetchStreams` lives on Firestore's internal PrivateSettings,
-    // not the public FirestoreSettings surface — it's honoured at
-    // runtime but not in the public .d.ts, so we cast through unknown.
     return initializeFirestore(app, {
       experimentalForceLongPolling: true,
-      useFetchStreams: false,
+      experimentalLongPollingOptions: { timeoutSeconds: 25 },
       localCache: memoryLocalCache(),
-    } as unknown as Parameters<typeof initializeFirestore>[1]);
+    });
   } catch {
     return getFirestore(app);
   }
