@@ -500,26 +500,28 @@ export default function BikeDetailScreen() {
           </View>
         </View>
 
-        {bikeComponents.length === 0 ? (
-          <EmptyState
-            icon="construct-outline"
-            title="No components yet"
-            subtitle="Add your first component to start tracking wear."
-          />
-        ) : (
-          bikeComponents.map((comp) => (
-            <ComponentCard
-              key={comp.id}
-              component={comp}
-              bikeDistance={bike.totalDistance}
-              onPress={() => setEditingComponent(comp)}
-              onEdit={() => setEditingComponent(comp)}
-              onRetire={() => handleRetire(comp.id)}
-              onMoveToStock={() => handleMoveToStock(comp.id)}
-              onDelete={() => handleDeleteComponent(comp.id)}
+        <View style={styles.componentList}>
+          {bikeComponents.length === 0 ? (
+            <EmptyState
+              icon="construct-outline"
+              title="No components yet"
+              subtitle="Add your first component to start tracking wear."
             />
-          ))
-        )}
+          ) : (
+            bikeComponents.map((comp) => (
+              <ComponentCard
+                key={comp.id}
+                component={comp}
+                bikeDistance={bike.totalDistance}
+                onPress={() => setEditingComponent(comp)}
+                onEdit={() => setEditingComponent(comp)}
+                onRetire={() => handleRetire(comp.id)}
+                onMoveToStock={() => handleMoveToStock(comp.id)}
+                onDelete={() => handleDeleteComponent(comp.id)}
+              />
+            ))
+          )}
+        </View>
       </ScrollView>
 
       <AppTabBar active="bikes" />
@@ -718,6 +720,7 @@ const styles = StyleSheet.create({
   strayText: { flex: 1, fontSize: 13, color: Colors.warning, lineHeight: 18 },
 
   section: { paddingHorizontal: 20, marginBottom: 20 },
+  componentList: { paddingHorizontal: 20 },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
