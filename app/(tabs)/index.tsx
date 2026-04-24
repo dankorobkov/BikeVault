@@ -20,6 +20,7 @@ import BikeCard from '../../components/BikeCard';
 import AddBikeModal from '../../components/AddBikeModal';
 import EmptyState from '../../components/EmptyState';
 import SuccessBanner from '../../components/SuccessBanner';
+import { defaultActivityForBikeType } from '../../types';
 import type { BikeType, BrakeSystem, StravaActivityType } from '../../types';
 
 export default function BikesScreen() {
@@ -34,6 +35,18 @@ export default function BikesScreen() {
   >([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successBikeName, setSuccessBikeName] = useState('');
+
+  // Activities already owned by existing bikes. The picker in
+  // AddBikeModal disables these so activity-based Strava attribution
+  // stays unambiguous. Bikes missing an explicit `defaultActivity`
+  // fall back to the type-derived default.
+  const takenActivities = React.useMemo(() => {
+    const s = new Set<StravaActivityType>();
+    for (const b of bikes) {
+      s.add(b.defaultActivity ?? defaultActivityForBikeType(b.type));
+    }
+    return s;
+  }, [bikes]);
 
   const openAddModal = async () => {
     if (stravaTokens && userId) {
@@ -133,6 +146,7 @@ export default function BikesScreen() {
       <AddBikeModal
         visible={showAdd}
         stravaBikes={stravaBikes}
+        takenActivities={takenActivities}
         onClose={() => setShowAdd(false)}
         onAdd={handleAdd}
       />

@@ -33,6 +33,13 @@ import {
 interface Props {
   visible: boolean;
   bike: Bike | null;
+  /**
+   * Activities owned by OTHER bikes (the bike being edited is expected
+   * to be excluded by the caller). These are disabled in the picker so
+   * two bikes can't share a default activity — activity-based Strava
+   * sync relies on a unique mapping to attribute rides.
+   */
+  takenActivities?: ReadonlySet<StravaActivityType>;
   onClose: () => void;
   onSave: (data: {
     name: string;
@@ -51,7 +58,14 @@ const STRAVA_ACTIVITIES = Object.entries(STRAVA_ACTIVITY_LABELS) as [
   string,
 ][];
 
-export default function EditBikeModal({ visible, bike, onClose, onSave }: Props) {
+export default function EditBikeModal({
+  visible,
+  bike,
+  takenActivities,
+  onClose,
+  onSave,
+}: Props) {
+  const taken = takenActivities ?? new Set<StravaActivityType>();
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [type, setType] = useState<BikeType>('road');
@@ -82,11 +96,16 @@ export default function EditBikeModal({ visible, bike, onClose, onSave }: Props)
   const handleTypeChange = (next: BikeType) => {
     setType(next);
     if (!activityTouched) {
-      setDefaultActivity(defaultActivityForBikeType(next));
+      // Only auto-update if the type-derived activity isn't already
+      // owned by another bike — otherwise leave the existing pick so
+      // we don't silently land on a disabled chip.
+      const candidate = defaultActivityForBikeType(next);
+      if (!taken.has(candidate)) setDefaultActivity(candidate);
     }
   };
 
   const handleActivityChange = (next: StravaActivityType) => {
+    if (taken.has(next)) return; // Disabled — owned by another bike.
     setDefaultActivity(next);
     setActivityTouched(true);
   };
@@ -193,31 +212,49 @@ export default function EditBikeModal({ visible, bike, onClose, onSave }: Props)
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>DEFAULT ACTIVITY</Text>
             <View style={styles.chipRow}>
-              {STRAVA_ACTIVITIES.map(([key, label]) => (
-                <TouchableOpacity
-                  key={key}
-                  style={[styles.chip, defaultActivity === key && styles.chipActive]}
-                  onPress={() => handleActivityChange(key)}
-                >
-                  <Ionicons
-                    name={STRAVA_ACTIVITY_ICONS[key] as any}
-                    size={13}
-                    color={
-                      defaultActivity === key ? Colors.accent : Colors.textSecondary
-                    }
-                    style={styles.chipIcon}
-                  />
-                  <Text
+              {STRAVA_ACTIVITIES.map(([key, label]) => {
+                const isActive = defaultActivity === key;
+                const isTaken = taken.has(key) && !isActive;
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    disabled={isTaken}
                     style={[
-                      styles.chipText,
-                      defaultActivity === key && styles.chipTextActive,
+                      styles.chip,
+                      isActive && styles.chipActive,
+                      isTaken && styles.chipDisabled,
                     ]}
+                    onPress={() => handleActivityChange(key)}
                   >
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Ionicons
+                      name={STRAVA_ACTIVITY_ICONS[key] as any}
+                      size={13}
+                      color={
+                        isActive
+                          ? Colors.accent
+                          : isTaken
+                          ? Colors.textTertiary
+                          : Colors.textSecondary
+                      }
+                      style={styles.chipIcon}
+                    />
+                    <Text
+                      style={[
+                        styles.chipText,
+                        isActive && styles.chipTextActive,
+                        isTaken && styles.chipTextDisabled,
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
+            <Text style={styles.hint}>
+              Each activity belongs to one bike. Activities owned by another
+              bike are disabled.
+            </Text>
           </View>
 
           {/* Brake system */}
@@ -307,8 +344,10 @@ const styles = StyleSheet.create({
   chipIcon: { marginRight: 6 },
   hint: { fontSize: 12, color: Colors.textTertiary, lineHeight: 17, marginTop: 4 },
   chipActive: { backgroundColor: Colors.accentDim, borderColor: Colors.accent },
+  chipDisabled: { opacity: 0.35 },
   chipText: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },
   chipTextActive: { color: Colors.accent },
+  chipTextDisabled: { color: Colors.textTertiary },
   colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   colorDot: {
     width: 34,

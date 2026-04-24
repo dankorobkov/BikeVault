@@ -39,6 +39,7 @@ import { useTopInset } from '../../hooks/useTopInset';
 import {
   isIndoorBike,
   hiddenComponentCategoriesForBike,
+  defaultActivityForBikeType,
   type BikeComponent,
   type ComponentCategory,
   type ChainLubeType,
@@ -578,6 +579,17 @@ export default function BikeDetailScreen() {
       <EditBikeModal
         visible={showEditBike}
         bike={bike}
+        // Activities owned by OTHER bikes — picker disables them so the
+        // user can't break the unique-defaultActivity invariant the
+        // sync attribution relies on. We exclude `bike.id` so the
+        // current bike's own activity stays selectable.
+        takenActivities={
+          new Set(
+            bikes
+              .filter((b) => b.id !== bike.id)
+              .map((b) => b.defaultActivity ?? defaultActivityForBikeType(b.type))
+          )
+        }
         onClose={() => setShowEditBike(false)}
         onSave={handleSaveBike}
       />

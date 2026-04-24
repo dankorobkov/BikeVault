@@ -1,7 +1,64 @@
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { STRAVA_CONFIG } from '../config/strava';
-import type { StravaAthlete, StravaActivity, StravaTokens, StravaBike } from '../types';
+import type {
+  Bike,
+  StravaAthlete,
+  StravaActivity,
+  StravaActivityType,
+  StravaTokens,
+  StravaBike,
+} from '../types';
+
+/**
+ * Strava `sport_type` values that represent a ride on a bicycle.
+ *
+ * We ignore every other sport_type (Run, Hike, Swim, AlpineSki, …) when
+ * importing activities — they can't advance a bike's odometer no matter
+ * how the user tagged them.
+ */
+export const CYCLING_SPORT_TYPES: ReadonlySet<StravaActivityType> = new Set<StravaActivityType>([
+  'Ride',
+  'VirtualRide',
+  'MountainBikeRide',
+  'GravelRide',
+  'EBikeRide',
+  'EMountainBikeRide',
+]);
+
+export function isCyclingActivity(activity: StravaActivity): boolean {
+  return CYCLING_SPORT_TYPES.has(activity.type as StravaActivityType);
+}
+
+/**
+ * Attribute a Strava activity to one of the user's bikes.
+ *
+ * Two-step resolution:
+ *   1. If the activity carries a `gear_id` that matches a bike's
+ *      `stravaId`, we trust that match — user explicitly tagged it on
+ *      Strava.
+ *   2. Otherwise, fall back to the bike whose `defaultActivity` matches
+ *      the activity's `sport_type`. The app enforces uniqueness of
+ *      `defaultActivity` per user, so this match is deterministic.
+ *
+ * Returns `null` when the activity is not cycling, or when no bike owns
+ * the activity's sport_type and no gear match is found.
+ */
+export function resolveBikeForActivity(
+  activity: StravaActivity,
+  bikes: Bike[]
+): Bike | null {
+  if (!isCyclingActivity(activity)) return null;
+
+  if (activity.gear_id) {
+    const gearMatch = bikes.find((b) => b.stravaId === activity.gear_id);
+    if (gearMatch) return gearMatch;
+  }
+
+  const activityType = activity.type as StravaActivityType;
+  const typeMatch = bikes.find((b) => b.defaultActivity === activityType);
+  return typeMatch ?? null;
+}
 
 /**
  * Thrown when Strava rejects our credentials — usually because the user
@@ -195,8 +252,12 @@ export async function fetchActivitiesPage(
 }
 
 /**
- * Fetches all activities since `afterTimestamp` (unix seconds).
- * Returns activities with valid gear_id only.
+ * Fetches all activities since `afterTimestamp` (unix seconds) —
+ * `afterTimestamp = 0` returns the user's complete activity history.
+ *
+ * Paginates automatically until Strava returns a short page. Returns
+ * every activity, regardless of sport_type or gear tag — filtering and
+ * attribution happen at the caller.
  */
 export async function fetchActivitiesSince(
   accessToken: string,
@@ -205,17 +266,36 @@ export async function fetchActivitiesSince(
   const all: StravaActivity[] = [];
   let page = 1;
   while (true) {
-    const batch = await stravaGet<StravaActivity[]>('/athlete/activities', accessToken, {
-      after: String(afterTimestamp),
+    const params: Record<string, string> = {
       page: String(page),
       per_page: '100',
-    });
+    };
+    // `after=0` works but is noise on the wire — skip it so the first-run
+    // backfill call looks like a plain history fetch in the request log.
+    if (afterTimestamp > 0) params.after = String(afterTimestamp);
+    const batch = await stravaGet<StravaActivity[]>(
+      '/athlete/activities',
+      accessToken,
+      params
+    );
     if (batch.length === 0) break;
     all.push(...batch);
     if (batch.length < 100) break;
     page++;
   }
   return all;
+}
+
+/**
+ * Convenience wrapper: fetches the user's complete cycling activity
+ * history. Used by the one-time V2 migration to rebuild every bike's
+ * totalDistance from scratch.
+ */
+export async function fetchAllCyclingActivities(
+  accessToken: string
+): Promise<StravaActivity[]> {
+  const all = await fetchActivitiesSince(accessToken, 0);
+  return all.filter(isCyclingActivity);
 }
 
 /**

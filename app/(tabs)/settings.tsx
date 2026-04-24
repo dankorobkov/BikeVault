@@ -133,6 +133,28 @@ export default function SettingsScreen() {
 
   const handleSetActivity = async (bikeId: string, activity: StravaActivityType) => {
     if (!userId) return;
+    // Enforce uniqueness — a default activity can only belong to one
+    // bike at a time so activity-based Strava attribution stays
+    // deterministic. The picker greys disabled chips, but defend in
+    // depth here against double-taps and stale prop snapshots.
+    const conflict = bikes.find(
+      (b) =>
+        b.id !== bikeId &&
+        (b.defaultActivity ?? defaultActivityForBikeType(b.type)) === activity
+    );
+    if (conflict) {
+      dialog.alert({
+        title: 'Activity already used',
+        message:
+          '"' +
+          STRAVA_ACTIVITY_LABELS[activity] +
+          '" is the default activity for ' +
+          conflict.name +
+          '. Change that bike first to free it up.',
+        tone: 'warning',
+      });
+      return;
+    }
     // Optimistic local update first so the tap feels instant even on
     // slow Firestore writes (web long-polling can take a second).
     updateBikeLocal(bikeId, { defaultActivity: activity, updatedAt: Date.now() });
@@ -688,17 +710,37 @@ export default function SettingsScreen() {
                       <View style={styles.activityChipWrap}>
                         {STRAVA_ACTIVITIES.map(([key, label]) => {
                           const active = current === key;
+                          // Owned by a DIFFERENT bike → can't pick it.
+                          // Activities owned by THIS bike (`active`)
+                          // are obviously fine.
+                          const taken =
+                            !active &&
+                            bikes.some(
+                              (b) =>
+                                b.id !== bike.id &&
+                                (b.defaultActivity ??
+                                  defaultActivityForBikeType(b.type)) === key
+                            );
                           return (
                             <TouchableOpacity
                               key={key}
-                              style={[styles.chip, active && styles.chipActive]}
+                              disabled={taken}
+                              style={[
+                                styles.chip,
+                                active && styles.chipActive,
+                                taken && styles.chipDisabled,
+                              ]}
                               onPress={() => handleSetActivity(bike.id, key)}
                             >
                               <Ionicons
                                 name={STRAVA_ACTIVITY_ICONS[key] as any}
                                 size={13}
                                 color={
-                                  active ? Colors.accent : Colors.textSecondary
+                                  active
+                                    ? Colors.accent
+                                    : taken
+                                    ? Colors.textTertiary
+                                    : Colors.textSecondary
                                 }
                                 style={styles.chipIcon}
                               />
@@ -706,6 +748,7 @@ export default function SettingsScreen() {
                                 style={[
                                   styles.chipText,
                                   active && styles.chipTextActive,
+                                  taken && styles.chipTextDisabled,
                                 ]}
                               >
                                 {label}
@@ -926,6 +969,8 @@ const styles = StyleSheet.create({
   },
   chipIcon: { marginRight: 6 },
   chipActive: { backgroundColor: Colors.accentDim, borderColor: Colors.accent },
+  chipDisabled: { opacity: 0.35 },
   chipText: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },
   chipTextActive: { color: Colors.accent },
+  chipTextDisabled: { color: Colors.textTertiary },
 });

@@ -33,6 +33,14 @@ import {
 interface Props {
   visible: boolean;
   stravaBikes?: Array<{ id: string; name: string; distanceKm: number }>;
+  /**
+   * Set of `defaultActivity` values that are already owned by other
+   * bikes. The app enforces uniqueness because activity-based Strava
+   * sync attributes rides via `defaultActivity` — two bikes on the
+   * same activity would be ambiguous. These activities are disabled
+   * in the picker.
+   */
+  takenActivities?: ReadonlySet<StravaActivityType>;
   onClose: () => void;
   onAdd: (data: {
     name: string;
@@ -53,7 +61,23 @@ const STRAVA_ACTIVITIES = Object.entries(STRAVA_ACTIVITY_LABELS) as [
   string,
 ][];
 
-export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: Props) {
+export default function AddBikeModal({
+  visible,
+  stravaBikes,
+  takenActivities,
+  onClose,
+  onAdd,
+}: Props) {
+  const taken = takenActivities ?? new Set<StravaActivityType>();
+  // Pick a non-colliding activity to start from. If the default-for-type
+  // is already taken, walk the list and land on the first free one.
+  const firstFreeActivity = (preferred: StravaActivityType): StravaActivityType => {
+    if (!taken.has(preferred)) return preferred;
+    for (const [key] of STRAVA_ACTIVITIES) {
+      if (!taken.has(key)) return key;
+    }
+    return preferred; // Defensive: every activity taken (shouldn't happen — we have 6, cap is Ride/VirtualRide/etc.)
+  };
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [type, setType] = useState<BikeType>('road');
@@ -66,7 +90,7 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
   // has made an explicit choice — if they haven't, changing the bike
   // type updates the activity to match.
   const [defaultActivity, setDefaultActivity] = useState<StravaActivityType>(
-    defaultActivityForBikeType('road')
+    firstFreeActivity(defaultActivityForBikeType('road'))
   );
   const [activityTouched, setActivityTouched] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -74,13 +98,15 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
   const handleTypeChange = (next: BikeType) => {
     setType(next);
     // Follow bike-type unless the user has explicitly picked an
-    // activity already.
+    // activity already. If the default-for-type is taken, fall back
+    // to the first free option so we never auto-select a disabled chip.
     if (!activityTouched) {
-      setDefaultActivity(defaultActivityForBikeType(next));
+      setDefaultActivity(firstFreeActivity(defaultActivityForBikeType(next)));
     }
   };
 
   const handleActivityChange = (next: StravaActivityType) => {
+    if (taken.has(next)) return; // Disabled: already used by another bike.
     setDefaultActivity(next);
     setActivityTouched(true);
   };
@@ -124,7 +150,7 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
     setColor(Colors.accent);
     setStravaId(undefined);
     setManualDistance('0');
-    setDefaultActivity(defaultActivityForBikeType('road'));
+    setDefaultActivity(firstFreeActivity(defaultActivityForBikeType('road')));
     setActivityTouched(false);
   };
 
@@ -252,34 +278,49 @@ export default function AddBikeModal({ visible, stravaBikes, onClose, onAdd }: P
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>DEFAULT ACTIVITY</Text>
             <View style={styles.chipGrid}>
-              {STRAVA_ACTIVITIES.map(([key, label]) => (
-                <TouchableOpacity
-                  key={key}
-                  style={[styles.chip, defaultActivity === key && styles.chipActive]}
-                  onPress={() => handleActivityChange(key)}
-                >
-                  <Ionicons
-                    name={STRAVA_ACTIVITY_ICONS[key] as any}
-                    size={14}
-                    color={
-                      defaultActivity === key ? Colors.accent : Colors.textSecondary
-                    }
-                    style={styles.chipIcon}
-                  />
-                  <Text
+              {STRAVA_ACTIVITIES.map(([key, label]) => {
+                const isActive = defaultActivity === key;
+                const isTaken = taken.has(key) && !isActive;
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    disabled={isTaken}
                     style={[
-                      styles.chipText,
-                      defaultActivity === key && styles.chipTextActive,
+                      styles.chip,
+                      isActive && styles.chipActive,
+                      isTaken && styles.chipDisabled,
                     ]}
+                    onPress={() => handleActivityChange(key)}
                   >
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Ionicons
+                      name={STRAVA_ACTIVITY_ICONS[key] as any}
+                      size={14}
+                      color={
+                        isActive
+                          ? Colors.accent
+                          : isTaken
+                          ? Colors.textTertiary
+                          : Colors.textSecondary
+                      }
+                      style={styles.chipIcon}
+                    />
+                    <Text
+                      style={[
+                        styles.chipText,
+                        isActive && styles.chipTextActive,
+                        isTaken && styles.chipTextDisabled,
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
             <Text style={styles.hint}>
-              We pre-select this from the bike type. Used as the canonical activity
-              label for rides on this bike.
+              We pre-select this from the bike type. Each activity can belong to
+              only one bike — activities already used by another bike are
+              disabled.
             </Text>
           </View>
 
@@ -397,8 +438,10 @@ const styles = StyleSheet.create({
   },
   chipIcon: { marginRight: 6 },
   chipActive: { backgroundColor: Colors.accentDim },
+  chipDisabled: { opacity: 0.35 },
   chipText: { fontSize: 14, color: Colors.textSecondary },
   chipTextActive: { color: Colors.accent, fontWeight: '600' },
+  chipTextDisabled: { color: Colors.textTertiary },
   colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   colorDot: {
     width: 34,
