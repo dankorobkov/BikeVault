@@ -299,6 +299,50 @@ export async function fetchAllCyclingActivities(
 }
 
 /**
+ * Sum of km ridden on `bike` since `sinceMs` (unix milliseconds).
+ *
+ * Used when a component is added or edited with a back-dated
+ * `installDate`. The naive `installDistance = bike.totalDistance` math
+ * would mark the component as fitted at today's odometer, which already
+ * includes any ride between `installDate` and today — so "Already
+ * ridden" would show 0 even though the bike was clearly ridden during
+ * the back-date window. Subtracting this value from the current bike
+ * total puts `installDistance` at the bike's odometer reading on
+ * `installDate`, and "Already ridden" correctly equals the km ridden
+ * since the part went on.
+ *
+ * Returns 0 on any failure — callers should treat this as best-effort
+ * correction layered on top of the manual "prior distance" input.
+ */
+export async function fetchKmRiddenOnBikeSince(
+  accessToken: string,
+  bike: Bike,
+  sinceMs: number
+): Promise<number> {
+  try {
+    const sinceSec = Math.floor(sinceMs / 1000);
+    const activities = await fetchActivitiesSince(accessToken, sinceSec);
+    let km = 0;
+    for (const a of activities) {
+      if (!isCyclingActivity(a)) continue;
+      // Use the same attribution rules the sync uses, so a ride only
+      // counts towards a bike under the same circumstances both code
+      // paths agree on (gear_id match, then defaultActivity match).
+      if (resolveBikeForActivity(a, [bike]) !== bike) continue;
+      // Defensive: Strava's `after` filter is exclusive but its
+      // resolution is seconds, so a ride that started in the same
+      // second can leak in. Filter again on the millisecond timestamp.
+      if (new Date(a.start_date).getTime() < sinceMs) continue;
+      km += a.distance / 1000;
+    }
+    return km;
+  } catch (e) {
+    console.warn('fetchKmRiddenOnBikeSince failed, returning 0:', e);
+    return 0;
+  }
+}
+
+/**
  * Compute per-bike distance totals from Strava athlete bikes array.
  * Strava returns cumulative totals in meters.
  *
