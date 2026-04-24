@@ -12,7 +12,11 @@ import {
 } from '../services/stravaService';
 import { updateBike } from '../services/bikesService';
 import { updateComponent } from '../services/componentsService';
-import { loadSyncState, saveSyncState } from '../services/syncStateService';
+import {
+  loadSyncState,
+  saveSyncState,
+  CURRENT_SCHEMA_VERSION,
+} from '../services/syncStateService';
 import type { Bike, BikeComponent, StravaActivity } from '../types';
 
 const LAST_SYNC_KEY = 'bikevault_last_sync';
@@ -20,37 +24,31 @@ const LAST_SYNC_KEY = 'bikevault_last_sync';
 /**
  * Activity-based Strava sync.
  *
- * ## Design
+ * ## Why activity-based
  *
- * Earlier versions of BikeVault mirrored `athlete.bikes[i].distance`
- * (Strava's cumulative per-gear total) onto each linked BikeVault bike.
- * That broke for any ride the user didn't tag with a bike on Strava —
- * the gear counter never moved, so our totals stood still while the
- * user's odometer climbed. The fix is to import _activities_ and
- * attribute each one to a BikeVault bike ourselves.
- *
- * ## Attribution
- *
- * Attribution is handled by `resolveBikeForActivity`: gear_id match
- * first, then a fallback match on `bike.defaultActivity === sport_type`.
- * The app UI enforces uniqueness of `defaultActivity` per user so the
- * fallback is always deterministic.
+ * Earlier versions mirrored `athlete.bikes[i].distance` (Strava's
+ * cumulative per-gear total). That broke for any ride the user didn't
+ * tag with a bike on Strava — the gear counter never moved, so our
+ * totals stood still while the user's odometer climbed. We now import
+ * activities and attribute each one to a BikeVault bike ourselves
+ * (`resolveBikeForActivity`).
  *
  * ## First run vs. steady state
  *
- * Tracked via `users/{uid}/syncState/main.migratedToV2`.
+ * Tracked via `users/{uid}/syncState/main.schemaVersion`. When that is
+ * below `CURRENT_SCHEMA_VERSION` the migration path runs: full
+ * cycling history is fetched, each bike's `totalDistance` is
+ * recomputed from scratch, and each active component's
+ * `installDistance` is recomputed from the activity timeline (sum of
+ * km on the same bike with `start_date < installDate`). This is the
+ * key bit — it makes "already ridden" equal "rides since install"
+ * without depending on whether the user tagged the bike on Strava.
  *
- *   - **First run** (migratedToV2 === false): fetch the user's complete
- *     cycling history, recompute each bike's `totalDistance` from
- *     scratch, and rebase every active component's `installDistance` by
- *     the delta so the "already ridden" reading stays continuous. This
- *     runs exactly once — subsequent runs take the incremental path
- *     even if the user later disconnects and reconnects Strava.
- *
- *   - **Incremental** (migratedToV2 === true): fetch activities after
- *     `lastActivityStart`, attribute each one, and bump the owning
- *     bike's totalDistance by the imported km. No component rebase —
- *     wear moves forward naturally as totalDistance grows.
+ * Steady-state syncs only fetch activities since `lastActivityStart`,
+ * attribute each one, and bump the owning bike's `totalDistance`. No
+ * component rebase is needed in that path: components installed after
+ * the last migration already have an `installDistance` set to the
+ * correct totalDistance at install time.
  */
 export function useSync() {
   const {
@@ -73,9 +71,6 @@ export function useSync() {
       try {
         validTokens = await getValidToken(userId, stravaTokens);
       } catch (e) {
-        // Refresh rejected — user revoked the app on strava.com. Clear
-        // stored tokens so the Settings screen drops back to the
-        // Connect Strava button, and surface a clear message.
         if (e instanceof StravaAuthError) {
           try {
             await clearStravaTokens(userId);
@@ -92,7 +87,7 @@ export function useSync() {
 
       const state = await loadSyncState(userId);
 
-      if (!state.migratedToV2) {
+      if (state.schemaVersion < CURRENT_SCHEMA_VERSION) {
         await runMigration({
           userId,
           accessToken: validTokens.accessToken,
@@ -111,9 +106,6 @@ export function useSync() {
         });
       }
 
-      // Persist the sync timestamp regardless of whether any km were
-      // actually imported — a successful API round-trip counts as a
-      // sync so "Last synced" stays meaningful even on idle days.
       const now = Date.now();
       setLastSyncAt(now);
       await AsyncStorage.setItem(LAST_SYNC_KEY, String(now));
@@ -155,35 +147,43 @@ export function useSync() {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Sum of a Strava activity's distance in km, rounded to the nearest km.
- * Strava returns meters as a float; rounding keeps our stored totals as
- * whole km to match the rest of the UI.
- */
+/** Distance of a Strava activity in km (rounding deferred to the caller). */
 function activityDistanceKm(a: StravaActivity): number {
   return a.distance / 1000;
+}
+
+/** Activity start_date as unix milliseconds. */
+function activityStartMs(a: StravaActivity): number {
+  return new Date(a.start_date).getTime();
 }
 
 function maxStartDateSec(activities: StravaActivity[]): number {
   let max = 0;
   for (const a of activities) {
-    const t = Math.floor(new Date(a.start_date).getTime() / 1000);
+    const t = Math.floor(activityStartMs(a) / 1000);
     if (t > max) max = t;
   }
   return max;
 }
 
 /**
- * One-time historical backfill.
+ * One-time historical backfill (schemaVersion bump path).
  *
- * Fetches every cycling activity the user has on Strava, groups by
- * attributed bike, and replaces each bike's `totalDistance` with the
- * fresh sum. Components are rebased by the per-bike delta so the
- * user's perceived wear ("X km ridden on this chain") survives the
- * switch.
+ * For each bike:
+ *   - Recomputes `totalDistance` as the sum of attributed cycling
+ *     activities.
+ *   - Walks the bike's activities (sorted by start_date) and, for each
+ *     active component, sets `installDistance` to the cumulative km
+ *     accrued before that component's `installDate`. Then
+ *     `already_ridden = totalDistance - installDistance` automatically
+ *     equals "rides on this bike since install" — which is what the
+ *     "Already ridden" UI is supposed to show.
  *
- * Unattributed activities are just ignored — they can't be assigned to
- * a bike without user input.
+ * Components installed before the user's earliest cycling activity get
+ * `installDistance = 0`, which means they'll show the bike's full
+ * Strava-imported total as "already ridden". That's the best we can
+ * do without pre-Strava history; users in that situation can edit the
+ * component's install distance manually if needed.
  */
 async function runMigration(args: {
   userId: string;
@@ -197,43 +197,57 @@ async function runMigration(args: {
 
   const activities = await fetchAllCyclingActivities(accessToken);
 
-  // Group distance-in-km per attributed bike id.
-  const kmByBike = new Map<string, number>();
+  // Group activities per attributed bike id (id → activities sorted asc).
+  const activitiesByBike = new Map<string, StravaActivity[]>();
   for (const a of activities) {
     const bike = resolveBikeForActivity(a, bikes);
     if (!bike) continue;
-    kmByBike.set(bike.id, (kmByBike.get(bike.id) ?? 0) + activityDistanceKm(a));
+    const list = activitiesByBike.get(bike.id) ?? [];
+    list.push(a);
+    activitiesByBike.set(bike.id, list);
+  }
+  for (const list of activitiesByBike.values()) {
+    list.sort((a, b) => activityStartMs(a) - activityStartMs(b));
   }
 
   const now = Date.now();
 
   for (const bike of bikes) {
-    const newTotal = Math.round(kmByBike.get(bike.id) ?? 0);
-    const oldTotal = bike.totalDistance ?? 0;
-    const delta = newTotal - oldTotal;
+    const bikeActivities = activitiesByBike.get(bike.id) ?? [];
+    const newTotal = Math.round(
+      bikeActivities.reduce((sum, a) => sum + activityDistanceKm(a), 0)
+    );
 
-    // Rebase active components on this bike by the same delta so their
-    // "already ridden" reading stays continuous across the migration.
-    // Retired/in-stock components aren't affected — they don't display
-    // wear against the live totalDistance.
-    if (delta !== 0) {
-      for (const c of components) {
-        if (c.bikeId !== bike.id) continue;
-        if (c.status !== 'active') continue;
-        const newInstall = c.installDistance + delta;
-        try {
-          await updateComponent(userId, c.id, { installDistance: newInstall });
-          updateComponentLocal(c.id, {
-            installDistance: newInstall,
-            updatedAt: now,
-          });
-        } catch (e) {
-          console.warn('Component rebase failed:', c.id, e);
+    // Recompute installDistance for each active component on this bike
+    // by walking the bike's activities chronologically and capturing
+    // the cumulative km at the moment of the component's installDate.
+    const activeOnBike = components.filter(
+      (c) => c.bikeId === bike.id && c.status === 'active'
+    );
+
+    if (activeOnBike.length > 0) {
+      for (const c of activeOnBike) {
+        let cumulativeBeforeInstall = 0;
+        for (const a of bikeActivities) {
+          if (activityStartMs(a) >= c.installDate) break;
+          cumulativeBeforeInstall += activityDistanceKm(a);
+        }
+        const newInstall = Math.round(cumulativeBeforeInstall);
+        if (newInstall !== c.installDistance) {
+          try {
+            await updateComponent(userId, c.id, { installDistance: newInstall });
+            updateComponentLocal(c.id, {
+              installDistance: newInstall,
+              updatedAt: now,
+            });
+          } catch (e) {
+            console.warn('Component install rebase failed:', c.id, e);
+          }
         }
       }
     }
 
-    if (newTotal !== oldTotal) {
+    if (newTotal !== (bike.totalDistance ?? 0)) {
       try {
         await updateBike(userId, bike.id, { totalDistance: newTotal });
         updateBikeLocal(bike.id, { totalDistance: newTotal, updatedAt: now });
@@ -243,12 +257,10 @@ async function runMigration(args: {
     }
   }
 
-  // Anchor the incremental cursor at the most recent activity we saw,
-  // so the next sync doesn't re-process everything.
   const lastActivityStart = maxStartDateSec(activities);
   await saveSyncState(userId, {
     lastActivityStart,
-    migratedToV2: true,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
   });
 }
 
@@ -258,8 +270,8 @@ async function runMigration(args: {
  * Fetches activities since `lastActivityStart`, attributes each one,
  * and adds its distance to the owning bike's totalDistance. Unattributed
  * activities are skipped. The cursor is advanced to the most recent
- * activity seen in this batch (even if some of them couldn't be
- * attributed — we've still "seen" them).
+ * activity seen in this batch (even if some couldn't be attributed —
+ * we've still "seen" them).
  */
 async function runIncrementalSync(args: {
   userId: string;
@@ -274,7 +286,6 @@ async function runIncrementalSync(args: {
   const cycling = activities.filter(isCyclingActivity);
 
   if (activities.length === 0) {
-    // Cursor still accurate; nothing to do.
     return;
   }
 
@@ -307,6 +318,6 @@ async function runIncrementalSync(args: {
   const newCursor = Math.max(lastActivityStart, maxStartDateSec(activities));
   await saveSyncState(userId, {
     lastActivityStart: newCursor,
-    migratedToV2: true,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
   });
 }
