@@ -299,46 +299,51 @@ export async function fetchAllCyclingActivities(
 }
 
 /**
- * Sum of km ridden on `bike` since `sinceMs` (unix milliseconds).
+ * Derive both the bike's current total distance AND the distance it
+ * had on its odometer at `installDate` from a single pass over the
+ * full activity history.
  *
  * Used when a component is added or edited with a back-dated
- * `installDate`. The naive `installDistance = bike.totalDistance` math
- * would mark the component as fitted at today's odometer, which already
- * includes any ride between `installDate` and today — so "Already
- * ridden" would show 0 even though the bike was clearly ridden during
- * the back-date window. Subtracting this value from the current bike
- * total puts `installDistance` at the bike's odometer reading on
- * `installDate`, and "Already ridden" correctly equals the km ridden
- * since the part went on.
+ * installDate. Deriving both values from the same activity set means:
+ *   - The install anchor is exactly the bike's odometer reading on
+ *     installDate (sum of km on the bike with start_date < installDate).
+ *   - The bike total is brought fully up to date in the same call, so
+ *     "Already ridden" = totalDistance − installDistance can't
+ *     double-count a ride that was also landing through an incremental
+ *     sync.
  *
- * Returns 0 on any failure — callers should treat this as best-effort
- * correction layered on top of the manual "prior distance" input.
+ * Returns `null` on any failure — callers should fall back to
+ * whatever values they had and try again on the next sync. Failing
+ * closed is safer than returning partial numbers that could be
+ * persisted as truth.
  */
-export async function fetchKmRiddenOnBikeSince(
+export async function fetchBikeOdometerSnapshot(
   accessToken: string,
   bike: Bike,
-  sinceMs: number
-): Promise<number> {
+  installDate: number
+): Promise<{ totalDistance: number; installDistance: number } | null> {
   try {
-    const sinceSec = Math.floor(sinceMs / 1000);
-    const activities = await fetchActivitiesSince(accessToken, sinceSec);
-    let km = 0;
+    const activities = await fetchAllCyclingActivities(accessToken);
+    let total = 0;
+    let before = 0;
     for (const a of activities) {
-      if (!isCyclingActivity(a)) continue;
-      // Use the same attribution rules the sync uses, so a ride only
-      // counts towards a bike under the same circumstances both code
-      // paths agree on (gear_id match, then defaultActivity match).
+      // Attribute with the same rules the sync uses — gear_id match
+      // first, defaultActivity fallback — so create/edit corrections
+      // can't disagree with what the incremental sync will do next.
       if (resolveBikeForActivity(a, [bike]) !== bike) continue;
-      // Defensive: Strava's `after` filter is exclusive but its
-      // resolution is seconds, so a ride that started in the same
-      // second can leak in. Filter again on the millisecond timestamp.
-      if (new Date(a.start_date).getTime() < sinceMs) continue;
-      km += a.distance / 1000;
+      const km = a.distance / 1000;
+      total += km;
+      if (new Date(a.start_date).getTime() < installDate) {
+        before += km;
+      }
     }
-    return km;
+    return {
+      totalDistance: Math.round(total),
+      installDistance: Math.round(before),
+    };
   } catch (e) {
-    console.warn('fetchKmRiddenOnBikeSince failed, returning 0:', e);
-    return 0;
+    console.warn('fetchBikeOdometerSnapshot failed:', e);
+    return null;
   }
 }
 

@@ -23,7 +23,7 @@ import {
   installOnBike,
 } from '../../services/componentsService';
 import { deleteBike, updateBike } from '../../services/bikesService';
-import { getValidToken, fetchKmRiddenOnBikeSince } from '../../services/stravaService';
+import { getValidToken, fetchBikeOdometerSnapshot } from '../../services/stravaService';
 import { Analytics } from '../../services/analytics';
 import { Colors } from '../../constants/colors';
 import { formatNumber } from '../../constants/units';
@@ -36,7 +36,6 @@ import EmptyState from '../../components/EmptyState';
 import SuccessBanner from '../../components/SuccessBanner';
 import AppTabBar from '../../components/AppTabBar';
 import { useTopInset } from '../../hooks/useTopInset';
-import { useSync } from '../../hooks/useSync';
 import {
   isIndoorBike,
   hiddenComponentCategoriesForBike,
@@ -68,7 +67,6 @@ export default function BikeDetailScreen() {
     removeBikeLocal,
     updateBikeLocal,
   } = useAppStore();
-  const { syncStrava } = useSync();
 
   const [showAdd, setShowAdd] = useState(false);
   const [showRetired, setShowRetired] = useState(false);
@@ -157,63 +155,77 @@ export default function BikeDetailScreen() {
   const BACKDATE_THRESHOLD_MS = 60_000;
 
   /**
-   * Replace a modal-computed `installDistance` with a Strava-corrected
-   * one when the install date is back-dated. The modal computes
-   * `installDistance = bikeDistance − prior`, but if the user dropped
-   * the date back to (say) Apr 21 and the bike has rides since then,
-   * those rides are already baked into `bikeDistance` — so the chain's
-   * "Already ridden" reads 0 even though the bike clearly moved during
-   * the back-date window.
+   * Correct a modal-computed `installDistance` when the install date
+   * is back-dated.
    *
-   * This function:
-   *   1. Triggers a sync first so the bike total reflects every ride
-   *      up to now (otherwise correcting against stale data leads to
-   *      a double-count once the next sync lands).
-   *   2. Recovers the user's "prior" input from the modal's math
-   *      (prior = staleBikeTotal − rawInstallDistance) so we can
-   *      re-derive installDistance against the fresh bike total.
-   *   3. Subtracts kilometres ridden on this bike since installDate
-   *      from the fresh total to land the install anchor at the
-   *      bike's odometer reading on installDate.
+   * The modal computes `installDistance = bikeDistance − prior`, which
+   * is fine when installDate = now but wrong when it's earlier: any
+   * ride between installDate and today is already baked into
+   * `bikeDistance`, so "Already ridden" reads 0.
    *
-   * No-op when Strava isn't connected, the bike has no `stravaId`, or
-   * the date is effectively "now" — we just trust the modal's value.
+   * The correction derives both the bike's current odometer AND its
+   * odometer at installDate from the same activity fetch (single
+   * `/athlete/activities` pagination), so there's no staleness race
+   * with an incremental sync and no second HTTP round-trip:
+   *
+   *   snapshot.totalDistance   = sum of km on all bike activities
+   *   snapshot.installDistance = sum of km on activities before installDate
+   *   finalInstallDistance     = max(0, snapshot.installDistance − prior)
+   *
+   * With that, `ridden = totalDistance − finalInstallDistance =
+   * (km ridden since install on the bike) + prior`, which is exactly
+   * the semantic the UI promises.
+   *
+   * Returns `{ ok: false }` on any failure so callers fall back to the
+   * modal's uncorrected value rather than persisting a half-computed
+   * one.
    */
   const correctInstallDistanceForBackdate = async (
     rawInstallDistance: number,
     staleBikeTotal: number,
     installDate: number
-  ): Promise<number> => {
-    if (!userId || !stravaTokens) return rawInstallDistance;
-    if (Date.now() - installDate < BACKDATE_THRESHOLD_MS) return rawInstallDistance;
+  ): Promise<
+    | { ok: false }
+    | { ok: true; installDistance: number; bikeTotalDistance: number }
+  > => {
+    if (!userId || !stravaTokens || !bike) return { ok: false };
+    if (Date.now() - installDate < BACKDATE_THRESHOLD_MS) return { ok: false };
     const prior = Math.max(0, staleBikeTotal - rawInstallDistance);
     try {
-      try {
-        await syncStrava();
-      } catch {
-        /* best-effort; if Strava is down we still try the correction
-           against whatever total we already have in the store */
-      }
-      // Read post-sync bike state directly from the store — the local
-      // `bike` const is a stale closure over the pre-sync render.
-      const freshBike = useAppStore.getState().bikes.find((b) => b.id === id);
-      if (!freshBike) return rawInstallDistance;
-
       const tokens = await getValidToken(userId, stravaTokens);
-      const kmSince = await fetchKmRiddenOnBikeSince(
+      const snap = await fetchBikeOdometerSnapshot(
         tokens.accessToken,
-        freshBike,
+        bike,
         installDate
       );
-      // Floor at 0 — a part installed before the user's earliest
-      // tracked ride should never read as "negative wear".
-      return Math.max(
-        0,
-        freshBike.totalDistance - prior - Math.round(kmSince)
-      );
+      if (!snap) return { ok: false };
+      return {
+        ok: true,
+        // Floor at 0 — a part installed before the user's earliest
+        // tracked ride should never read as "negative wear".
+        installDistance: Math.max(0, snap.installDistance - prior),
+        bikeTotalDistance: snap.totalDistance,
+      };
     } catch (e) {
       console.warn('Install-distance back-date correction failed:', e);
-      return rawInstallDistance;
+      return { ok: false };
+    }
+  };
+
+  /**
+   * If the snapshot disagrees with the current bike total, write the
+   * new total through so the UI (and subsequent components on this
+   * bike) see the same number the correction was computed against.
+   * Avoids a pointless write when the totals match.
+   */
+  const syncBikeTotalFromSnapshot = async (newTotal: number) => {
+    if (!bike || !userId) return;
+    if (newTotal === (bike.totalDistance ?? 0)) return;
+    try {
+      await updateBike(userId, bike.id, { totalDistance: newTotal });
+      updateBikeLocal(bike.id, { totalDistance: newTotal, updatedAt: Date.now() });
+    } catch (e) {
+      console.warn('Bike totalDistance update from snapshot failed:', e);
     }
   };
 
@@ -234,17 +246,21 @@ export default function BikeDetailScreen() {
     lubeIntervalKm?: number;
   }) => {
     if (!userId) return;
-    // Subtract km ridden on the bike between installDate and now, so a
-    // back-dated component reads as already-ridden by exactly the
-    // distance covered since it went on. Falls back to the modal's
-    // value when Strava can't be queried. Note: this also runs a sync
-    // first so the modal-supplied bikeDistance is fresh (the modal
-    // captured a snapshot when it opened).
-    const correctedInstallDistance = await correctInstallDistanceForBackdate(
+    // When installDate is back-dated, derive install + total from the
+    // full activity history so "Already ridden" matches the km ridden
+    // since the part went on. Falls back to the modal's value when
+    // Strava can't be queried.
+    const correction = await correctInstallDistanceForBackdate(
       data.installDistance,
       bike?.totalDistance ?? 0,
       data.installDate
     );
+    const correctedInstallDistance = correction.ok
+      ? correction.installDistance
+      : data.installDistance;
+    if (correction.ok) {
+      await syncBikeTotalFromSnapshot(correction.bikeTotalDistance);
+    }
     const newComp = await addComponent(userId, {
       bikeId: id,
       name: data.name,
@@ -339,13 +355,16 @@ export default function BikeDetailScreen() {
       updates.installDate !== undefined &&
       (updates.bikeId === undefined || updates.bikeId === id);
     if (stayingOnThisBike) {
-      const corrected = await correctInstallDistanceForBackdate(
+      const correction = await correctInstallDistanceForBackdate(
         updates.installDistance!,
         bike?.totalDistance ?? 0,
         updates.installDate!
       );
-      if (corrected !== updates.installDistance) {
-        nextUpdates = { ...updates, installDistance: corrected };
+      if (correction.ok) {
+        await syncBikeTotalFromSnapshot(correction.bikeTotalDistance);
+        if (correction.installDistance !== updates.installDistance) {
+          nextUpdates = { ...updates, installDistance: correction.installDistance };
+        }
       }
     }
     await updateComponent(userId, componentId, nextUpdates);

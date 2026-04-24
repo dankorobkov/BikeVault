@@ -23,8 +23,15 @@ import { db } from '../config/firebase';
  *       sum of cycling km on the bike with start_date < installDate,
  *       which makes "already ridden" equal "km ridden since install"
  *       independent of how rides were tagged on Strava.
+ *   3 — same math as v2, but forced re-run. Earlier users ended up
+ *       with schemaVersion=2 persisted even when the Firestore write
+ *       path was partially broken (rules missing on syncState plus
+ *       transient ITP blocks on Firestore's write channel). That left
+ *       some back-dated components still anchored at the post-install
+ *       bike total. Bumping to 3 guarantees one more clean pass over
+ *       every bike's activity history.
  */
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 export interface SyncState {
   /** Unix seconds of the most recent activity we've already imported. */
