@@ -15,22 +15,17 @@ service cloud.firestore {
     }
 
     // ── Per-user data ───────────────────────────────────────────────────────
-    // Users can only access their own data
+    // Users can only access their own data, including everything nested under
+    // their /users/{userId} document. The recursive wildcard covers all current
+    // subcollections (bikes, components, strava, syncState) and any future
+    // ones — Firestore rules don't cascade by default, so without this we'd
+    // have to remember to add a new `match` block every time we introduce a
+    // subcollection (we shipped the syncState collection without one and
+    // silently broke Strava sync as a result).
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
 
-      // Bikes subcollection
-      match /bikes/{bikeId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-
-      // Components subcollection
-      match /components/{componentId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-
-      // Strava tokens subcollection
-      match /strava/{document} {
+      match /{document=**} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }

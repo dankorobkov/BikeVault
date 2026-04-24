@@ -47,34 +47,52 @@ function syncStateDoc(userId: string) {
 }
 
 export async function loadSyncState(userId: string): Promise<SyncState> {
-  const snap = await getDoc(syncStateDoc(userId));
-  if (!snap.exists()) return { ...DEFAULT_STATE };
-  const data = snap.data();
-  const lastActivityStartRaw = data.lastActivityStart;
-  const lastActivityStart =
-    lastActivityStartRaw instanceof Timestamp
-      ? Math.floor(lastActivityStartRaw.toMillis() / 1000)
-      : typeof lastActivityStartRaw === 'number'
-      ? lastActivityStartRaw
-      : 0;
-  // Back-compat: pre-schemaVersion docs only had `migratedToV2: boolean`.
-  // Treat them as schemaVersion 1 so the v2 date-based migration runs
-  // exactly once for those users.
-  const schemaVersion =
-    typeof data.schemaVersion === 'number'
-      ? data.schemaVersion
-      : data.migratedToV2 === true
-      ? 1
-      : 0;
-  return {
-    lastActivityStart,
-    schemaVersion,
-  };
+  try {
+    const snap = await getDoc(syncStateDoc(userId));
+    if (!snap.exists()) return { ...DEFAULT_STATE };
+    const data = snap.data();
+    const lastActivityStartRaw = data.lastActivityStart;
+    const lastActivityStart =
+      lastActivityStartRaw instanceof Timestamp
+        ? Math.floor(lastActivityStartRaw.toMillis() / 1000)
+        : typeof lastActivityStartRaw === 'number'
+        ? lastActivityStartRaw
+        : 0;
+    // Back-compat: pre-schemaVersion docs only had `migratedToV2: boolean`.
+    // Treat them as schemaVersion 1 so the v2 date-based migration runs
+    // exactly once for those users.
+    const schemaVersion =
+      typeof data.schemaVersion === 'number'
+        ? data.schemaVersion
+        : data.migratedToV2 === true
+        ? 1
+        : 0;
+    return {
+      lastActivityStart,
+      schemaVersion,
+    };
+  } catch (e) {
+    // If Firestore rules haven't been redeployed to allow the syncState
+    // subcollection yet, this throws permission-denied. Don't kill the
+    // whole sync over it — fall back to "fresh user" defaults so the
+    // migration path runs. The recompute is idempotent (it derives every
+    // bike/component value from activity history), so retrying it on the
+    // next sync after rules deploy is safe.
+    console.warn('loadSyncState failed, defaulting to schemaVersion=0:', e);
+    return { ...DEFAULT_STATE };
+  }
 }
 
 export async function saveSyncState(
   userId: string,
   state: SyncState
 ): Promise<void> {
-  await setDoc(syncStateDoc(userId), state, { merge: true });
+  try {
+    await setDoc(syncStateDoc(userId), state, { merge: true });
+  } catch (e) {
+    // Same reasoning as loadSyncState: don't blow up sync if we can't
+    // persist the cursor. We'll re-derive everything from history on
+    // the next sync attempt.
+    console.warn('saveSyncState failed, sync will re-migrate next run:', e);
+  }
 }
