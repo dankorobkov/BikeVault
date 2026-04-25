@@ -4,9 +4,18 @@ import {
   Text,
   StyleSheet,
   Animated,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
+
+// `useNativeDriver` requires the RCTAnimation native module, which
+// doesn't exist on web. Setting it true there triggers a noisy
+// "useNativeDriver is not supported because the native animated
+// module is missing" warning on every banner show. Falling back to
+// the JS driver on web is fine — the banner is a one-shot fade and
+// translate, not a 60fps gesture, so the perf delta is invisible.
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 interface Props {
   visible: boolean;
@@ -23,14 +32,14 @@ export default function SuccessBanner({ visible, title, subtitle, onHide, durati
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 120 }),
-        Animated.timing(opacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+        Animated.spring(translateY, { toValue: 0, useNativeDriver: USE_NATIVE_DRIVER, tension: 120 }),
+        Animated.timing(opacity, { toValue: 1, duration: 250, useNativeDriver: USE_NATIVE_DRIVER }),
       ]).start();
 
       const timer = setTimeout(() => {
         Animated.parallel([
-          Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
-          Animated.timing(translateY, { toValue: -20, duration: 300, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: USE_NATIVE_DRIVER }),
+          Animated.timing(translateY, { toValue: -20, duration: 300, useNativeDriver: USE_NATIVE_DRIVER }),
         ]).start(() => onHide?.());
       }, duration);
 
