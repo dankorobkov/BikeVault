@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,15 +7,18 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
-import { Colors } from '../constants/colors';
+import BikeIcon, { type BikeIconName } from './BikeIcon';
+import { useThemeColors } from '../theme/ThemeProvider';
+import type { ColorPalette } from '../constants/colors';
 import { formatNumber } from '../constants/units';
-import { COMPONENT_TYPES } from '../constants/componentTypes';
+import { COMPONENT_TYPES, COMPONENT_BIKE_ICON } from '../constants/componentTypes';
 import { CHAIN_LUBE_TYPES } from '../constants/chainLube';
 import WearBar from './WearBar';
 import {
   calcWearPercent,
   calcRemainingKm,
   getWearLevel,
+  formatWeight,
   type BikeComponent,
 } from '../types';
 
@@ -29,13 +32,6 @@ interface Props {
   onDelete?: () => void;
 }
 
-const WEAR_BG: Record<string, string> = {
-  good: Colors.goodDim,
-  warning: Colors.warningDim,
-  critical: Colors.criticalDim,
-  overdue: Colors.dangerDim,
-};
-
 export default function ComponentCard({
   component,
   bikeDistance,
@@ -45,12 +41,21 @@ export default function ComponentCard({
   onMoveToStock,
   onDelete,
 }: Props) {
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
+
   const typeInfo = COMPONENT_TYPES[component.category] ?? {
     label: component.category,
     icon: 'construct-outline',
     defaultLifespan: 5000,
     group: 'other',
   };
+
+  // Map this component's category to one of the new Apex BikeIcon
+  // glyphs. Falls back to the wrench (service) icon for anything not
+  // explicitly mapped.
+  const bikeIconName = (COMPONENT_BIKE_ICON[component.category] ??
+    'wrench') as BikeIconName;
 
   const isActive = component.status === 'active';
   const isInStock = component.status === 'in-stock';
@@ -63,7 +68,27 @@ export default function ComponentCard({
     ? calcRemainingKm(bikeDistance, component.installDistance, component.maxLifespan)
     : 0;
   const level = getWearLevel(percent);
-  const wearBg = isInStock ? Colors.surface : WEAR_BG[level];
+
+  // Wear-tinted background for the icon — derived from the live palette
+  // so it retints with the theme.
+  const wearBgMap: Record<string, string> = {
+    good: C.goodDim,
+    warning: C.warningDim,
+    critical: C.criticalDim,
+    overdue: C.dangerDim,
+  };
+  const wearBg = isInStock ? C.surface : wearBgMap[level];
+
+  const wearTint =
+    isInStock
+      ? C.textSecondary
+      : level === 'good'
+      ? C.good
+      : level === 'warning'
+      ? C.warning
+      : level === 'critical'
+      ? C.critical
+      : C.danger;
 
   // Electric battery estimation
   const batteryPctLabel = (() => {
@@ -94,20 +119,13 @@ export default function ComponentCard({
     >
       {/* Icon */}
       <View style={[styles.iconBox, { backgroundColor: wearBg }]}>
-        <Ionicons
-          name={typeInfo.icon as React.ComponentProps<typeof Ionicons>['name']}
-          size={20}
-          color={
-            isInStock
-              ? Colors.textSecondary
-              : level === 'good'
-              ? Colors.good
-              : level === 'warning'
-              ? Colors.warning
-              : level === 'critical'
-              ? Colors.critical
-              : Colors.danger
-          }
+        <BikeIcon
+          name={bikeIconName}
+          variant="fill"
+          size={22}
+          color={wearTint}
+          accent={wearTint}
+          hole={C.card}
         />
       </View>
 
@@ -120,7 +138,7 @@ export default function ComponentCard({
                 {component.name}
               </Text>
               {component.isElectric && (
-                <Ionicons name="flash" size={12} color={Colors.warning} />
+                <Ionicons name="flash" size={12} color={C.warning} />
               )}
             </View>
             <Text style={styles.meta}>
@@ -128,12 +146,15 @@ export default function ComponentCard({
               {component.brand ? ' · ' + component.brand : ''}
               {' · '}
               {dayjs(component.installDate).format('MMM YYYY')}
+              {typeof component.weight === 'number' && component.weight > 0
+                ? ' · ' + formatWeight(component.weight)
+                : ''}
             </Text>
           </View>
 
           {isInStock && (
             <View style={[styles.statusBadge, styles.stockBadge]}>
-              <Text style={[styles.statusBadgeText, { color: Colors.accent }]}>In Stock</Text>
+              <Text style={[styles.statusBadgeText, { color: C.accent }]}>In Stock</Text>
             </View>
           )}
         </View>
@@ -153,7 +174,7 @@ export default function ComponentCard({
         {/* Attention frequency notice */}
         {isActive && component.attentionFrequency && (
           <View style={styles.attentionRow}>
-            <Ionicons name="time-outline" size={11} color={Colors.textTertiary} />
+            <Ionicons name="time-outline" size={11} color={C.textTertiary} />
             <Text style={styles.attentionText}>
               Service every {formatNumber(component.attentionFrequency)} km
             </Text>
@@ -166,12 +187,12 @@ export default function ComponentCard({
             <Ionicons
               name={lubeStatus.meta.icon}
               size={11}
-              color={lubeStatus.dueIn <= 0 ? Colors.danger : Colors.textTertiary}
+              color={lubeStatus.dueIn <= 0 ? C.danger : C.textTertiary}
             />
             <Text
               style={[
                 styles.lubeText,
-                lubeStatus.dueIn <= 0 && { color: Colors.danger, fontWeight: '600' },
+                lubeStatus.dueIn <= 0 && { color: C.danger, fontWeight: '600' },
               ]}
             >
               {lubeStatus.dueIn <= 0
@@ -193,12 +214,12 @@ export default function ComponentCard({
             <Ionicons
               name="battery-half-outline"
               size={13}
-              color={batteryPctLabel < 20 ? Colors.danger : Colors.warning}
+              color={batteryPctLabel < 20 ? C.danger : C.warning}
             />
             <Text
               style={[
                 styles.batteryText,
-                { color: batteryPctLabel < 20 ? Colors.danger : Colors.textSecondary },
+                { color: batteryPctLabel < 20 ? C.danger : C.textSecondary },
               ]}
             >
               ~{batteryPctLabel}% battery · last charged{' '}
@@ -211,43 +232,46 @@ export default function ComponentCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    flexDirection: 'row',
-    padding: 14,
-    gap: 12,
-    marginBottom: 10,
-  },
-  retired: { opacity: 0.5 },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  body: { flex: 1, gap: 8 },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  titleBlock: { flex: 1 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  name: { fontSize: 15, fontWeight: '600', color: Colors.text, letterSpacing: -0.2 },
-  meta: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
-  stockRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statusBadge: {
-    backgroundColor: Colors.border,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 99,
-  },
-  stockBadge: { backgroundColor: Colors.accentDim },
-  statusBadgeText: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary },
-  remaining: { fontSize: 11, color: Colors.textSecondary },
-  attentionRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  attentionText: { fontSize: 11, color: Colors.textTertiary },
-  lubeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  lubeText: { fontSize: 11, color: Colors.textTertiary },
-  batteryRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  batteryText: { fontSize: 12 },
-});
+const makeStyles = (C: ColorPalette) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: C.card,
+      borderRadius: 14,
+      flexDirection: 'row',
+      padding: 14,
+      gap: 12,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    retired: { opacity: 0.5 },
+    iconBox: {
+      width: 42,
+      height: 42,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    body: { flex: 1, gap: 8 },
+    titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+    titleBlock: { flex: 1 },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    name: { fontSize: 15, fontWeight: '600', color: C.text, letterSpacing: -0.2 },
+    meta: { fontSize: 12, color: C.textSecondary, marginTop: 2 },
+    stockRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    statusBadge: {
+      backgroundColor: C.border,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 99,
+    },
+    stockBadge: { backgroundColor: C.accentDim },
+    statusBadgeText: { fontSize: 11, fontWeight: '600', color: C.textSecondary },
+    remaining: { fontSize: 11, color: C.textSecondary },
+    attentionRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    attentionText: { fontSize: 11, color: C.textTertiary },
+    lubeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    lubeText: { fontSize: 11, color: C.textTertiary },
+    batteryRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    batteryText: { fontSize: 12 },
+  });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -20,11 +20,14 @@ import {
   redeemInviteCode,
 } from '../services/inviteCodesService';
 import { createUserProfile } from '../services/userService';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../theme/ThemeProvider';
+import type { ColorPalette } from '../constants/colors';
 import { dialog } from '../components/AppDialog';
 
 export default function InviteCodeScreen() {
   const router = useRouter();
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const {
     userId,
     userDisplayName,
@@ -111,7 +114,7 @@ export default function InviteCodeScreen() {
       >
         <View style={styles.hero}>
           <View style={styles.logoBox}>
-            <Ionicons name="key-outline" size={44} color={Colors.accent} />
+            <Ionicons name="key-outline" size={44} color={C.accent} />
           </View>
           <Text style={styles.title}>Enter invite code</Text>
           <Text style={styles.subtitle}>
@@ -130,7 +133,7 @@ export default function InviteCodeScreen() {
             autoComplete="off"
             spellCheck={false}
             placeholder="TST-XXXXXXXXXX!X"
-            placeholderTextColor={Colors.textTertiary}
+            placeholderTextColor={C.textTertiary}
             style={styles.input}
             maxLength={20}
             editable={!submitting}
@@ -142,10 +145,10 @@ export default function InviteCodeScreen() {
             disabled={submitting}
           >
             {submitting ? (
-              <ActivityIndicator color={Colors.white} />
+              <ActivityIndicator color={C.white} />
             ) : (
               <>
-                <Ionicons name="checkmark-circle-outline" size={20} color={Colors.white} />
+                <Ionicons name="checkmark-circle-outline" size={20} color={C.white} />
                 <Text style={styles.submitBtnText}>Verify & continue</Text>
               </>
             )}
@@ -169,8 +172,8 @@ export default function InviteCodeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg },
+const makeStyles = (C: ColorPalette) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.bg },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 28,
@@ -183,20 +186,20 @@ const styles = StyleSheet.create({
     width: 84,
     height: 84,
     borderRadius: 24,
-    backgroundColor: Colors.accentDim,
+    backgroundColor: C.accentDim,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: Colors.text,
+    color: C.text,
     letterSpacing: -0.5,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -204,17 +207,17 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     letterSpacing: 1,
     marginBottom: 2,
   },
   input: {
-    backgroundColor: Colors.card,
+    backgroundColor: C.card,
     borderRadius: 14,
     paddingHorizontal: 18,
     paddingVertical: 16,
     fontSize: 16,
-    color: Colors.text,
+    color: C.text,
     fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
     letterSpacing: 1.2,
   },
@@ -223,26 +226,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.accent,
+    backgroundColor: C.accent,
     borderRadius: 14,
     paddingVertical: 15,
     marginTop: 8,
   },
   submitBtnDisabled: { opacity: 0.6 },
-  submitBtnText: { fontSize: 16, fontWeight: '700', color: Colors.white },
+  submitBtnText: { fontSize: 16, fontWeight: '700', color: C.white },
   cancelBtn: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
   },
   cancelBtnText: {
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     fontSize: 14,
     fontWeight: '500',
   },
   helper: {
     fontSize: 12,
-    color: Colors.textTertiary,
+    color: C.textTertiary,
     textAlign: 'center',
     lineHeight: 18,
     marginTop: 'auto',

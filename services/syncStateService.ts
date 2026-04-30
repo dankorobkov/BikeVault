@@ -30,8 +30,20 @@ import { db } from '../config/firebase';
  *       some back-dated components still anchored at the post-install
  *       bike total. Bumping to 3 guarantees one more clean pass over
  *       every bike's activity history.
+ *   4 — fix mis-attribution in the back-date correction path. Earlier
+ *       releases of `fetchBikeOdometerSnapshot` ran
+ *       `resolveBikeForActivity(activity, [thisBike])` — passing only
+ *       the target bike, so a ride gear-tagged to a *different* bike
+ *       fell through to the defaultActivity rule and was falsely
+ *       attributed here when sport_types overlapped. Components added
+ *       or edited via that path got an `installDistance` that didn't
+ *       match what the migration would compute, and the bike's
+ *       `totalDistance` was inflated by the same write. Snapshot now
+ *       attributes against the full bike list (matching the migration
+ *       to the kilometre); bumping to 4 forces one clean rebase to
+ *       wash out any polluted values from the bad path.
  */
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 export interface SyncState {
   /** Unix seconds of the most recent activity we've already imported. */

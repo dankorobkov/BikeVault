@@ -1,7 +1,7 @@
 import React from 'react';
 import { Platform, TextInput, StyleProp, TextStyle } from 'react-native';
 import dayjs from 'dayjs';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../theme/ThemeProvider';
 
 interface Props {
   /** Timestamp in ms. */
@@ -38,10 +38,14 @@ export default function DateField({
   onChange,
   maxDate,
   align = 'left',
-  color = Colors.text,
+  color,
   fontWeight = 'normal',
   style,
 }: Props) {
+  const C = useThemeColors();
+  // Default text color follows the active theme. Callers can still
+  // override (e.g. accent for "selected" rows) via the prop.
+  const resolvedColor = color ?? C.text;
   if (Platform.OS === 'web') {
     return React.createElement('input', {
       type: 'date',
@@ -58,7 +62,7 @@ export default function DateField({
       style: {
         fontSize: 15,
         fontWeight,
-        color,
+        color: resolvedColor,
         backgroundColor: 'transparent',
         border: 'none',
         outline: 'none',
@@ -96,12 +100,12 @@ export default function DateField({
         }
       }}
       placeholder="YYYY-MM-DD"
-      placeholderTextColor={Colors.textTertiary}
+      placeholderTextColor={C.textTertiary}
       style={[
         {
           fontSize: 15,
           fontWeight,
-          color,
+          color: resolvedColor,
           minWidth: 130,
           textAlign: align,
         },

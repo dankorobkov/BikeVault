@@ -312,6 +312,18 @@ export async function fetchAllCyclingActivities(
  *     double-count a ride that was also landing through an incremental
  *     sync.
  *
+ * **Attribution must match the migration.** `resolveBikeForActivity`
+ * runs gear-id match first, then falls back to `defaultActivity`. If
+ * we pass only the target bike here, an activity gear-tagged to a
+ * *different* bike fails the gear match and falls through to the
+ * default-activity rule — and if its sport_type happens to be this
+ * bike's default activity, it gets falsely attributed here. Result:
+ * an inflated total, plus a back-dated installDistance that doesn't
+ * match what `useSync.runMigration` would compute. Passing all of the
+ * user's bikes lets the gear match steal those activities away to
+ * their real owners, so the snapshot agrees with the migration to the
+ * kilometre.
+ *
  * Returns `null` on any failure — callers should fall back to
  * whatever values they had and try again on the next sync. Failing
  * closed is safer than returning partial numbers that could be
@@ -320,17 +332,19 @@ export async function fetchAllCyclingActivities(
 export async function fetchBikeOdometerSnapshot(
   accessToken: string,
   bike: Bike,
+  allBikes: Bike[],
   installDate: number
 ): Promise<{ totalDistance: number; installDistance: number } | null> {
   try {
     const activities = await fetchAllCyclingActivities(accessToken);
     let total = 0;
     let before = 0;
+    // Attribute against the full bike list so gear-tagged rides on
+    // other bikes are claimed by their real owner instead of falling
+    // through to a defaultActivity match on this bike.
     for (const a of activities) {
-      // Attribute with the same rules the sync uses — gear_id match
-      // first, defaultActivity fallback — so create/edit corrections
-      // can't disagree with what the incremental sync will do next.
-      if (resolveBikeForActivity(a, [bike]) !== bike) continue;
+      const owner = resolveBikeForActivity(a, allBikes);
+      if (!owner || owner.id !== bike.id) continue;
       const km = a.distance / 1000;
       total += km;
       if (new Date(a.start_date).getTime() < installDate) {

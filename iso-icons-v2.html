@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BikeVault — Iso Icons v2</title>
+<style>
+  :root {
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0B0F0A;
+    --surface: #131A11;
+    --card: #1B2317;
+    --card-2: #222D1D;
+    --border: #2A3424;
+    --accent: #C5FF3C;
+    --accent-deep: #8FCC00;
+    --accent-dim: rgba(197,255,60,0.16);
+    --on-accent: #0E1408;
+    --text: #F5F7F3;
+    --text-secondary: #8C9587;
+    --text-tertiary: #4D5447;
+    --shadow-cast: rgba(0,0,0,0.55);
+  }
+  [data-theme="light"] {
+    --bg: #F6F8F1;
+    --surface: #FFFFFF;
+    --card: #FFFFFF;
+    --card-2: #F1F4EA;
+    --border: #E1E6D3;
+    --accent: #6BC400;
+    --accent-deep: #4D9100;
+    --accent-dim: rgba(107,196,0,0.13);
+    --on-accent: #FFFFFF;
+    --text: #10160A;
+    --text-secondary: #5C6151;
+    --text-tertiary: #A6AC97;
+    --shadow-cast: rgba(28,40,12,0.22);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--font); -webkit-font-smoothing: antialiased;
+    transition: background 0.25s, color 0.25s;
+  }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 1200px; margin: 0 auto; padding: 14px 28px;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+  .brand-logo {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--accent); display: grid; place-items: center;
+    color: var(--on-accent); font-weight: 900; font-size: 14px;
+  }
+  .pill {
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--accent-dim); color: var(--accent);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .toggle-group {
+    display: flex; background: var(--card-2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 4px; gap: 2px;
+  }
+  .toggle-group button {
+    border: none; background: transparent; color: var(--text-secondary);
+    padding: 7px 14px; border-radius: 8px;
+    font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .toggle-group button.active {
+    background: var(--surface); color: var(--text);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 40px 28px 100px; }
+  h1 { font-size: 38px; font-weight: 800; letter-spacing: -0.025em; margin: 0 0 10px; }
+  .lede { color: var(--text-secondary); font-size: 15px; line-height: 1.55; max-width: 720px; margin: 0 0 50px; }
+  .eyebrow { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin: 0; }
+  .section-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+  section { margin-bottom: 64px; }
+
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .icon-tile {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 26px 14px 18px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    box-shadow: 0 8px 22px var(--shadow-cast);
+  }
+  .icon-tile svg { width: 150px; height: 150px; }
+  .icon-tile .label { font-size: 12.5px; color: var(--text-secondary); font-weight: 600; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 60px; padding: 28px;
+    text-align: center; color: var(--text-tertiary); font-size: 12px;
+  }
+</style>
+</head>
+
+<body data-theme="dark">
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-logo">B</div>
+      Iso Icons · with gradient shading
+      <span class="pill">v7</span>
+    </div>
+    <div style="flex:1"></div>
+    <div class="toggle-group" id="theme-toggle">
+      <button data-theme="dark" class="active">Dark</button>
+      <button data-theme="light">Light</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <h1>Properly rendered.</h1>
+  <p class="lede">
+    This time matching the reference: linear gradients within each face (not flat fills), proper
+    multi-part articulated assemblies (not bare primitives), thin muted outlines (not bold black),
+    cylinder side walls visible with curved arc boundaries, and a soft cast shadow beneath each
+    object. Six icons rendered carefully — if the visual language is right, I'll fill in the rest.
+  </p>
+
+  <section>
+    <div class="section-head">
+      <span class="eyebrow">01 — The set</span>
+      <h2>Six core components</h2>
+    </div>
+    <div class="icon-grid" id="icon-grid"></div>
+  </section>
+
+  <footer>
+    BikeVault iso icons v7 · April 2026 · approve the visual language and I'll extend across the full vocabulary.
+  </footer>
+</main>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   GLOBAL DEFS — gradients & filters, embedded once.
+   These are theme-independent (icons read the same on dark/light).
+   ───────────────────────────────────────────────────────────── */
+const DEFS = `
+  <defs>
+    <!-- METAL SILVER faces (top, side, bottom) -->
+    <linearGradient id="m-top" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#E5E9D6"/>
+      <stop offset="1" stop-color="#A8AE96"/>
+    </linearGradient>
+    <linearGradient id="m-side" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#A8AE96"/>
+      <stop offset="1" stop-color="#5C6253"/>
+    </linearGradient>
+    <linearGradient id="m-bottom" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5C6253"/>
+      <stop offset="1" stop-color="#3A4036"/>
+    </linearGradient>
+
+    <!-- DARK METAL (deeper, used for axles, pins) -->
+    <linearGradient id="d-side" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5A6052"/>
+      <stop offset="1" stop-color="#2A2F22"/>
+    </linearGradient>
+
+    <!-- LIME accent faces -->
+    <linearGradient id="l-top" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#DBFF6B"/>
+      <stop offset="1" stop-color="#A8E000"/>
+    </linearGradient>
+    <linearGradient id="l-side" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#A8E000"/>
+      <stop offset="1" stop-color="#4F7000"/>
+    </linearGradient>
+
+    <!-- SLATE BLUE faces (secondary, structural) -->
+    <linearGradient id="s-top" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#A5BAC4"/>
+      <stop offset="1" stop-color="#6F8C9D"/>
+    </linearGradient>
+    <linearGradient id="s-side" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6F8C9D"/>
+      <stop offset="1" stop-color="#36556A"/>
+    </linearGradient>
+    <linearGradient id="s-bottom" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#36556A"/>
+      <stop offset="1" stop-color="#1F3445"/>
+    </linearGradient>
+
+    <!-- RUBBER / matte black faces -->
+    <linearGradient id="r-top" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#4A5044"/>
+      <stop offset="1" stop-color="#2A2F22"/>
+    </linearGradient>
+    <linearGradient id="r-side" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2A2F22"/>
+      <stop offset="1" stop-color="#0E1108"/>
+    </linearGradient>
+
+    <!-- BASE PLATE faces (a darker grey, structural) -->
+    <linearGradient id="b-top" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#7A8270"/>
+      <stop offset="1" stop-color="#4F5747"/>
+    </linearGradient>
+    <linearGradient id="b-side" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4F5747"/>
+      <stop offset="1" stop-color="#2A2F22"/>
+    </linearGradient>
+    <linearGradient id="b-front" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3A4036"/>
+      <stop offset="1" stop-color="#1F2419"/>
+    </linearGradient>
+
+    <!-- CAST SHADOW (soft radial, beneath each assembly) -->
+    <radialGradient id="cast" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="rgba(0,0,0,0.6)"/>
+      <stop offset="1" stop-color="rgba(0,0,0,0)"/>
+    </radialGradient>
+
+    <!-- AMBIENT highlight (soft white sheen on top of round forms) -->
+    <radialGradient id="hi" cx="0.3" cy="0.25" r="0.45">
+      <stop offset="0" stop-color="rgba(255,255,255,0.55)"/>
+      <stop offset="1" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+  </defs>
+`;
+
+/* Colors used for thin muted outlines */
+const STROKE = '#1A1F12';
+const SW = 0.5;     // standard stroke width
+const SW_BOLD = 0.8; // for slightly stronger edges
+
+/* ─────────────────────────────────────────────────────────────
+   Helper: an iso CYLINDER drawn properly with curved side wall.
+   - Uses two ellipses (top + bottom) and a path that traces the
+     visible curved side of the cylinder.
+   - Top face has its own gradient + ambient highlight on top.
+   - Side wall has a vertical gradient (light at top, dark at bottom).
+   ───────────────────────────────────────────────────────────── */
+function cyl(cx, topY, rx, ry, height, topGrad, sideGrad, bottomGrad = null) {
+  const botY = topY + height;
+  const side = `M ${cx-rx},${topY}
+                A ${rx},${ry} 0 0 0 ${cx+rx},${topY}
+                L ${cx+rx},${botY}
+                A ${rx},${ry} 0 0 1 ${cx-rx},${botY} Z`;
+  return `
+    <ellipse cx="${cx}" cy="${botY}" rx="${rx}" ry="${ry}" fill="url(#${bottomGrad || sideGrad})" stroke="${STROKE}" stroke-width="${SW}"/>
+    <path d="${side}" fill="url(#${sideGrad})" stroke="${STROKE}" stroke-width="${SW}"/>
+    <ellipse cx="${cx}" cy="${topY}" rx="${rx}" ry="${ry}" fill="url(#${topGrad})" stroke="${STROKE}" stroke-width="${SW_BOLD}"/>
+    <ellipse cx="${cx-rx*0.35}" cy="${topY-ry*0.4}" rx="${rx*0.45}" ry="${ry*0.4}" fill="url(#hi)" pointer-events="none"/>
+  `;
+}
+
+/* Helper: iso BOX (3-face cuboid). Returns SVG strings for back-bottom-left
+   to top-front-right cuboid centered around (cx, cy_top_center).
+   w = world width X, d = world depth Y, h = world height Z. */
+function box(cx, cyTop, w, d, h, topGrad, rGrad, lGrad) {
+  // Iso projection: (x, y, z) -> (x - y, (x + y)/2 - z)
+  // Cuboid extends from world (-w/2, -d/2, 0) to (w/2, d/2, h)
+  // cyTop is screen Y of the world (0,0,h) point
+  const cyBase = cyTop + h;  // base at z=0
+
+  // Top face corners
+  const tBL = [cx + (-w/2 - d/2), cyTop + (-w/2 + d/2)/2];  // back-left
+  const tBR = [cx + (w/2 - d/2),  cyTop + (w/2 + d/2)/2];   // back-right (back is +Y, front is -Y? convention varies; here: +X=right-down, +Y=left-down)
+  const tFR = [cx + (w/2 + d/2),  cyTop + (w/2 - d/2)/2];   // hmm let me redo
+  // Use simpler convention: cube has top diamond, right and left parallelograms
+  // Top diamond corners: top, right, bottom, left
+  const halfXY = w/2; const halfYX = d/2;
+  // Top face = diamond
+  const top_top   = [cx,                cyTop - halfYX/2 - halfXY/2];
+  const top_right = [cx + halfXY + halfYX, cyTop - halfYX/2 + halfXY/2];
+  const top_bot   = [cx,                cyTop + halfYX/2 + halfXY/2];
+  const top_left  = [cx - halfXY - halfYX, cyTop - halfXY/2 + halfYX/2];
+
+  // Bottom diamond corners: shifted DOWN by h
+  const bot_right = [top_right[0], top_right[1] + h];
+  const bot_bot   = [top_bot[0],   top_bot[1] + h];
+  const bot_left  = [top_left[0],  top_left[1] + h];
+
+  return `
+    <polygon points="${top_top.join(',')} ${top_right.join(',')} ${top_bot.join(',')} ${top_left.join(',')}"
+             fill="url(#${topGrad})" stroke="${STROKE}" stroke-width="${SW_BOLD}"/>
+    <polygon points="${top_right.join(',')} ${top_bot.join(',')} ${bot_bot.join(',')} ${bot_right.join(',')}"
+             fill="url(#${rGrad})" stroke="${STROKE}" stroke-width="${SW}"/>
+    <polygon points="${top_left.join(',')} ${top_bot.join(',')} ${bot_bot.join(',')} ${bot_left.join(',')}"
+             fill="url(#${lGrad})" stroke="${STROKE}" stroke-width="${SW}"/>
+  `;
+}
+
+/* Cast shadow */
+function shadow(cx, cy, rx, ry = 5) {
+  return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#cast)"/>`;
+}
+
+/* Standard rectangular base plate with subtle gradients + corner bolts */
+function basePlate() {
+  // 36 wide, 36 deep, 5 tall, centered around (60, 100)
+  const top = `<polygon points="60,82 96,100 60,118 24,100" fill="url(#b-top)" stroke="${STROKE}" stroke-width="${SW_BOLD}"/>`;
+  const right = `<polygon points="96,100 96,105 60,123 60,118" fill="url(#b-side)" stroke="${STROKE}" stroke-width="${SW}"/>`;
+  const left = `<polygon points="24,100 24,105 60,123 60,118" fill="url(#b-front)" stroke="${STROKE}" stroke-width="${SW}"/>`;
+  // Bolts at the 4 corners of the diamond top face
+  const bolts = [[60,84],[92,100],[60,116],[28,100]].map(([x,y]) =>
+    `<circle cx="${x}" cy="${y}" r="2" fill="url(#m-side)" stroke="${STROKE}" stroke-width="${SW}"/>
+     <circle cx="${x-0.5}" cy="${y-0.5}" r="0.7" fill="white" opacity="0.6"/>`
+  ).join('');
+  return top + right + left + bolts;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ICONS — six carefully constructed assemblies
+   ───────────────────────────────────────────────────────────── */
+const ICONS = {
+
+  /* ─── 1. CASSETTE — vertical stack on hub axle, mounted on base ─── */
+  cassette: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${shadow(60, 116, 38, 4)}
+      ${basePlate()}
+      <!-- Lower spacer mounted on base (slate) -->
+      ${cyl(60, 78, 11, 5, 4, 's-top', 's-side', 's-bottom')}
+      <!-- Cog 1 (largest) -->
+      ${cyl(60, 70, 22, 11, 4, 'm-top', 'm-side', 'm-bottom')}
+      <!-- Cog 2 -->
+      ${cyl(60, 62, 18, 9, 4, 'm-top', 'm-side', 'm-bottom')}
+      <!-- Cog 3 -->
+      ${cyl(60, 54, 14, 7, 4, 'm-top', 'm-side', 'm-bottom')}
+      <!-- Cog 4 (smallest, lime accent) -->
+      ${cyl(60, 46, 10, 5, 4, 'l-top', 'l-side')}
+      <!-- Top spline locknut -->
+      ${cyl(60, 40, 6, 3, 4, 's-top', 's-side')}
+      <!-- Center axle showing through (small dark dot at top) -->
+      <circle cx="60" cy="40" r="1.5" fill="#0E1108"/>
+      <!-- Subtle tooth notches around bottom cog visible -->
+      <g fill="${STROKE}" opacity="0.55">
+        <rect x="36" y="69.5" width="2.5" height="2"/>
+        <rect x="81.5" y="69.5" width="2.5" height="2"/>
+      </g>
+    </svg>`,
+
+  /* ─── 2. ROTOR + CALIPER — disc lying flat with caliper assembly ─── */
+  rotor: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${shadow(60, 116, 40, 4)}
+      ${basePlate()}
+      <!-- Caliper body (slate, on left side) -->
+      ${cyl(34, 64, 8, 4, 14, 's-top', 's-side', 's-bottom')}
+      <!-- Caliper bridge connecting to rotor -->
+      <path d="M 34,64 L 50,68 L 50,72 L 34,68 Z" fill="url(#s-side)" stroke="${STROKE}" stroke-width="${SW}"/>
+      <!-- Caliper pad pinch (visible just above rotor) -->
+      <ellipse cx="46" cy="72" rx="3" ry="2" fill="url(#r-top)" stroke="${STROKE}" stroke-width="${SW}"/>
+
+      <!-- Rotor disc (silver, lying flat) -->
+      <!-- Bottom ellipse for depth -->
+      <ellipse cx="60" cy="78" rx="32" ry="11" fill="url(#m-bottom)" stroke="${STROKE}" stroke-width="${SW}"/>
+      <!-- Side strip (thin) -->
+      <path d="M 28,74 A 32,11 0 0 0 92,74 L 92,78 A 32,11 0 0 1 28,78 Z"
+            fill="url(#m-side)" stroke="${STROKE}" stroke-width="${SW}"/>
+      <!-- Top face -->
+      <ellipse cx="60" cy="74" rx="32" ry="11" fill="url(#m-top)" stroke="${STROKE}" stroke-width="${SW_BOLD}"/>
+      <!-- Highlight on top -->
+      <ellipse cx="48" cy="69" rx="14" ry="4" fill="url(#hi)" pointer-events="none"/>
+      <!-- Inner braking band (subtle ring) -->
+      <ellipse cx="60" cy="74" rx="22" ry="7.5" fill="none" stroke="#5C6253" stroke-width="0.6" opacity="0.7"/>
+      <!-- Vented slots (6 small dark ovals) -->
+      <g fill="#1A1F12" opacity="0.6">
+        <ellipse cx="40" cy="73" rx="2" ry="0.8"/>
+        <ellipse cx="80" cy="73" rx="2" ry="0.8"/>
+        <ellipse cx="50" cy="68" rx="2" ry="0.8" transform="rotate(-25 50 68)"/>
+        <ellipse cx="70" cy="68" rx="2" ry="0.8" transform="rotate(25 70 68)"/>
+        <ellipse cx="50" cy="80" rx="2" ry="0.8" transform="rotate(25 50 80)"/>
+        <ellipse cx="70" cy="80" rx="2" ry="0.8" transform="rotate(-25 70 80)"/>
+      </g>
+      <!-- 6-bolt mount pattern -->
+      <g fill="url(#d-side)" stroke="${STROKE}" stroke-width="0.4">
+        <circle cx="56" cy="71" r="1.4"/>
+        <circle cx="64" cy="71" r="1.4"/>
+        <circle cx="56" cy="77" r="1.4"/>
+        <circle cx="64" cy="77" r="1.4"/>
+        <circle cx="52" cy="74" r="1.4"/>
+        <circle cx="68" cy="74" r="1.4"/>
+      </g>
+      <!-- Center spline (lime) -->
+      <ellipse cx="60" cy="74" rx="3" ry="1.2" fill="url(#l-top)" stroke="${STROKE}" stroke-width="0.5"/>
+    </svg>`,
+
+  /* ─── 3. PEDAL + CRANK STUB ─── */
+  pedal: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${shadow(60, 116, 40, 4)}
+      ${basePlate()}
+
+      <!-- Crank arm stub (silver, going into base) -->
+      <path d="M 56,84 L 64,84 L 64,68 L 56,68 Z" fill="url(#m-side)" stroke="${STROKE}" stroke-width="${SW}"/>
+      <ellipse cx="60" cy="68" rx="4" ry="2" fill="url(#m-top)" stroke="${STROKE}" stroke-width="${SW_BOLD}"/>
+      <!-- Spider arm extending right from crank -->
+      <path d="M 60,68 L 80,58 L 84,62 L 64,72 Z" fill="url(#m-side)" stroke="${STROKE}" stroke-width="${SW}"/>
+      <path d="M 60,68 L 80,58 L 84,62 Z" fill="url(#m-top)" stroke="${STROKE}" stroke-width="${SW}"/>
+
+      <!-- Pedal spindle (slate cylinder going into pedal) -->
+      ${cyl(80, 58, 4, 2, 6, 's-top', 's-side')}
+
+      <!-- Pedal platform (matte black/rubber box) -->
+      ${box(40, 56, 28, 12, 6, 'r-top', 'r-side', 'r-side')}
+      <!-- Pin caps on top (lime) -->
+      <g>
+        <circle cx="34" cy="58" r="1.6" fill="url(#l-top)" stroke="${STROKE}" stroke-width="0.4"/>
+        <circle cx="42" cy="55" r="1.6" fill="url(#l-top)" stroke="${STROKE}" stroke-width="0.4"/>
+        <circle cx="50" cy="52" r="1.6" fill="url(#l-top)" stroke="${STROKE}" stroke-width="0.4"/>
+        <circle cx="38" cy="64" r="1.6" fill="url(#l-top)" stroke="${STROKE}" stroke-width="0.4"/>
+        <circle cx="46" cy="61" r="1.6" fill="url(#l-top)" stroke="${STROKE}" stroke-width="0.4"/>
+        <circle cx="54" cy="58" r="1.6" fill="url(#l-top)" stroke="${STROKE}" stroke-width="0.4"/>
+      </g>
+    </svg>`,
+
+  /* ─── 4. SADDLE on CLAMP POST ─── */
+  saddle: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${shadow(60, 116, 32, 4)}
+      ${basePlate()}
+
+      <!-- Seat post (silver vertical cylinder) -->
+      ${cyl(60, 50, 5, 2.5, 32, 'm-top', 'm-side', 'm-bottom')}
+      <!-- Clamp ring (slate, around top of post) -->
+      ${cyl(60, 46, 7, 3.5, 6, 's-top', 's-side', 's-bottom')}
+      <!-- Adjustment bolt on clamp (lime, side detail) -->
+      <circle cx="68" cy="49" r="2" fill="url(#l-top)" stroke="${STROKE}" stroke-width="0.5"/>
+      <circle cx="67.5" cy="48.5" r="0.8" fill="white" opacity="0.6"/>
+
+      <!-- Saddle body (matte black, elongated rounded shape on top of clamp) -->
+      <!-- Underneath shadow side -->
+      <path d="M 18,38 Q 28,32 60,30 Q 92,32 102,40 Q 92,46 60,44 Q 28,46 18,38 Z"
+            fill="url(#r-side)" stroke="${STROKE}" stroke-width="${SW}"/>
+      <!-- Top -->
+      <path d="M 18,36 Q 28,28 60,26 Q 92,28 102,38 Q 92,40 60,38 Q 28,40 18,36 Z"
+            fill="url(#r-top)" stroke="${STROKE}" stroke-width="${SW_BOLD}"/>
+      <!-- Highlight strip on top -->
+      <path d="M 30,32 Q 60,28 90,32 Q 60,33 30,34 Z" fill="rgba(255,255,255,0.35)" pointer-events="none"/>
+      <!-- Lime center seam -->
+      <path d="M 24,34 Q 60,32 96,36" stroke="url(#l-side)" stroke-width="1.2" fill="none" opacity="0.95"/>
+      <!-- Saddle rails (silver, two parallel curves underneath) -->
+      <path d="M 28,42 Q 60,48 92,42" stroke="url(#m-side)" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M 28,42 Q 60,48 92,42" stroke="${STROKE}" stroke-width="0.5" fill="none" stroke-linecap="round" opacity="0.6"/>
+    </svg>`,
+
+  /* ─── 5. WHEEL on FORK STAND ─── */
+  wheel: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${shadow(60, 116, 40, 4)}
+      ${basePlate()}
+
+      <!-- Fork stand: two slate prongs rising from base -->
+      <path d="M 38,86 L 40,86 L 44,60 L 42,60 Z" fill="url(#s-side)" stroke="${STROKE}" stroke-width="${SW}"/>
+      <path d="M 80,86 L 82,86 L 78,60 L 76,60 Z" fill="url(#s-side)" stroke="${STROKE}" stroke-width="${SW}"/>
+      <!-- Fork crown (top connector) -->
+      <path d="M 44,60 L 76,60 L 74,56 L 46,56 Z" fill="url(#s-top)" stroke="${STROKE}" stroke-width="${SW_BOLD}"/>
+
+      <!-- Hub axle going through the wheel center -->
+      <ellipse cx="44" cy="60" rx="2" ry="1.2" fill="url(#d-side)" stroke="${STROKE}" stroke-width="0.4"/>
+      <ellipse cx="78" cy="60" rx="2" ry="1.2" fill="url(#m-top)" stroke="${STROKE}" stroke-width="0.4"/>
+
+      <!-- Wheel: tire + rim + spokes + hub.
+           Drawn at iso angle (rotated ellipse to look like a wheel viewed from the side at ~30°). -->
+      <g transform="rotate(-22 60 58)">
+        <!-- Tire (rubber outer ring) -->
+        <ellipse cx="60" cy="58" rx="32" ry="20" fill="url(#r-side)" stroke="${STROKE}" stroke-width="${SW_BOLD}"/>
+        <!-- Tan sidewall (subtle warm band) -->
+        <ellipse cx="60" cy="58" rx="26" ry="14" fill="#8C7A4A" stroke="#5C5230" stroke-width="0.4"/>
+        <!-- Rim (silver inner ring) -->
+        <ellipse cx="60" cy="58" rx="22" ry="11" fill="url(#m-top)" stroke="${STROKE}" stroke-width="${SW}"/>
+        <ellipse cx="60" cy="58" rx="20" ry="9" fill="url(#m-side)" stroke="${STROKE}" stroke-width="0.4"/>
+        <!-- Spokes -->
+        <g stroke="url(#m-top)" stroke-width="1.2" stroke-linecap="round" opacity="0.9">
+          <line x1="60" y1="58" x2="80" y2="50"/>
+          <line x1="60" y1="58" x2="78" y2="64"/>
+          <line x1="60" y1="58" x2="60" y2="48"/>
+          <line x1="60" y1="58" x2="42" y2="64"/>
+          <line x1="60" y1="58" x2="40" y2="50"/>
+        </g>
+        <!-- Hub center -->
+        <ellipse cx="60" cy="58" rx="3" ry="2" fill="url(#m-top)" stroke="${STROKE}" stroke-width="0.5"/>
+        <ellipse cx="60" cy="58" rx="1.5" ry="1" fill="url(#l-top)"/>
+
+        <!-- Tread blocks on outer ring -->
+        <g fill="${STROKE}" opacity="0.7">
+          <rect x="58" y="38" width="4" height="2"/>
+          <rect x="58" y="76" width="4" height="2"/>
+          <rect x="26" y="57" width="2" height="3"/>
+          <rect x="92" y="57" width="2" height="3"/>
+        </g>
+      </g>
+    </svg>`,
+
+  /* ─── 6. SEALANT BOTTLE on PLATFORM ─── */
+  sealant: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${shadow(60, 116, 32, 4)}
+      ${basePlate()}
+
+      <!-- Bottle body (silver, tapered cylinder visible from front) -->
+      <!-- Bottom ellipse -->
+      <ellipse cx="60" cy="84" rx="14" ry="5" fill="url(#m-bottom)" stroke="${STROKE}" stroke-width="${SW}"/>
+      <!-- Bottle side wall (taller cylinder) -->
+      <path d="M 46,84 L 46,42 Q 46,40 48,40 L 72,40 Q 74,40 74,42 L 74,84
+               A 14,5 0 0 1 46,84 Z"
+            fill="url(#m-side)" stroke="${STROKE}" stroke-width="${SW}"/>
+      <!-- Front face highlight (left edge stripe) -->
+      <path d="M 47,42 L 47,82" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
+
+      <!-- Liquid inside (lime, visible through translucent bottle) -->
+      <path d="M 47,84 L 47,60 L 73,60 L 73,84 A 13,4.5 0 0 1 47,84 Z"
+            fill="url(#l-top)" opacity="0.85"/>
+      <ellipse cx="60" cy="60" rx="13" ry="4.5" fill="url(#l-side)"/>
+      <ellipse cx="60" cy="59" rx="13" ry="3.5" fill="rgba(255,255,255,0.3)"/>
+
+      <!-- Top of bottle (small ellipse) -->
+      <ellipse cx="60" cy="42" rx="14" ry="5" fill="url(#m-top)" stroke="${STROKE}" stroke-width="${SW_BOLD}"/>
+      <ellipse cx="56" cy="40" rx="6" ry="2" fill="url(#hi)" pointer-events="none"/>
+
+      <!-- Neck -->
+      ${cyl(60, 32, 6, 2.5, 8, 's-top', 's-side', 's-bottom')}
+
+      <!-- Cap (matte black with grip ridges) -->
+      ${cyl(60, 22, 8, 3, 8, 'r-top', 'r-side')}
+      <!-- Cap grip ridges -->
+      <g stroke="${STROKE}" stroke-width="0.4" opacity="0.7">
+        <line x1="55" y1="24" x2="55" y2="28"/>
+        <line x1="58" y1="24" x2="58" y2="29"/>
+        <line x1="62" y1="24" x2="62" y2="29"/>
+        <line x1="65" y1="24" x2="65" y2="28"/>
+      </g>
+
+      <!-- Label (white) -->
+      <rect x="50" y="50" width="20" height="10" fill="white" opacity="0.92" stroke="${STROKE}" stroke-width="0.4" rx="0.5"/>
+      <text x="60" y="58" text-anchor="middle" font-family="-apple-system, sans-serif" font-weight="800" font-size="6" fill="#1A1F12" letter-spacing="0.5">SEAL</text>
+    </svg>`,
+};
+
+/* Render */
+const ICON_LIST = [
+  ['cassette', 'Cassette'],
+  ['rotor',    'Brake rotor + caliper'],
+  ['pedal',    'Pedal + crank arm'],
+  ['saddle',   'Saddle + post'],
+  ['wheel',    'Wheel on fork'],
+  ['sealant',  'Sealant bottle'],
+];
+
+const grid = document.getElementById('icon-grid');
+ICON_LIST.forEach(([key, label]) => {
+  const tile = document.createElement('div');
+  tile.className = 'icon-tile';
+  tile.innerHTML = ICONS[key] + `<div class="label">${label}</div>`;
+  grid.appendChild(tile);
+});
+
+document.getElementById('theme-toggle').addEventListener('click', e => {
+  const t = e.target.dataset.theme;
+  if (!t) return;
+  document.body.dataset.theme = t;
+  document.querySelectorAll('#theme-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === t);
+  });
+});
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../theme/ThemeProvider';
+import type { ColorPalette } from '../constants/colors';
 import { formatNumber } from '../constants/units';
 import {
   BIKE_TYPE_LABELS,
@@ -26,6 +27,7 @@ import {
   isIndoorBike,
   defaultActivityForBikeType,
   type BikeType,
+  type BikeWeightMode,
   type BrakeSystem,
   type StravaActivityType,
 } from '../types';
@@ -51,6 +53,10 @@ interface Props {
     stravaId?: string;
     totalDistance: number;
     defaultActivity: StravaActivityType;
+    /** Bike weight in kilograms (decimals OK). Optional. Ignored when mode === 'sum'. */
+    weight?: number;
+    /** How the bike's displayed weight is computed. Default 'manual'. */
+    weightMode: BikeWeightMode;
   }) => Promise<void>;
 }
 
@@ -68,6 +74,8 @@ export default function AddBikeModal({
   onClose,
   onAdd,
 }: Props) {
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const taken = takenActivities ?? new Set<StravaActivityType>();
   // Pick a non-colliding activity to start from. If the default-for-type
   // is already taken, walk the list and land on the first free one.
@@ -82,7 +90,7 @@ export default function AddBikeModal({
   const [brand, setBrand] = useState('');
   const [type, setType] = useState<BikeType>('road');
   const [brakeSystem, setBrakeSystem] = useState<BrakeSystem>('disc-hydraulic');
-  const [color, setColor] = useState<string>(Colors.accent);
+  const [color, setColor] = useState<string>(C.accent);
   const [stravaId, setStravaId] = useState<string | undefined>();
   const [manualDistance, setManualDistance] = useState('0');
   // Default Strava activity for rides on this bike. Tracked separately
@@ -93,6 +101,12 @@ export default function AddBikeModal({
     firstFreeActivity(defaultActivityForBikeType('road'))
   );
   const [activityTouched, setActivityTouched] = useState(false);
+  // Bike weight in kilograms (string in the input — empty = "no
+  // manual weight set"). Decimals are accepted via decimal-pad. The
+  // picker decides whether this number is used, ignored, or shown
+  // alongside the components-sum.
+  const [weight, setWeight] = useState('');
+  const [weightMode, setWeightMode] = useState<BikeWeightMode>('manual');
   const [saving, setSaving] = useState(false);
 
   const handleTypeChange = (next: BikeType) => {
@@ -125,6 +139,7 @@ export default function AddBikeModal({
     if (!name.trim()) return;
     setSaving(true);
     try {
+      const parsedWeight = Number(weight.replace(/[,\s]/g, ''));
       await onAdd({
         name: name.trim(),
         brand: brand.trim(),
@@ -134,6 +149,10 @@ export default function AddBikeModal({
         stravaId,
         totalDistance: Number(manualDistance.replace(/[,\s]/g, '')) || 0,
         defaultActivity,
+        // Only forward `weight` when it's a positive number — Firestore
+        // rejects `undefined` and we don't want to write a 0 sentinel.
+        weight: Number.isFinite(parsedWeight) && parsedWeight > 0 ? parsedWeight : undefined,
+        weightMode,
       });
       resetForm();
       onClose();
@@ -147,11 +166,13 @@ export default function AddBikeModal({
     setBrand('');
     setType('road');
     setBrakeSystem('disc-hydraulic');
-    setColor(Colors.accent);
+    setColor(C.accent);
     setStravaId(undefined);
     setManualDistance('0');
     setDefaultActivity(firstFreeActivity(defaultActivityForBikeType('road')));
     setActivityTouched(false);
+    setWeight('');
+    setWeightMode('manual');
   };
 
   return (
@@ -168,7 +189,7 @@ export default function AddBikeModal({
           <Text style={styles.title}>Add Bike</Text>
           <TouchableOpacity onPress={handleAdd} disabled={!name.trim() || saving}>
             {saving ? (
-              <ActivityIndicator color={Colors.accent} />
+              <ActivityIndicator color={C.accent} />
             ) : (
               <Text style={[styles.saveBtn, !name.trim() && styles.saveBtnDisabled]}>Save</Text>
             )}
@@ -190,14 +211,14 @@ export default function AddBikeModal({
                   <Ionicons
                     name="bicycle-outline"
                     size={18}
-                    color={stravaId === sb.id ? Colors.accent : Colors.textSecondary}
+                    color={stravaId === sb.id ? C.accent : C.textSecondary}
                   />
                   <View style={styles.stravaInfo}>
                     <Text style={styles.stravaName}>{sb.name}</Text>
                     <Text style={styles.stravaDist}>{formatNumber(sb.distanceKm)} km</Text>
                   </View>
                   {stravaId === sb.id && (
-                    <Ionicons name="checkmark-circle" size={20} color={Colors.accent} />
+                    <Ionicons name="checkmark-circle" size={20} color={C.accent} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -211,7 +232,7 @@ export default function AddBikeModal({
               <TextInput
                 style={styles.input}
                 placeholder="Bike name *"
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={C.textTertiary}
                 value={name}
                 onChangeText={setName}
               />
@@ -219,7 +240,7 @@ export default function AddBikeModal({
               <TextInput
                 style={styles.input}
                 placeholder="Brand (e.g. Trek, Specialized)"
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={C.textTertiary}
                 value={brand}
                 onChangeText={setBrand}
               />
@@ -232,7 +253,7 @@ export default function AddBikeModal({
                 <TextInput
                   style={styles.inlineInput}
                   placeholder="0"
-                  placeholderTextColor={Colors.textTertiary}
+                  placeholderTextColor={C.textTertiary}
                   value={manualDistance}
                   onChangeText={setManualDistance}
                   keyboardType="numeric"
@@ -241,6 +262,65 @@ export default function AddBikeModal({
                 <Text style={styles.unitTag}>km</Text>
               </View>
             </View>
+          </View>
+
+          {/* Weight — optional, mode-aware. Manual is the default for
+              users who just want to record one number. Sum hides the
+              manual field and computes from components. Mixed shows
+              both — useful for reconciling scale-measured vs. summed
+              part weights. */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>WEIGHT</Text>
+            <View style={styles.chipGrid}>
+              {(
+                [
+                  ['manual', 'Manual'],
+                  ['sum', 'Sum of parts'],
+                  ['mixed', 'Mixed'],
+                ] as [BikeWeightMode, string][]
+              ).map(([key, label]) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.chip, weightMode === key && styles.chipActive]}
+                  onPress={() => setWeightMode(key)}
+                >
+                  <Text style={[styles.chipText, weightMode === key && styles.chipTextActive]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {weightMode !== 'sum' && (
+              <View style={styles.inputGroup}>
+                <View style={styles.labeledRow}>
+                  <View style={styles.labelCol}>
+                    <Text style={styles.fieldLabel}>Bike weight</Text>
+                    <Text style={styles.fieldSub}>
+                      {weightMode === 'mixed'
+                        ? 'Your scale reading — we\'ll compare to parts total'
+                        : 'Optional — leave blank to skip'}
+                    </Text>
+                  </View>
+                  <TextInput
+                    style={styles.inlineInput}
+                    placeholder="e.g. 8.25"
+                    placeholderTextColor={C.textTertiary}
+                    value={weight}
+                    onChangeText={setWeight}
+                    keyboardType="decimal-pad"
+                    textAlign="right"
+                  />
+                  <Text style={styles.unitTag}>kg</Text>
+                </View>
+              </View>
+            )}
+            <Text style={styles.hint}>
+              {weightMode === 'manual'
+                ? 'Show only the weight you enter here.'
+                : weightMode === 'sum'
+                ? 'Bike weight = total of installed components that have a weight set. Updates automatically as parts change.'
+                : 'Show your entered weight, plus the components total alongside as a reference.'}
+            </Text>
           </View>
 
           {/* Bike Type */}
@@ -256,7 +336,7 @@ export default function AddBikeModal({
                   <Ionicons
                     name={BIKE_TYPE_ICONS[key] as any}
                     size={14}
-                    color={type === key ? Colors.accent : Colors.textSecondary}
+                    color={type === key ? C.accent : C.textSecondary}
                     style={styles.chipIcon}
                   />
                   <Text style={[styles.chipText, type === key && styles.chipTextActive]}>
@@ -297,10 +377,10 @@ export default function AddBikeModal({
                       size={14}
                       color={
                         isActive
-                          ? Colors.accent
+                          ? C.accent
                           : isTaken
-                          ? Colors.textTertiary
-                          : Colors.textSecondary
+                          ? C.textTertiary
+                          : C.textSecondary
                       }
                       style={styles.chipIcon}
                     />
@@ -360,7 +440,7 @@ export default function AddBikeModal({
                   onPress={() => setColor(c)}
                 >
                   {color === c && (
-                    <Ionicons name="checkmark" size={14} color={Colors.black} />
+                    <Ionicons name="checkmark" size={14} color={C.black} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -372,8 +452,8 @@ export default function AddBikeModal({
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg },
+const makeStyles = (C: ColorPalette) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -381,11 +461,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: C.border,
   },
-  title: { fontSize: 17, fontWeight: '600', color: Colors.text },
-  cancelBtn: { fontSize: 16, color: Colors.textSecondary },
-  saveBtn: { fontSize: 16, fontWeight: '600', color: Colors.accent },
+  title: { fontSize: 17, fontWeight: '600', color: C.text },
+  cancelBtn: { fontSize: 16, color: C.textSecondary },
+  saveBtn: { fontSize: 16, fontWeight: '600', color: C.accent },
   saveBtnDisabled: { opacity: 0.4 },
   scroll: { flex: 1 },
   content: { padding: 20, gap: 24, paddingBottom: 40 },
@@ -393,12 +473,12 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     letterSpacing: 1,
   },
-  hint: { fontSize: 12, color: Colors.textTertiary, lineHeight: 17 },
+  hint: { fontSize: 12, color: C.textTertiary, lineHeight: 17 },
   inputGroup: {
-    backgroundColor: Colors.card,
+    backgroundColor: C.card,
     borderRadius: 14,
     overflow: 'hidden',
   },
@@ -406,9 +486,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: Colors.text,
+    color: C.text,
   },
-  inputDivider: { height: 1, backgroundColor: Colors.border, marginLeft: 16 },
+  inputDivider: { height: 1, backgroundColor: C.border, marginLeft: 16 },
   labeledRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -417,16 +497,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   labelCol: { flex: 1 },
-  fieldLabel: { fontSize: 15, fontWeight: '500', color: Colors.text },
-  fieldSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
+  fieldLabel: { fontSize: 15, fontWeight: '500', color: C.text },
+  fieldSub: { fontSize: 12, color: C.textSecondary, marginTop: 1 },
   inlineInput: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.accent,
+    color: C.accent,
     minWidth: 60,
     textAlign: 'right',
   },
-  unitTag: { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
+  unitTag: { fontSize: 13, color: C.textSecondary, fontWeight: '500' },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     flexDirection: 'row',
@@ -434,14 +514,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 99,
-    backgroundColor: Colors.card,
+    backgroundColor: C.card,
   },
   chipIcon: { marginRight: 6 },
-  chipActive: { backgroundColor: Colors.accentDim },
+  chipActive: { backgroundColor: C.accentDim },
   chipDisabled: { opacity: 0.35 },
-  chipText: { fontSize: 14, color: Colors.textSecondary },
-  chipTextActive: { color: Colors.accent, fontWeight: '600' },
-  chipTextDisabled: { color: Colors.textTertiary },
+  chipText: { fontSize: 14, color: C.textSecondary },
+  chipTextActive: { color: C.accent, fontWeight: '600' },
+  chipTextDisabled: { color: C.textTertiary },
   colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   colorDot: {
     width: 34,
@@ -450,19 +530,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  colorDotActive: { borderWidth: 3, borderColor: Colors.white },
+  colorDotActive: { borderWidth: 3, borderColor: C.white },
   stravaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: Colors.card,
+    backgroundColor: C.card,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: Colors.transparent,
+    borderColor: C.transparent,
   },
-  stravaRowActive: { borderColor: Colors.accent },
+  stravaRowActive: { borderColor: C.accent },
   stravaInfo: { flex: 1 },
-  stravaName: { fontSize: 15, fontWeight: '500', color: Colors.text },
-  stravaDist: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  stravaName: { fontSize: 15, fontWeight: '500', color: C.text },
+  stravaDist: { fontSize: 12, color: C.textSecondary, marginTop: 2 },
 });

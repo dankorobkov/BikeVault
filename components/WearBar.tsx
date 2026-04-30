@@ -1,14 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../theme/ThemeProvider';
+import type { ColorPalette } from '../constants/colors';
 import { getWearLevel, type WearLevel } from '../types';
-
-const WEAR_COLORS: Record<WearLevel, string> = {
-  good: Colors.good,
-  warning: Colors.warning,
-  critical: Colors.critical,
-  overdue: Colors.danger,
-};
 
 const WEAR_LABELS: Record<WearLevel, string> = {
   good: 'Good',
@@ -30,8 +24,20 @@ export default function WearBar({
   showPercent = true,
   height = 6,
 }: Props) {
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
+
+  // Look up wear-level color from the live palette so it retints with
+  // the theme (status colors are tuned per scheme for AA contrast).
+  const wearColors: Record<WearLevel, string> = {
+    good: C.good,
+    warning: C.warning,
+    critical: C.critical,
+    overdue: C.danger,
+  };
+
   const level = getWearLevel(percent);
-  const color = WEAR_COLORS[level];
+  const color = wearColors[level];
   const filled = Math.min(percent, 100);
 
   return (
@@ -58,28 +64,29 @@ export default function WearBar({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { gap: 4 },
-  track: {
-    backgroundColor: Colors.border,
-    borderRadius: 99,
-    overflow: 'hidden',
-  },
-  fill: {
-    borderRadius: 99,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
-  percent: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-});
+const makeStyles = (C: ColorPalette) =>
+  StyleSheet.create({
+    container: { gap: 4 },
+    track: {
+      backgroundColor: C.border,
+      borderRadius: 99,
+      overflow: 'hidden',
+    },
+    fill: {
+      borderRadius: 99,
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    label: {
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 0.3,
+    },
+    percent: {
+      fontSize: 11,
+      fontWeight: '700',
+    },
+  });

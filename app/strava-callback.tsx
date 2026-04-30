@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { dialog } from '../components/AppDialog';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -6,7 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store/useAppStore';
 import { exchangeCodeForTokens } from '../services/stravaService';
 import { useSync } from '../hooks/useSync';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../theme/ThemeProvider';
+import type { ColorPalette } from '../constants/colors';
 
 /**
  * Strava OAuth callback landing page (web).
@@ -22,6 +23,8 @@ import { Colors } from '../constants/colors';
  */
 export default function StravaCallback() {
   const router = useRouter();
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const params = useLocalSearchParams<{
     code?: string;
     error?: string;
@@ -117,19 +120,19 @@ export default function StravaCallback() {
   return (
     <View style={styles.root}>
       <View style={styles.logoBox}>
-        <Ionicons name="fitness-outline" size={44} color={Colors.accent} />
+        <Ionicons name="fitness-outline" size={44} color={C.accent} />
       </View>
       <Text style={styles.title}>Connecting Strava…</Text>
       <Text style={styles.sub}>Exchanging authorization with Strava.</Text>
-      <ActivityIndicator color={Colors.accent} style={{ marginTop: 16 }} />
+      <ActivityIndicator color={C.accent} style={{ marginTop: 16 }} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: ColorPalette) => StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Colors.bg,
+    backgroundColor: C.bg,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
@@ -139,11 +142,11 @@ const styles = StyleSheet.create({
     width: 84,
     height: 84,
     borderRadius: 24,
-    backgroundColor: Colors.accentDim,
+    backgroundColor: C.accentDim,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
-  title: { fontSize: 22, fontWeight: '800', color: Colors.text },
-  sub: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center' },
+  title: { fontSize: 22, fontWeight: '800', color: C.text },
+  sub: { fontSize: 14, color: C.textSecondary, textAlign: 'center' },
 });

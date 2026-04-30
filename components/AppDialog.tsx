@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,9 @@ import {
   Pressable,
   Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import BikeIcon, { type BikeIconName } from './BikeIcon';
+import { useThemeColors } from '../theme/ThemeProvider';
+import type { ColorPalette } from '../constants/colors';
 
 /**
  * App-styled imperative dialog service.
@@ -109,6 +110,9 @@ export const dialog = {
 // ── Component ────────────────────────────────────────────────────────────
 
 export function DialogRoot() {
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
+
   // tick forces a re-render whenever the queue changes so the head of
   // the queue is picked up. We never depend on `current` itself in
   // effects — it's derived directly from the queue each render.
@@ -145,6 +149,19 @@ export function DialogRoot() {
 
   const tone: Tone =
     (opts.tone as Tone) ?? (kind === 'alert' ? 'info' : 'default');
+
+  const toneToColor = (t: Tone): string => {
+    if (t === 'destructive') return C.danger;
+    if (t === 'warning') return C.warning;
+    return C.accent;
+  };
+
+  const toneToIcon = (t: Tone): BikeIconName => {
+    if (t === 'destructive') return 'overdue';
+    if (t === 'warning') return 'overdue';
+    if (t === 'info') return 'complete';
+    return 'bell';
+  };
 
   const primaryColor = toneToColor(tone);
   const iconName = toneToIcon(tone);
@@ -224,7 +241,7 @@ export function DialogRoot() {
         {/* Inner Pressable stops the tap-to-dismiss when clicking the card */}
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation?.()}>
           <View style={[styles.iconWrap, { backgroundColor: iconTint + '22' }]}>
-            <Ionicons name={iconName as any} size={26} color={iconTint} />
+            <BikeIcon name={iconName} variant="fill" size={26} color={iconTint} accent={iconTint} />
           </View>
 
           <Text style={styles.title}>{opts.title}</Text>
@@ -240,102 +257,90 @@ export function DialogRoot() {
   );
 }
 
-function toneToColor(tone: Tone): string {
-  if (tone === 'destructive') return Colors.danger;
-  if (tone === 'warning') return Colors.warning;
-  return Colors.accent;
-}
-
-function toneToIcon(tone: Tone): string {
-  if (tone === 'destructive') return 'warning';
-  if (tone === 'warning') return 'alert-circle-outline';
-  if (tone === 'info') return 'information-circle-outline';
-  return 'help-circle-outline';
-}
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 380,
-    backgroundColor: Colors.card,
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    gap: 10,
-    // Soft shadow — subtle on dark bg.
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.4,
-    shadowRadius: 24,
-    elevation: 12,
-  },
-  iconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.text,
-    textAlign: 'center',
-  },
-  message: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginTop: 2,
-  },
-  hint: {
-    fontSize: 12,
-    color: Colors.textTertiary,
-    textAlign: 'center',
-    lineHeight: 17,
-  },
-  buttons: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 16,
-    width: '100%',
-  },
-  buttonsStacked: {
-    flexDirection: 'column',
-    gap: 10,
-    marginTop: 16,
-    width: '100%',
-  },
-  cancelBtn: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  cancelBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  primaryBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  primaryBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.white,
-  },
-});
+const makeStyles = (C: ColorPalette) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.55)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+    },
+    card: {
+      width: '100%',
+      maxWidth: 380,
+      backgroundColor: C.card,
+      borderRadius: 20,
+      padding: 24,
+      alignItems: 'center',
+      gap: 10,
+      // Soft shadow — subtle on dark bg.
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.4,
+      shadowRadius: 24,
+      elevation: 12,
+    },
+    iconWrap: {
+      width: 56,
+      height: 56,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 4,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: C.text,
+      textAlign: 'center',
+    },
+    message: {
+      fontSize: 14,
+      color: C.textSecondary,
+      textAlign: 'center',
+      lineHeight: 20,
+      marginTop: 2,
+    },
+    hint: {
+      fontSize: 12,
+      color: C.textTertiary,
+      textAlign: 'center',
+      lineHeight: 17,
+    },
+    buttons: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 16,
+      width: '100%',
+    },
+    buttonsStacked: {
+      flexDirection: 'column',
+      gap: 10,
+      marginTop: 16,
+      width: '100%',
+    },
+    cancelBtn: {
+      flex: 1,
+      backgroundColor: C.surface,
+      paddingVertical: 12,
+      borderRadius: 12,
+      alignItems: 'center',
+    },
+    cancelBtnText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: C.text,
+    },
+    primaryBtn: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 12,
+      alignItems: 'center',
+    },
+    primaryBtnText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: C.onAccent,
+    },
+  });

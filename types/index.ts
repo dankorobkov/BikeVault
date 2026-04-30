@@ -110,6 +110,29 @@ export function defaultActivityForBikeType(type: BikeType): StravaActivityType {
   }
 }
 
+/**
+ * How the bike's displayed weight is computed.
+ *
+ *   'manual' — show `bike.weight` as the source of truth and ignore
+ *              components. Use when the user just wants to record a
+ *              weighed-on-a-scale number and doesn't track per-part
+ *              weights.
+ *   'sum'    — display weight = sum of installed components' `weight`.
+ *              Useful when the user has weighed every part and wants
+ *              the bike total to update automatically as parts change.
+ *              `bike.weight` is ignored / unused in this mode.
+ *   'mixed'  — display weight = `bike.weight`, but the UI also surfaces
+ *              the components-sum next to it as a sanity check. Lets
+ *              the user reconcile "what the bike actually weighed on
+ *              the scale" against "what the parts add up to" — the
+ *              delta is the un-tracked stuff (frame, hardware, water
+ *              bottle cage, etc.).
+ *
+ * Older bikes created before this field existed don't have a value.
+ * The `effectiveBikeWeight` helper treats missing as 'manual'.
+ */
+export type BikeWeightMode = 'manual' | 'sum' | 'mixed';
+
 export interface Bike {
   id: string;
   name: string;
@@ -127,6 +150,15 @@ export interface Bike {
    * activities.
    */
   defaultActivity?: StravaActivityType;
+  /**
+   * User-entered bike weight in kilograms. Decimals allowed (e.g.
+   * 8.25). Used directly when `weightMode` is 'manual' or 'mixed';
+   * ignored when 'sum'. Optional — bikes created before this field
+   * existed have no value and the UI shows a "Set weight" prompt.
+   */
+  weight?: number;
+  /** See `BikeWeightMode`. Defaults to 'manual' when missing. */
+  weightMode?: BikeWeightMode;
   createdAt: number;
   updatedAt: number;
 }
@@ -268,6 +300,14 @@ export interface BikeComponent {
    *  the current bike distance to compute km-since-lube without needing
    *  a ride log. */
   lubeDistanceAtLastLube?: number;
+  /**
+   * Component weight in kilograms. Decimals allowed (e.g. 0.25 for a
+   * chain). Optional — most riders don't weigh every part. When set,
+   * contributes to the parent bike's `weightMode='sum'` computation
+   * and is shown on the component card. Stored in kg so the math
+   * against `bike.weight` (also kg) is unit-clean.
+   */
+  weight?: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -338,4 +378,61 @@ export function calcRemainingKm(
 ): number {
   const ridden = Math.max(0, bikeDistance - installDistance);
   return Math.max(0, maxLifespan - ridden);
+}
+
+/**
+ * Sum the `weight` (kg) of every active component installed on this
+ * bike. Skips components without a recorded weight rather than treating
+ * them as 0 — that way the sum honestly represents "weight of the parts
+ * I've actually weighed", and the difference vs a scale-measured bike
+ * weight is the unweighed remainder. Retired and in-stock components
+ * are excluded — they're not on the bike.
+ *
+ * Floating-point sums of decimals (0.25 + 0.31 + …) drift, but only at
+ * the 1e-15 level. We round to 3 decimals on the way out so the UI
+ * doesn't ever surface "0.55999999999998 kg".
+ */
+export function sumComponentWeights(
+  bikeId: string,
+  components: BikeComponent[]
+): number {
+  let total = 0;
+  for (const c of components) {
+    if (c.bikeId !== bikeId) continue;
+    if (c.status !== 'active') continue;
+    if (typeof c.weight === 'number') total += c.weight;
+  }
+  return Math.round(total * 1000) / 1000;
+}
+
+/**
+ * What the bike's "weight" cell should display, given the chosen mode.
+ * Returns `null` when there's nothing meaningful to show — e.g. no
+ * manual weight set and no weighed components — so the UI can fall
+ * back to a "Set weight" prompt instead of rendering 0.
+ */
+export function effectiveBikeWeight(
+  bike: Bike,
+  components: BikeComponent[]
+): number | null {
+  const mode: BikeWeightMode = bike.weightMode ?? 'manual';
+  if (mode === 'sum') {
+    const sum = sumComponentWeights(bike.id, components);
+    return sum > 0 ? sum : null;
+  }
+  // manual / mixed — bike.weight is the source of truth.
+  return typeof bike.weight === 'number' && bike.weight > 0 ? bike.weight : null;
+}
+
+/**
+ * Format a weight in kilograms as a human string. Always kg, up to two
+ * decimals, with trailing zeros stripped so 0.5 kg doesn't read as
+ * "0.50 kg" but 0.25 still reads as "0.25 kg".
+ */
+export function formatWeight(kg: number): string {
+  // toFixed(2) gives "0.50" or "8.25". Strip a trailing zero after the
+  // dot ("0.50" → "0.5"), and strip a dangling dot if the whole thing
+  // rounds to a whole number ("8.00" → "8").
+  const str = kg.toFixed(2).replace(/\.?0+$/, '');
+  return str + ' kg';
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,22 +10,25 @@ import {
 } from 'react-native';
 import { useTopInset } from '../../hooks/useTopInset';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/useAppStore';
 import { addBike } from '../../services/bikesService';
 import { fetchAthlete, getValidToken } from '../../services/stravaService';
 import { Analytics } from '../../services/analytics';
-import { Colors } from '../../constants/colors';
+import { useThemeColors } from '../../theme/ThemeProvider';
+import type { ColorPalette } from '../../constants/colors';
 import BikeCard from '../../components/BikeCard';
 import AddBikeModal from '../../components/AddBikeModal';
 import EmptyState from '../../components/EmptyState';
 import SuccessBanner from '../../components/SuccessBanner';
+import BikeIcon from '../../components/BikeIcon';
 import { defaultActivityForBikeType } from '../../types';
-import type { BikeType, BrakeSystem, StravaActivityType } from '../../types';
+import type { BikeType, BikeWeightMode, BrakeSystem, StravaActivityType } from '../../types';
 
 export default function BikesScreen() {
   const topInset = useTopInset();
   const router = useRouter();
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { userId, bikes, components, isDataLoading, stravaTokens, addBikeLocal } = useAppStore();
 
   const [showAdd, setShowAdd] = useState(false);
@@ -76,6 +79,8 @@ export default function BikesScreen() {
     stravaId?: string;
     totalDistance: number;
     defaultActivity: StravaActivityType;
+    weight?: number;
+    weightMode: BikeWeightMode;
   }) => {
     if (!userId) return;
     const newBike = await addBike(userId, data);
@@ -103,7 +108,7 @@ export default function BikesScreen() {
       <View style={[styles.header, { paddingTop: topInset }]}>
         <Text style={styles.title}>My Bikes</Text>
         <TouchableOpacity onPress={openAddModal} style={styles.addBtn}>
-          <Ionicons name="add" size={22} color={Colors.accent} />
+          <BikeIcon name="add" variant="line" size={22} color={C.accent} />
         </TouchableOpacity>
       </View>
 
@@ -113,14 +118,14 @@ export default function BikesScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.accent}
+            tintColor={C.accent}
           />
         }
       >
         {bikes.length === 0 ? (
           isDataLoading ? (
             <View style={styles.loadingCenter}>
-              <ActivityIndicator size="large" color={Colors.accent} />
+              <ActivityIndicator size="large" color={C.accent} />
             </View>
           ) : (
           <EmptyState
@@ -154,34 +159,35 @@ export default function BikesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: '700',
-    color: Colors.text,
-    letterSpacing: -0.5,
-  },
-  addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.accentDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    flexGrow: 1,
-  },
-  loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80 },
-});
+const makeStyles = (C: ColorPalette) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: C.bg },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 16,
+    },
+    title: {
+      fontSize: 34,
+      fontWeight: '700',
+      color: C.text,
+      letterSpacing: -0.5,
+    },
+    addBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: C.accentDim,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    content: {
+      paddingHorizontal: 20,
+      paddingBottom: 24,
+      flexGrow: 1,
+    },
+    loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80 },
+  });

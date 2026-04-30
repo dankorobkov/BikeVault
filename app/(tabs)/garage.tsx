@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useTopInset } from '../../hooks/useTopInset';
 import { Ionicons } from '@expo/vector-icons';
+import BikeIcon from '../../components/BikeIcon';
 import { useAppStore } from '../../store/useAppStore';
 import {
   retireComponent,
@@ -19,8 +20,13 @@ import {
   updateComponent,
   installOnBike,
 } from '../../services/componentsService';
+import {
+  correctBackdatedInstall,
+  applyBikeTotalSnapshot,
+} from '../../services/backdateCorrection';
 import { Analytics } from '../../services/analytics';
-import { Colors } from '../../constants/colors';
+import { useThemeColors } from '../../theme/ThemeProvider';
+import type { ColorPalette } from '../../constants/colors';
 import { calcWearPercent } from '../../types';
 import type { BikeComponent } from '../../types';
 import ComponentCard from '../../components/ComponentCard';
@@ -41,8 +47,19 @@ const FILTERS: { key: Filter; label: string; icon: string }[] = [
 
 export default function GarageScreen() {
   const topInset = useTopInset();
-  const { userId, bikes, components, isDataLoading, updateComponentLocal, removeComponentLocal, addComponentLocal } =
-    useAppStore();
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  const {
+    userId,
+    bikes,
+    components,
+    stravaTokens,
+    isDataLoading,
+    updateComponentLocal,
+    removeComponentLocal,
+    addComponentLocal,
+    updateBikeLocal,
+  } = useAppStore();
   const [filter, setFilter] = useState<Filter>('all');
   const [sortMode, setSortMode] = useState<SortMode>('wear');
   const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null); // null = all bikes
@@ -133,10 +150,54 @@ export default function GarageScreen() {
     updates: Partial<Omit<BikeComponent, 'id' | 'createdAt'>>
   ) => {
     if (!userId) return;
-    await updateComponent(userId, componentId, updates);
-    updateComponentLocal(componentId, { ...updates, updatedAt: Date.now() });
-    const comp = components.find((c) => c.id === componentId);
-    if (comp) Analytics.editComponent(updates.category ?? comp.category);
+    const existing = components.find((c) => c.id === componentId);
+
+    // Same back-date correction the bike-detail screen runs: when the
+    // user moves installDate into the past, the modal's
+    // `installDistance = bikeKm − prior` doesn't account for rides
+    // between the new install date and today. Without this branch,
+    // editing a component's date in Garage would silently keep the
+    // wrong distance — which is exactly the bug users were hitting.
+    let nextUpdates = updates;
+    const targetBikeId = updates.bikeId ?? existing?.bikeId ?? null;
+    const targetBike = targetBikeId
+      ? bikes.find((b) => b.id === targetBikeId)
+      : undefined;
+    const stayingOnBike =
+      updates.installDistance !== undefined &&
+      updates.installDate !== undefined &&
+      targetBike !== undefined &&
+      // Only correct when the part is staying on the bike it's
+      // already on. Cross-bike moves take their installDistance from
+      // the explicit installOnBike call below, so re-deriving it here
+      // would fight that handoff.
+      (updates.bikeId === undefined || updates.bikeId === existing?.bikeId);
+    if (stayingOnBike) {
+      const correction = await correctBackdatedInstall({
+        userId,
+        bike: targetBike,
+        allBikes: bikes,
+        stravaTokens,
+        rawInstallDistance: updates.installDistance!,
+        staleBikeTotal: targetBike.totalDistance ?? 0,
+        installDate: updates.installDate!,
+      });
+      if (correction.ok) {
+        await applyBikeTotalSnapshot({
+          userId,
+          bike: targetBike,
+          newTotalKm: correction.bikeTotalDistance,
+          updateBikeLocal,
+        });
+        if (correction.installDistance !== updates.installDistance) {
+          nextUpdates = { ...updates, installDistance: correction.installDistance };
+        }
+      }
+    }
+
+    await updateComponent(userId, componentId, nextUpdates);
+    updateComponentLocal(componentId, { ...nextUpdates, updatedAt: Date.now() });
+    if (existing) Analytics.editComponent(nextUpdates.category ?? existing.category);
   };
 
   const handleEditInstallOnBike = async (
@@ -171,6 +232,7 @@ export default function GarageScreen() {
     lubeType?: any;
     lastLubedAt?: number;
     lubeIntervalKm?: number;
+    weight?: number;
   }) => {
     if (!userId) return;
     const newComp = await addComponent(userId, {
@@ -193,6 +255,7 @@ export default function GarageScreen() {
       // Parts added to stock haven't been ridden since the lube was
       // applied, so km-since-lube starts at 0.
       lubeDistanceAtLastLube: data.lubeType ? 0 : undefined,
+      weight: data.weight,
     });
     addComponentLocal(newComp);
     Analytics.addComponent(data.category, data.isElectric);
@@ -210,7 +273,7 @@ export default function GarageScreen() {
       />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: topInset, backgroundColor: Colors.bg }]}>
+      <View style={[styles.header, { paddingTop: topInset, backgroundColor: C.bg }]}>
         <View>
           <Text style={styles.title}>Garage</Text>
         </View>
@@ -235,7 +298,7 @@ export default function GarageScreen() {
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddStock(true)}>
-            <Ionicons name="add" size={20} color={Colors.accent} />
+            <BikeIcon name="add" variant="line" size={20} color={C.accent} />
           </TouchableOpacity>
         </View>
       </View>
@@ -261,7 +324,7 @@ export default function GarageScreen() {
               <Ionicons
                 name={f.icon as any}
                 size={14}
-                color={filter === f.key ? Colors.accent : Colors.textSecondary}
+                color={filter === f.key ? C.accent : C.textSecondary}
               />
               <Text style={[styles.filterText, filter === f.key && styles.filterTextActive]}>
                 {f.label}
@@ -315,7 +378,7 @@ export default function GarageScreen() {
             // Data is still fetching in the background — show a spinner instead
             // of the empty state so it doesn't flash misleadingly.
             <View style={styles.loadingCenter}>
-              <ActivityIndicator size="large" color={Colors.accent} />
+              <ActivityIndicator size="large" color={C.accent} />
             </View>
           ) : (
             <EmptyState
@@ -396,123 +459,125 @@ export default function GarageScreen() {
         onRetire={handleRetire}
         onMoveToStock={handleMoveToStock}
         onInstallOnBike={handleEditInstallOnBike}
+        onDelete={handleDelete}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: '700',
-    color: Colors.text,
-    letterSpacing: -0.5,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 4,
-  },
-  sortToggle: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
-    padding: 2,
-  },
-  sortBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  sortBtnActive: { backgroundColor: Colors.accentDim },
-  sortBtnText: { fontSize: 12, fontWeight: '500', color: Colors.textSecondary },
-  sortBtnTextActive: { color: Colors.accent, fontWeight: '600' },
-  addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.accentDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterWrapper: {
-    flexShrink: 0,
-    flexGrow: 0,
-  },
-  filterScroll: {
-    flexShrink: 0,
-  },
-  bikeFilterWrapper: {
-    flexShrink: 0,
-    flexGrow: 0,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  bikeFilterRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  bikePill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 99,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  bikePillActive: {
-    backgroundColor: Colors.accentDim,
-    borderColor: Colors.accent,
-  },
-  bikePillText: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },
-  bikePillTextActive: { color: Colors.accent, fontWeight: '600' },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    alignItems: 'center',
-  },
-  filterTab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 99,
-    backgroundColor: Colors.surface,
-  },
-  filterTabActive: { backgroundColor: Colors.accentDim },
-  filterText: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },
-  filterTextActive: { color: Colors.accent, fontWeight: '600' },
-  filterBadge: {
-    backgroundColor: Colors.warning,
-    borderRadius: 99,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-  },
-  filterBadgeText: { fontSize: 10, fontWeight: '700', color: Colors.black },
-  content: { paddingHorizontal: 20, paddingBottom: 24, flexGrow: 1 },
-  loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80 },
-  bikeLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    letterSpacing: 0.5,
-    marginBottom: 4,
-    marginTop: 8,
-    textTransform: 'uppercase',
-  },
-});
+const makeStyles = (C: ColorPalette) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: C.bg },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingBottom: 12,
+    },
+    title: {
+      fontSize: 34,
+      fontWeight: '700',
+      color: C.text,
+      letterSpacing: -0.5,
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 4,
+    },
+    sortToggle: {
+      flexDirection: 'row',
+      backgroundColor: C.surface,
+      borderRadius: 10,
+      padding: 2,
+    },
+    sortBtn: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 8,
+    },
+    sortBtnActive: { backgroundColor: C.accentDim },
+    sortBtnText: { fontSize: 12, fontWeight: '500', color: C.textSecondary },
+    sortBtnTextActive: { color: C.accent, fontWeight: '600' },
+    addBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: C.accentDim,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    filterWrapper: {
+      flexShrink: 0,
+      flexGrow: 0,
+    },
+    filterScroll: {
+      flexShrink: 0,
+    },
+    bikeFilterWrapper: {
+      flexShrink: 0,
+      flexGrow: 0,
+      borderTopWidth: 1,
+      borderTopColor: C.border,
+    },
+    bikeFilterRow: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    bikePill: {
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      borderRadius: 99,
+      backgroundColor: C.surface,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    bikePillActive: {
+      backgroundColor: C.accentDim,
+      borderColor: C.accent,
+    },
+    bikePillText: { fontSize: 13, fontWeight: '500', color: C.textSecondary },
+    bikePillTextActive: { color: C.accent, fontWeight: '600' },
+    filterRow: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingHorizontal: 20,
+      paddingBottom: 16,
+      alignItems: 'center',
+    },
+    filterTab: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 99,
+      backgroundColor: C.surface,
+    },
+    filterTabActive: { backgroundColor: C.accentDim },
+    filterText: { fontSize: 13, fontWeight: '500', color: C.textSecondary },
+    filterTextActive: { color: C.accent, fontWeight: '600' },
+    filterBadge: {
+      backgroundColor: C.warning,
+      borderRadius: 99,
+      paddingHorizontal: 5,
+      paddingVertical: 1,
+    },
+    filterBadgeText: { fontSize: 10, fontWeight: '700', color: C.black },
+    content: { paddingHorizontal: 20, paddingBottom: 24, flexGrow: 1 },
+    loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80 },
+    bikeLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: C.textSecondary,
+      letterSpacing: 0.5,
+      marginBottom: 4,
+      marginTop: 8,
+      textTransform: 'uppercase',
+    },
+  });

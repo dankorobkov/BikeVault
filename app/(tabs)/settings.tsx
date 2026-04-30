@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,10 @@ import { useTopInset } from '../../hooks/useTopInset';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
+import BikeIcon from '../../components/BikeIcon';
+import ThemeToggle from '../../components/ThemeToggle';
+import { useThemeColors } from '../../theme/ThemeProvider';
+import type { ColorPalette } from '../../constants/colors';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { signOut as firebaseSignOut } from 'firebase/auth';
@@ -33,7 +37,6 @@ import {
   fireTestNotification,
 } from '../../services/notifications';
 import { STRAVA_CONFIG } from '../../config/strava';
-import { Colors } from '../../constants/colors';
 import {
   STRAVA_ACTIVITY_LABELS,
   STRAVA_ACTIVITY_ICONS,
@@ -61,6 +64,8 @@ const STRAVA_ACTIVITIES = Object.entries(STRAVA_ACTIVITY_LABELS) as [
 
 export default function SettingsScreen() {
   const topInset = useTopInset();
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const {
     userId,
     isAnonymous,
@@ -371,6 +376,36 @@ export default function SettingsScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
 
+        {/* Appearance — theme picker. 'Auto' follows the device's
+            system appearance; 'Light' / 'Dark' force a scheme. The
+            choice is persisted across launches. */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>APPEARANCE</Text>
+          <View style={styles.card}>
+            <View style={styles.themeRow}>
+              <View style={styles.rowLeft}>
+                <View style={styles.themeIconBox}>
+                  <BikeIcon
+                    name="parts"
+                    variant="fill"
+                    size={20}
+                    color={C.accent}
+                    accent={C.accent}
+                    hole={C.card}
+                  />
+                </View>
+                <View>
+                  <Text style={styles.rowTitle}>Theme</Text>
+                  <Text style={styles.rowSub}>
+                    Auto follows your device. Light and Dark force a scheme.
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <ThemeToggle />
+          </View>
+        </View>
+
         {/* Account section */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>ACCOUNT</Text>
@@ -380,7 +415,7 @@ export default function SettingsScreen() {
                 <Image source={{ uri: userPhotoUrl }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={22} color={Colors.accent} />
+                  <Ionicons name="person" size={22} color={C.accent} />
                 </View>
               )}
               <View style={styles.accountInfo}>
@@ -398,7 +433,7 @@ export default function SettingsScreen() {
               </View>
               {!isAnonymous && (
                 <View style={styles.googleBadge}>
-                  <Ionicons name="logo-google" size={12} color={Colors.textSecondary} />
+                  <Ionicons name="logo-google" size={12} color={C.textSecondary} />
                   <Text style={styles.googleBadgeText}>Google</Text>
                 </View>
               )}
@@ -408,12 +443,12 @@ export default function SettingsScreen() {
 
             <TouchableOpacity style={styles.row} onPress={handleSignOut}>
               <View style={styles.rowLeft}>
-                <Ionicons name="log-out-outline" size={20} color={Colors.danger} />
-                <Text style={[styles.rowTitle, { color: Colors.danger }]}>
+                <Ionicons name="log-out-outline" size={20} color={C.danger} />
+                <Text style={[styles.rowTitle, { color: C.danger }]}>
                   {isAnonymous ? 'Leave Anonymous Session' : 'Sign Out'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+              <Ionicons name="chevron-forward" size={18} color={C.textTertiary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -430,7 +465,7 @@ export default function SettingsScreen() {
                       {athleteAvatar ? (
                         <Image source={{ uri: athleteAvatar }} style={styles.stravaAvatar} />
                       ) : (
-                        <Ionicons name="person-circle-outline" size={36} color={Colors.accent} />
+                        <Ionicons name="person-circle-outline" size={36} color={C.accent} />
                       )}
                     </View>
                     <View style={styles.stravaInfo}>
@@ -446,7 +481,7 @@ export default function SettingsScreen() {
 
                   <TouchableOpacity style={styles.row} onPress={handleSync} disabled={isSyncing}>
                     <View style={styles.rowLeft}>
-                      <Ionicons name="sync-outline" size={20} color={Colors.accent} />
+                      <Ionicons name="sync-outline" size={20} color={C.accent} />
                       <View>
                         <Text style={styles.rowTitle}>Sync Activities</Text>
                         <Text style={styles.rowSub}>
@@ -457,9 +492,9 @@ export default function SettingsScreen() {
                       </View>
                     </View>
                     {isSyncing ? (
-                      <ActivityIndicator color={Colors.accent} size="small" />
+                      <ActivityIndicator color={C.accent} size="small" />
                     ) : (
-                      <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+                      <Ionicons name="chevron-forward" size={18} color={C.textTertiary} />
                     )}
                   </TouchableOpacity>
 
@@ -467,18 +502,18 @@ export default function SettingsScreen() {
 
                   <TouchableOpacity style={styles.row} onPress={handleDisconnect}>
                     <View style={styles.rowLeft}>
-                      <Ionicons name="unlink-outline" size={20} color={Colors.danger} />
-                      <Text style={[styles.rowTitle, { color: Colors.danger }]}>
+                      <Ionicons name="unlink-outline" size={20} color={C.danger} />
+                      <Text style={[styles.rowTitle, { color: C.danger }]}>
                         Disconnect Strava
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+                    <Ionicons name="chevron-forward" size={18} color={C.textTertiary} />
                   </TouchableOpacity>
                 </>
               ) : (
                 <View style={styles.connectBox}>
                   <View style={styles.stravaIconBox}>
-                    <Ionicons name="fitness-outline" size={28} color={Colors.accent} />
+                    <Ionicons name="fitness-outline" size={28} color={C.accent} />
                   </View>
                   <Text style={styles.connectTitle}>Connect Strava</Text>
                   <Text style={styles.connectSub}>
@@ -490,10 +525,10 @@ export default function SettingsScreen() {
                     disabled={connecting || !request}
                   >
                     {connecting ? (
-                      <ActivityIndicator color={Colors.white} />
+                      <ActivityIndicator color={C.white} />
                     ) : (
                       <>
-                        <Ionicons name="flash-outline" size={18} color={Colors.white} />
+                        <Ionicons name="flash-outline" size={18} color={C.white} />
                         <Text style={styles.connectBtnText}>Connect with Strava</Text>
                       </>
                     )}
@@ -516,7 +551,7 @@ export default function SettingsScreen() {
             {/* Master toggle */}
             <View style={styles.switchRow}>
               <View style={styles.rowLeft}>
-                <Ionicons name="notifications-outline" size={20} color={Colors.accent} />
+                <Ionicons name="notifications-outline" size={20} color={C.accent} />
                 <View>
                   <Text style={styles.rowTitle}>Enable Notifications</Text>
                   <Text style={styles.rowSub}>Reminders for wear, maintenance & batteries</Text>
@@ -525,8 +560,8 @@ export default function SettingsScreen() {
               <Switch
                 value={notificationPrefs.enabled}
                 onValueChange={handleToggleNotifications}
-                trackColor={{ true: Colors.accent, false: Colors.border }}
-                thumbColor={Colors.white}
+                trackColor={{ true: C.accent, false: C.border }}
+                thumbColor={C.white}
               />
             </View>
 
@@ -557,8 +592,8 @@ export default function SettingsScreen() {
                           size={20}
                           color={
                             notifPermission === 'denied'
-                              ? Colors.danger
-                              : Colors.warning
+                              ? C.danger
+                              : C.warning
                           }
                         />
                         <View style={{ flex: 1 }}>
@@ -582,7 +617,7 @@ export default function SettingsScreen() {
                         <Ionicons
                           name="chevron-forward"
                           size={18}
-                          color={Colors.textTertiary}
+                          color={C.textTertiary}
                         />
                       )}
                     </TouchableOpacity>
@@ -592,7 +627,7 @@ export default function SettingsScreen() {
                 <View style={styles.divider} />
                 <View style={styles.switchRow}>
                   <View style={styles.rowLeft}>
-                    <Ionicons name="water-outline" size={20} color={Colors.textSecondary} />
+                    <Ionicons name="water-outline" size={20} color={C.textSecondary} />
                     <View>
                       <Text style={styles.rowTitle}>Chain Lube Reminder</Text>
                       <Text style={styles.rowSub}>When a chain passes its re-lube interval</Text>
@@ -601,15 +636,15 @@ export default function SettingsScreen() {
                   <Switch
                     value={notificationPrefs.chainLube}
                     onValueChange={(v) => setNotificationPrefs({ chainLube: v })}
-                    trackColor={{ true: Colors.accent, false: Colors.border }}
-                    thumbColor={Colors.white}
+                    trackColor={{ true: C.accent, false: C.border }}
+                    thumbColor={C.white}
                   />
                 </View>
 
                 <View style={styles.divider} />
                 <View style={styles.switchRow}>
                   <View style={styles.rowLeft}>
-                    <Ionicons name="warning-outline" size={20} color={Colors.textSecondary} />
+                    <Ionicons name="warning-outline" size={20} color={C.textSecondary} />
                     <View>
                       <Text style={styles.rowTitle}>Wear & Service Alerts</Text>
                       <Text style={styles.rowSub}>
@@ -620,8 +655,8 @@ export default function SettingsScreen() {
                   <Switch
                     value={notificationPrefs.componentWear}
                     onValueChange={(v) => setNotificationPrefs({ componentWear: v })}
-                    trackColor={{ true: Colors.accent, false: Colors.border }}
-                    thumbColor={Colors.white}
+                    trackColor={{ true: C.accent, false: C.border }}
+                    thumbColor={C.white}
                   />
                 </View>
 
@@ -636,14 +671,14 @@ export default function SettingsScreen() {
                         <Ionicons
                           name="send-outline"
                           size={20}
-                          color={Colors.accent}
+                          color={C.accent}
                         />
                         <Text style={styles.rowTitle}>Send test notification</Text>
                       </View>
                       <Ionicons
                         name="chevron-forward"
                         size={18}
-                        color={Colors.textTertiary}
+                        color={C.textTertiary}
                       />
                     </TouchableOpacity>
                   </>
@@ -681,7 +716,7 @@ export default function SettingsScreen() {
                         <View
                           style={[
                             styles.bikeDot,
-                            { backgroundColor: bike.color ?? Colors.accent },
+                            { backgroundColor: bike.color ?? C.accent },
                           ]}
                         />
                         <View style={{ flex: 1 }}>
@@ -697,12 +732,12 @@ export default function SettingsScreen() {
                         <Ionicons
                           name={STRAVA_ACTIVITY_ICONS[current] as any}
                           size={14}
-                          color={Colors.accent}
+                          color={C.accent}
                         />
                         <Ionicons
                           name={expanded ? 'chevron-up' : 'chevron-down'}
                           size={16}
-                          color={Colors.textTertiary}
+                          color={C.textTertiary}
                         />
                       </View>
                     </TouchableOpacity>
@@ -737,10 +772,10 @@ export default function SettingsScreen() {
                                 size={13}
                                 color={
                                   active
-                                    ? Colors.accent
+                                    ? C.accent
                                     : taken
-                                    ? Colors.textTertiary
-                                    : Colors.textSecondary
+                                    ? C.textTertiary
+                                    : C.textSecondary
                                 }
                                 style={styles.chipIcon}
                               />
@@ -775,7 +810,7 @@ export default function SettingsScreen() {
           <View style={styles.card}>
             <View style={styles.row}>
               <View style={styles.rowLeft}>
-                <Ionicons name="bicycle-outline" size={20} color={Colors.accent} />
+                <Ionicons name="bicycle-outline" size={20} color={C.accent} />
                 <Text style={styles.rowTitle}>BikeVault</Text>
               </View>
               <Text style={styles.rowSub}>v0.2</Text>
@@ -783,7 +818,7 @@ export default function SettingsScreen() {
             <View style={styles.divider} />
             <View style={styles.row}>
               <View style={styles.rowLeft}>
-                <Ionicons name="information-circle-outline" size={20} color={Colors.textSecondary} />
+                <Ionicons name="information-circle-outline" size={20} color={C.textSecondary} />
                 <Text style={styles.rowTitle}>How wear is calculated</Text>
               </View>
             </View>
@@ -804,9 +839,9 @@ export default function SettingsScreen() {
                 disabled={deleting}
               >
                 <View style={styles.rowLeft}>
-                  <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+                  <Ionicons name="trash-outline" size={20} color={C.danger} />
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.rowTitle, { color: Colors.danger }]}>
+                    <Text style={[styles.rowTitle, { color: C.danger }]}>
                       Delete Account & Data
                     </Text>
                     <Text style={styles.rowSub}>
@@ -815,9 +850,9 @@ export default function SettingsScreen() {
                   </View>
                 </View>
                 {deleting ? (
-                  <ActivityIndicator color={Colors.danger} size="small" />
+                  <ActivityIndicator color={C.danger} size="small" />
                 ) : (
-                  <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+                  <Ionicons name="chevron-forward" size={18} color={C.textTertiary} />
                 )}
               </TouchableOpacity>
             </View>
@@ -831,17 +866,17 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg },
+const makeStyles = (C: ColorPalette) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.bg },
   header: {
     paddingHorizontal: 20,
     paddingBottom: 16,
   },
-  title: { fontSize: 34, fontWeight: '700', color: Colors.text, letterSpacing: -0.5 },
+  title: { fontSize: 34, fontWeight: '700', color: C.text, letterSpacing: -0.5 },
   content: { padding: 20, gap: 24, paddingBottom: 40 },
   section: { gap: 10 },
-  sectionLabel: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary, letterSpacing: 1 },
-  card: { backgroundColor: Colors.card, borderRadius: 16, overflow: 'hidden' },
+  sectionLabel: { fontSize: 11, fontWeight: '600', color: C.textSecondary, letterSpacing: 1 },
+  card: { backgroundColor: C.card, borderRadius: 16, overflow: 'hidden' },
 
   accountRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   avatar: { width: 48, height: 48, borderRadius: 24 },
@@ -849,23 +884,23 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.accentDim,
+    backgroundColor: C.accentDim,
     alignItems: 'center',
     justifyContent: 'center',
   },
   accountInfo: { flex: 1 },
-  accountName: { fontSize: 16, fontWeight: '600', color: Colors.text },
-  accountEmail: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
+  accountName: { fontSize: 16, fontWeight: '600', color: C.text },
+  accountEmail: { fontSize: 13, color: C.textSecondary, marginTop: 2 },
   googleBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 99,
   },
-  googleBadgeText: { fontSize: 11, color: Colors.textSecondary, fontWeight: '500' },
+  googleBadgeText: { fontSize: 11, color: C.textSecondary, fontWeight: '500' },
 
   stravaRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   stravaLogo: {
@@ -875,16 +910,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.accentDim,
+    backgroundColor: C.accentDim,
   },
   stravaAvatar: { width: 44, height: 44 },
   stravaInfo: { flex: 1, gap: 4 },
-  stravaName: { fontSize: 16, fontWeight: '600', color: Colors.text },
+  stravaName: { fontSize: 16, fontWeight: '600', color: C.text },
   connectedBadge: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  dot: { width: 7, height: 7, borderRadius: 99, backgroundColor: Colors.good },
-  connectedText: { fontSize: 13, color: Colors.good, fontWeight: '500' },
+  dot: { width: 7, height: 7, borderRadius: 99, backgroundColor: C.good },
+  connectedText: { fontSize: 13, color: C.good, fontWeight: '500' },
 
-  divider: { height: 1, backgroundColor: Colors.border, marginLeft: 16 },
+  divider: { height: 1, backgroundColor: C.border, marginLeft: 16 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -899,36 +934,36 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  rowTitle: { fontSize: 15, fontWeight: '500', color: Colors.text },
-  rowSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  rowTitle: { fontSize: 15, fontWeight: '500', color: C.text },
+  rowSub: { fontSize: 12, color: C.textSecondary, marginTop: 2 },
 
   connectBox: { padding: 24, alignItems: 'center', gap: 10 },
   stravaIconBox: {
     width: 60,
     height: 60,
     borderRadius: 16,
-    backgroundColor: Colors.accentDim,
+    backgroundColor: C.accentDim,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
-  connectTitle: { fontSize: 18, fontWeight: '700', color: Colors.text },
-  connectSub: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 20 },
+  connectTitle: { fontSize: 18, fontWeight: '700', color: C.text },
+  connectSub: { fontSize: 14, color: C.textSecondary, textAlign: 'center', lineHeight: 20 },
   connectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: Colors.accent,
+    backgroundColor: C.accent,
     paddingHorizontal: 24,
     paddingVertical: 13,
     borderRadius: 14,
     marginTop: 6,
   },
   connectBtnDisabled: { opacity: 0.5 },
-  connectBtnText: { fontSize: 15, fontWeight: '700', color: Colors.white },
-  connectComingSoon: { fontSize: 12, color: Colors.textTertiary, textAlign: 'center', marginTop: 2 },
+  connectBtnText: { fontSize: 15, fontWeight: '700', color: C.white },
+  connectComingSoon: { fontSize: 12, color: C.textTertiary, textAlign: 'center', marginTop: 2 },
 
-  hint: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18, paddingHorizontal: 4 },
+  hint: { fontSize: 13, color: C.textSecondary, lineHeight: 18, paddingHorizontal: 4 },
 
   // Default-activity picker rows
   activityRow: {
@@ -943,7 +978,7 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: C.border,
   },
   activityCurrent: {
     flexDirection: 'row',
@@ -963,14 +998,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 99,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: C.border,
   },
   chipIcon: { marginRight: 6 },
-  chipActive: { backgroundColor: Colors.accentDim, borderColor: Colors.accent },
+  chipActive: { backgroundColor: C.accentDim, borderColor: C.accent },
   chipDisabled: { opacity: 0.35 },
-  chipText: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },
-  chipTextActive: { color: Colors.accent },
-  chipTextDisabled: { color: Colors.textTertiary },
+  chipText: { fontSize: 13, fontWeight: '500', color: C.textSecondary },
+  chipTextActive: { color: C.accent },
+  chipTextDisabled: { color: C.textTertiary },
+
+  // Appearance section
+  themeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 16,
+    paddingBottom: 0,
+  },
+  themeIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: C.accentDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

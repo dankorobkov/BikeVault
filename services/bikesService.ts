@@ -12,7 +12,13 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { defaultActivityForBikeType } from '../types';
-import type { Bike, BikeType, BrakeSystem, StravaActivityType } from '../types';
+import type {
+  Bike,
+  BikeType,
+  BikeWeightMode,
+  BrakeSystem,
+  StravaActivityType,
+} from '../types';
 
 function bikesRef(userId: string) {
   return collection(db, 'users', userId, 'bikes');
@@ -39,6 +45,8 @@ function fromFirestore(d: { id: string; data: () => Record<string, unknown> }): 
     defaultActivity:
       (data.defaultActivity as StravaActivityType) ??
       defaultActivityForBikeType(type),
+    weight: (data.weight as number) ?? undefined,
+    weightMode: (data.weightMode as BikeWeightMode) ?? undefined,
     createdAt:
       data.createdAt instanceof Timestamp
         ? data.createdAt.toMillis()
@@ -76,6 +84,8 @@ export async function addBike(
     updatedAt: serverTimestamp(),
   };
   if (bike.stravaId) data.stravaId = bike.stravaId;
+  if (typeof bike.weight === 'number' && bike.weight > 0) data.weight = bike.weight;
+  if (bike.weightMode) data.weightMode = bike.weightMode;
 
   const ref = await addDoc(bikesRef(userId), data);
   const now = Date.now();

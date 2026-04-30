@@ -58,6 +58,7 @@ function fromFirestore(d: { id: string; data: () => Record<string, unknown> }): 
     lubeIntervalKm: (data.lubeIntervalKm as number) ?? undefined,
     lubeDistanceAtLastLube:
       (data.lubeDistanceAtLastLube as number) ?? undefined,
+    weight: (data.weight as number) ?? undefined,
     createdAt:
       data.createdAt instanceof Timestamp
         ? data.createdAt.toMillis()
@@ -120,6 +121,9 @@ export async function addComponent(
     // 0 is a valid value (component lubed at the time of install), so
     // explicitly gate on `!== undefined` rather than truthiness.
     data.lubeDistanceAtLastLube = component.lubeDistanceAtLastLube;
+  }
+  if (typeof component.weight === 'number' && component.weight > 0) {
+    data.weight = component.weight;
   }
 
   const ref = await addDoc(componentsRef(userId), data);

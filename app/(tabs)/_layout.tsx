@@ -1,8 +1,8 @@
 import { Tabs, usePathname } from 'expo-router';
-import { useEffect } from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
-import { Colors } from '../../constants/colors';
+import BikeIcon, { type BikeIconName } from '../../components/BikeIcon';
+import { useThemeColors } from '../../theme/ThemeProvider';
 import { Analytics } from '../../services/analytics';
 
 function ScreenViewTracker() {
@@ -22,7 +22,27 @@ function ScreenViewTracker() {
   return null;
 }
 
+/**
+ * Tab-bar icon factory — renders the new BikeIcon set, switching the
+ * line variant for inactive tabs and the filled variant for the
+ * active one. Matches the Apex spec: outline → filled when selected.
+ */
+const tabIcon =
+  (name: BikeIconName) =>
+  ({ color, focused }: { color: string; focused: boolean }) =>
+    (
+      <BikeIcon
+        name={name}
+        variant={focused ? 'fill' : 'line'}
+        size={24}
+        color={color}
+        accent={color}
+      />
+    );
+
 export default function TabsLayout() {
+  const C = useThemeColors();
+
   return (
     <>
       <ScreenViewTracker />
@@ -31,15 +51,15 @@ export default function TabsLayout() {
         // Each tab screen manages its own title; disable Navigator-level header
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.surface,
-          borderTopColor: Colors.border,
+          backgroundColor: C.surface,
+          borderTopColor: C.border,
           borderTopWidth: 1,
           height: Platform.OS === 'web' ? 60 : 88,
           paddingBottom: Platform.OS === 'web' ? 8 : 28,
           paddingTop: 10,
         },
-        tabBarActiveTintColor: Colors.accent,
-        tabBarInactiveTintColor: Colors.textTertiary,
+        tabBarActiveTintColor: C.accent,
+        tabBarInactiveTintColor: C.textTertiary,
         tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
       }}
     >
@@ -47,27 +67,21 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Bikes',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bicycle-outline" size={size} color={color} />
-          ),
+          tabBarIcon: tabIcon('bike'),
         }}
       />
       <Tabs.Screen
         name="garage"
         options={{
           title: 'Garage',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="construct-outline" size={size} color={color} />
-          ),
+          tabBarIcon: tabIcon('garage'),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
-          ),
+          tabBarIcon: tabIcon('settings'),
         }}
       />
     </Tabs>

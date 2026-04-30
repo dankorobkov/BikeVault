@@ -310,6 +310,66 @@ export const COMPONENT_TYPES: Record<ComponentCategory, ComponentTypeInfo> = {
   },
 };
 
+/**
+ * Maps each component category to a BikeIcon name from the new Apex
+ * icon set. Falls back to `'wrench'` for anything not covered. Keep
+ * this in lockstep with the `BikeIconName` union in
+ * components/BikeIcon.tsx.
+ */
+export const COMPONENT_BIKE_ICON: Record<ComponentCategory, string> = {
+  // Drivetrain
+  chain: 'chain',
+  cassette: 'cassette',
+  chainring: 'drivetrain',
+  'pulley-wheel': 'drivetrain',
+  'left-shifter': 'cockpit',
+  'right-shifter': 'cockpit',
+  'front-derailleur': 'drivetrain',
+  'rear-derailleur': 'drivetrain',
+  'bottom-bracket': 'drivetrain',
+  crankset: 'drivetrain',
+  'di2-battery': 'wrench',
+  'front-shift-cable': 'wrench',
+  'rear-shift-cable': 'wrench',
+  // Brakes
+  'front-disc-rotor': 'brakes',
+  'front-brake-pads': 'brakes',
+  'rear-disc-rotor': 'brakes',
+  'rear-brake-pads': 'brakes',
+  'front-brake-cable': 'brakes',
+  'rear-brake-cable': 'brakes',
+  // Front wheel
+  'front-hub': 'wheel',
+  'front-rim': 'wheel',
+  'front-spokes': 'wheel',
+  'front-tyre': 'wheel',
+  'front-tube': 'wheel',
+  'front-tubeless-sealant': 'wheel',
+  // Rear wheel
+  'rear-hub': 'wheel',
+  'rear-rim': 'wheel',
+  'rear-spokes': 'wheel',
+  'rear-tyre': 'wheel',
+  'rear-tube': 'wheel',
+  'rear-tubeless-sealant': 'wheel',
+  // Frame & cockpit
+  fork: 'fork',
+  frame: 'frame',
+  saddle: 'saddle',
+  'saddle-post': 'saddle',
+  stem: 'cockpit',
+  'headset-bearings': 'cockpit',
+  handlebar: 'cockpit',
+  pedals: 'pedals',
+  'bar-tape': 'cockpit',
+  // Sensors
+  'speed-sensor': 'rides',
+  'cadence-sensor': 'rides',
+  'power-meter': 'rides',
+  // Other
+  other: 'wrench',
+};
+
 export const COMPONENT_GROUP_LABELS: Record<ComponentGroup | 'other', string> = {
   drivetrain: 'Drivetrain',
   brakes: 'Brakes',

@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+<defs>
+
+<symbol id="garage-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+<rect x="4" y="4" width="7" height="7" rx="1.5"/>
+<rect x="13" y="4" width="7" height="7" rx="1.5"/>
+<rect x="4" y="13" width="7" height="7" rx="1.5"/>
+<rect x="13" y="13" width="7" height="7" rx="1.5"/>
+</g>
+</symbol>
+<symbol id="garage-fill" viewBox="0 0 24 24">
+<rect x="4" y="4" width="7" height="7" rx="1.5" fill="currentColor"/>
+<rect x="13" y="4" width="7" height="7" rx="1.5" fill="#FF4936"/>
+<rect x="4" y="13" width="7" height="7" rx="1.5" fill="currentColor"/>
+<rect x="13" y="13" width="7" height="7" rx="1.5" fill="currentColor"/>
+</symbol>
+
+<symbol id="bike-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="6" cy="17.5" r="3.5"/>
+<circle cx="18" cy="17.5" r="3.5"/>
+<circle cx="14.5" cy="5.5" r="1"/>
+<path d="M12 17.5V14L9 11L13 8L15 11H17"/>
+</g>
+</symbol>
+<symbol id="bike-fill" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="6" cy="17.5" r="3.5"/>
+<circle cx="18" cy="17.5" r="3.5"/>
+<path d="M12 17.5V14L9 11L13 8L15 11H17"/>
+</g>
+<circle cx="14.5" cy="5.5" r="1.6" fill="#FF4936"/>
+</symbol>
+
+<symbol id="parts-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M12 3 L20 7.5 L20 16.5 L12 21 L4 16.5 L4 7.5 Z"/>
+<path d="M4 7.5 L12 12 L20 7.5 M12 12 L12 21"/>
+</g>
+</symbol>
+<symbol id="parts-fill" viewBox="0 0 24 24">
+<path d="M12 3 L20 7.5 L20 16.5 L12 21 L4 16.5 L4 7.5 Z" fill="currentColor"/>
+<path d="M4 7.5 L12 12 L20 7.5 M12 12 L12 21" fill="none" style="stroke:var(--color-background-primary,#fff)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="10" cy="15.5" r="1.5" fill="#FF4936"/>
+</symbol>
+
+<symbol id="wrench-line" viewBox="0 0 24 24">
+<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+</symbol>
+<symbol id="wrench-fill" viewBox="0 0 24 24">
+<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" fill="currentColor"/>
+</symbol>
+
+<symbol id="rides-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M3 19 L9 13 L13 17 L21 9"/>
+<path d="M16 9 H21 V14"/>
+</g>
+</symbol>
+<symbol id="rides-fill" viewBox="0 0 24 24">
+<path d="M3 19 L9 13 L13 17 L21 9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M16 9 H21 V14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="21" cy="9" r="2.5" fill="#FF4936"/>
+</symbol>
+
+<symbol id="profile-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="12" cy="8" r="3.5"/>
+<path d="M5 20 a7 7 0 0 1 14 0"/>
+</g>
+</symbol>
+<symbol id="profile-fill" viewBox="0 0 24 24">
+<circle cx="12" cy="8" r="3.5" fill="currentColor"/>
+<path d="M5 20 a7 7 0 0 1 14 0 V21 H5 Z" fill="currentColor"/>
+</symbol>
+
+<symbol id="add-line" viewBox="0 0 24 24">
+<path d="M12 5 V19 M5 12 H19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</symbol>
+<symbol id="add-fill" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9" fill="#FF4936"/>
+<path d="M12 8 V16 M8 12 H16" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+</symbol>
+
+<symbol id="search-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="10.5" cy="10.5" r="6.5"/>
+<path d="M15.5 15.5 L20 20"/>
+</g>
+</symbol>
+<symbol id="search-fill" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="10.5" cy="10.5" r="6.5"/>
+<path d="M15.5 15.5 L20 20"/>
+</g>
+<circle cx="10.5" cy="10.5" r="3" fill="#FF4936"/>
+</symbol>
+
+<symbol id="filter-line" viewBox="0 0 24 24">
+<path d="M4 5 H20 L14 13 V20 L10 18 V13 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+</symbol>
+<symbol id="filter-fill" viewBox="0 0 24 24">
+<path d="M4 5 H20 L14 13 V20 L10 18 V13 Z" fill="currentColor"/>
+</symbol>
+
+<symbol id="sort-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M8 6 V19 M5 9 L8 6 L11 9"/>
+<path d="M16 18 V5 M13 15 L16 18 L19 15"/>
+</g>
+</symbol>
+<symbol id="sort-fill" viewBox="0 0 24 24">
+<g fill="currentColor">
+<path d="M8 4 L4 9 H7 V20 H9 V9 H12 Z"/>
+<path d="M16 20 L20 15 H17 V4 H15 V15 H12 Z"/>
+</g>
+</symbol>
+
+<symbol id="edit-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+<path d="M15 5 L19 9"/>
+</g>
+</symbol>
+<symbol id="edit-fill" viewBox="0 0 24 24">
+<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" fill="currentColor"/>
+<path d="M15 5 L19 9" fill="none" stroke="#FF4936" stroke-width="1.6" stroke-linecap="round"/>
+</symbol>
+
+<symbol id="delete-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M3 6 H21"/>
+<path d="M8 6 V4 a1 1 0 0 1 1 -1 H15 a1 1 0 0 1 1 1 V6"/>
+<path d="M5 6 V20 a2 2 0 0 0 2 2 H17 a2 2 0 0 0 2 -2 V6"/>
+<path d="M10 11 V17 M14 11 V17"/>
+</g>
+</symbol>
+<symbol id="delete-fill" viewBox="0 0 24 24">
+<path d="M5 6 V20 a2 2 0 0 0 2 2 H17 a2 2 0 0 0 2 -2 V6 Z" fill="currentColor"/>
+<path d="M8 6 V4 a1 1 0 0 1 1 -1 H15 a1 1 0 0 1 1 1 V6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="3" y="5" width="18" height="2" rx="1" fill="currentColor"/>
+<g stroke="#FF4936" stroke-width="1.6" stroke-linecap="round" fill="none">
+<path d="M10 11 V17 M14 11 V17"/>
+</g>
+</symbol>
+
+<symbol id="settings-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M3 6 H21 M3 12 H21 M3 18 H21"/>
+<circle cx="9" cy="6" r="2" style="fill:var(--color-background-primary,#fff)"/>
+<circle cx="15" cy="12" r="2" style="fill:var(--color-background-primary,#fff)"/>
+<circle cx="7" cy="18" r="2" style="fill:var(--color-background-primary,#fff)"/>
+</g>
+</symbol>
+<symbol id="settings-fill" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+<path d="M3 6 H21 M3 12 H21 M3 18 H21"/>
+</g>
+<circle cx="9" cy="6" r="2.2" fill="currentColor"/>
+<circle cx="15" cy="12" r="2.2" fill="#FF4936"/>
+<circle cx="7" cy="18" r="2.2" fill="currentColor"/>
+</symbol>
+
+<symbol id="bell-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M6 8 a6 6 0 0 1 12 0 c0 7 3 9 3 9 H3 s3 -2 3 -9"/>
+<path d="M10.3 21 a2 2 0 0 0 3.4 0"/>
+</g>
+</symbol>
+<symbol id="bell-fill" viewBox="0 0 24 24">
+<path d="M6 8 a6 6 0 0 1 12 0 c0 7 3 9 3 9 H3 s3 -2 3 -9 Z" fill="currentColor"/>
+<path d="M10.3 21 a2 2 0 0 0 3.4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<circle cx="18" cy="6" r="2.6" fill="#FF4936"/>
+</symbol>
+
+<symbol id="sync-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M21 12 A9 9 0 1 1 12 3"/>
+<path d="M21 3 V8 H16"/>
+</g>
+</symbol>
+<symbol id="sync-fill" viewBox="0 0 24 24">
+<path d="M21 12 A9 9 0 1 1 12 3" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M21 3 V8 H16" fill="none" stroke="#FF4936" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+</symbol>
+
+<symbol id="frame-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M9 8 L18 8 L11 18 Z"/>
+<path d="M11 18 L4 18 M11 18 L20 18"/>
+</g>
+</symbol>
+<symbol id="frame-fill" viewBox="0 0 24 24">
+<path d="M9 8 L18 8 L11 18 Z" fill="currentColor"/>
+<rect x="4" y="17" width="16" height="2" rx="1" fill="currentColor"/>
+</symbol>
+
+<symbol id="fork-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M12 3 V10 M12 10 L7 19 M12 10 L17 19"/>
+<path d="M9 3 H15"/>
+</g>
+</symbol>
+<symbol id="fork-fill" viewBox="0 0 24 24">
+<path d="M9 2 H15 V4 H13 V10.5 L18 19.5 L16 21 L12 12 L8 21 L6 19.5 L11 10.5 V4 H9 Z" fill="currentColor"/>
+</symbol>
+
+<symbol id="wheel-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="12" cy="12" r="9"/>
+<circle cx="12" cy="12" r="2"/>
+<path d="M12 3 V21 M3 12 H21"/>
+</g>
+</symbol>
+<symbol id="wheel-fill" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9" fill="currentColor"/>
+<g stroke="#FFFFFF" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.95">
+<path d="M12 4 V20 M4 12 H20"/>
+</g>
+<circle cx="12" cy="12" r="2.2" fill="#FF4936"/>
+</symbol>
+
+<symbol id="drivetrain-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="12" cy="12" r="7"/>
+<circle cx="12" cy="12" r="2.5"/>
+<path d="M12 5 V7 M19 12 H17 M12 19 V17 M5 12 H7 M16.95 7.05 L15.5 8.5 M16.95 16.95 L15.5 15.5 M7.05 16.95 L8.5 15.5 M7.05 7.05 L8.5 8.5"/>
+</g>
+</symbol>
+<symbol id="drivetrain-fill" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="7.5" fill="currentColor"/>
+<circle cx="12" cy="12" r="2.5" style="fill:var(--color-background-primary,#fff)"/>
+<circle cx="12" cy="12" r="1" fill="#FF4936"/>
+</symbol>
+
+<symbol id="brakes-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M5 5 a8 8 0 0 1 7 7"/>
+<path d="M19 5 a8 8 0 0 0 -7 7"/>
+<path d="M5 5 L3 7 M19 5 L21 7"/>
+<circle cx="12" cy="14" r="2"/>
+<path d="M12 16 V21"/>
+</g>
+</symbol>
+<symbol id="brakes-fill" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+<path d="M5 5 a8 8 0 0 1 7 7"/>
+<path d="M19 5 a8 8 0 0 0 -7 7"/>
+<path d="M5 5 L3 7 M19 5 L21 7"/>
+<path d="M12 16 V21"/>
+</g>
+<circle cx="12" cy="14" r="2.5" fill="#FF4936"/>
+</symbol>
+
+<symbol id="cockpit-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M3 8 H21"/>
+<path d="M3 8 L3 13 M21 8 L21 13"/>
+<path d="M12 8 V18"/>
+<circle cx="12" cy="20" r="1.5"/>
+</g>
+</symbol>
+<symbol id="cockpit-fill" viewBox="0 0 24 24">
+<g fill="currentColor">
+<rect x="2" y="6.75" width="20" height="2.5" rx="1.25"/>
+<rect x="1.75" y="6.75" width="2.5" height="7.5" rx="1.25"/>
+<rect x="19.75" y="6.75" width="2.5" height="7.5" rx="1.25"/>
+<rect x="11" y="9.25" width="2" height="9.5"/>
+</g>
+<circle cx="12" cy="20" r="2" fill="#FF4936"/>
+</symbol>
+
+<symbol id="saddle-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M3 11 Q3 7 8 7 L17 7 Q22 7 22 11 Q22 14 17 14 L8 14 Q3 14 3 11 Z"/>
+<path d="M12 14 V21"/>
+</g>
+</symbol>
+<symbol id="saddle-fill" viewBox="0 0 24 24">
+<path d="M3 11 Q3 7 8 7 L17 7 Q22 7 22 11 Q22 14 17 14 L8 14 Q3 14 3 11 Z" fill="currentColor"/>
+<path d="M12 14 V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</symbol>
+
+<symbol id="chain-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+<ellipse cx="6" cy="12" rx="3" ry="4"/>
+<ellipse cx="12" cy="12" rx="3" ry="4"/>
+<ellipse cx="18" cy="12" rx="3" ry="4"/>
+</g>
+</symbol>
+<symbol id="chain-fill" viewBox="0 0 24 24">
+<ellipse cx="6" cy="12" rx="3" ry="4" fill="currentColor"/>
+<ellipse cx="6" cy="12" rx="1.2" ry="2" style="fill:var(--color-background-primary,#fff)"/>
+<ellipse cx="12" cy="12" rx="3" ry="4" fill="#FF4936"/>
+<ellipse cx="12" cy="12" rx="1.2" ry="2" style="fill:var(--color-background-primary,#fff)"/>
+<ellipse cx="18" cy="12" rx="3" ry="4" fill="currentColor"/>
+<ellipse cx="18" cy="12" rx="1.2" ry="2" style="fill:var(--color-background-primary,#fff)"/>
+</symbol>
+
+<symbol id="cassette-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2">
+<circle cx="12" cy="12" r="9"/>
+<circle cx="12" cy="12" r="6"/>
+<circle cx="12" cy="12" r="3"/>
+</g>
+</symbol>
+<symbol id="cassette-fill" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9" fill="currentColor"/>
+<circle cx="12" cy="12" r="6.5" style="fill:var(--color-background-primary,#fff)"/>
+<circle cx="12" cy="12" r="5" fill="currentColor"/>
+<circle cx="12" cy="12" r="3.2" style="fill:var(--color-background-primary,#fff)"/>
+<circle cx="12" cy="12" r="1.8" fill="#FF4936"/>
+</symbol>
+
+<symbol id="pedals-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+<rect x="4" y="9" width="16" height="6" rx="1.5"/>
+<circle cx="12" cy="12" r="1.5"/>
+<path d="M7 9 V15 M17 9 V15"/>
+</g>
+</symbol>
+<symbol id="pedals-fill" viewBox="0 0 24 24">
+<rect x="4" y="9" width="16" height="6" rx="1.5" fill="currentColor"/>
+<circle cx="12" cy="12" r="1.8" fill="#FF4936"/>
+</symbol>
+
+<symbol id="due-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="12" cy="12" r="9"/>
+<path d="M12 7 V12 L15 14"/>
+</g>
+</symbol>
+<symbol id="due-fill" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9" fill="currentColor"/>
+<path d="M12 7 V12 L15 14" fill="none" style="stroke:var(--color-background-primary,#fff)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+</symbol>
+
+<symbol id="overdue-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M12 3 L22 20 H2 Z"/>
+<path d="M12 10 V14"/>
+<circle cx="12" cy="17" r="0.6" fill="currentColor" stroke="none"/>
+</g>
+</symbol>
+<symbol id="overdue-fill" viewBox="0 0 24 24">
+<path d="M12 3 L22 20 H2 Z" fill="#FF4936"/>
+<g stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none">
+<path d="M12 10 V14"/>
+</g>
+<circle cx="12" cy="17" r="0.9" fill="#FFFFFF"/>
+</symbol>
+
+<symbol id="complete-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="12" cy="12" r="9"/>
+<path d="M7 12 L11 16 L17 9"/>
+</g>
+</symbol>
+<symbol id="complete-fill" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9" fill="#FF4936"/>
+<path d="M7 12 L11 16 L17 9" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+</symbol>
+
+</defs>
+</svg>

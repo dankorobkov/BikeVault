@@ -1,11 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Ionicons } from '@expo/vector-icons';
 import { auth } from '../config/firebase';
 import { useAppStore } from '../store/useAppStore';
 import { fetchBikes } from '../services/bikesService';
@@ -13,9 +12,11 @@ import { fetchAllComponents } from '../services/componentsService';
 import { loadStravaTokens, validateStravaTokens } from '../services/stravaService';
 import { getUserProfile } from '../services/userService';
 import { scanAndNotify } from '../services/notifications';
-import { Colors } from '../constants/colors';
+import type { ColorPalette } from '../constants/colors';
 import { DEMO_BIKES, DEMO_COMPONENTS } from '../constants/demoData';
 import { DialogRoot } from '../components/AppDialog';
+import BikeIcon from '../components/BikeIcon';
+import { ThemeProvider, useTheme, useThemeColors } from '../theme/ThemeProvider';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -52,6 +53,66 @@ function AuthGate() {
   return null;
 }
 
+/**
+ * Inner layout — has access to the theme context.
+ *
+ * Stack screens are keyed by `resolved` so the entire navigator
+ * remounts on theme switch. This forces every screen and component
+ * inside to re-create its memoised StyleSheet against the new palette.
+ * Without this, components that were already mounted before the
+ * switch would keep their old, dark-baked styles.
+ */
+function ThemedLayout() {
+  const { resolved } = useTheme();
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  const { isLoading } = useAppStore();
+  const [fontsLoaded, fontError] = useFonts({
+    Ionicons: require('../assets/fonts/Ionicons.ttf'),
+  });
+
+  // Allow the app to proceed if fonts errored — icons degrade gracefully
+  // rather than the user being stuck on the splash screen forever.
+  if (isLoading || (!fontsLoaded && !fontError)) {
+    return (
+      <View style={styles.splash}>
+        <StatusBar style={resolved === 'dark' ? 'light' : 'dark'} />
+        <View style={styles.splashLogo}>
+          <BikeIcon name="bike" variant="fill" size={56} accent={C.accent} color={C.accent} />
+        </View>
+        <Text style={styles.splashTitle}>BikeVault</Text>
+        <Text style={styles.splashSub}>Loading your garage…</Text>
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <StatusBar style={resolved === 'dark' ? 'light' : 'dark'} />
+      <AuthGate />
+      <Stack
+        // Force a full navigator remount on theme switch so every
+        // memoised StyleSheet inside re-runs with the new palette.
+        key={resolved}
+        screenOptions={{
+          headerStyle: { backgroundColor: C.bg },
+          headerTintColor: C.text,
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: C.bg },
+        }}
+      >
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="invite-code" options={{ headerShown: false }} />
+        <Stack.Screen name="strava-callback" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="bike/[id]" options={{ headerShown: false }} />
+      </Stack>
+      {/* Global app-styled dialog — replaces Alert.alert / window.confirm. */}
+      <DialogRoot />
+    </>
+  );
+}
+
 export default function RootLayout() {
   const {
     setUserId,
@@ -62,14 +123,7 @@ export default function RootLayout() {
     setComponents,
     setStravaTokens,
     setLoading,
-    isLoading,
   } = useAppStore();
-
-  // Load Ionicons from the local asset (gets hashed + deployed with the build).
-  // fontError is captured so a load failure doesn't freeze the splash screen.
-  const [fontsLoaded, fontError] = useFonts({
-    Ionicons: require('../assets/fonts/Ionicons.ttf'),
-  });
 
   useEffect(() => {
     const { setDataLoading } = useAppStore.getState();
@@ -181,73 +235,39 @@ export default function RootLayout() {
     };
   }, []);
 
-  // Allow the app to proceed if fonts errored — icons degrade gracefully
-  // rather than the user being stuck on the splash screen forever.
-  if (isLoading || (!fontsLoaded && !fontError)) {
-    return (
-      <View style={styles.splash}>
-        <StatusBar style="light" />
-        <View style={styles.splashLogo}>
-          <Ionicons name="bicycle" size={56} color={Colors.accent} />
-        </View>
-        <Text style={styles.splashTitle}>BikeVault</Text>
-        <Text style={styles.splashSub}>Loading your garage…</Text>
-      </View>
-    );
-  }
-
   return (
-    <>
-      <StatusBar style="light" />
-      <AuthGate />
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: Colors.bg },
-          headerTintColor: Colors.text,
-          headerShadowVisible: false,
-          contentStyle: { backgroundColor: Colors.bg },
-        }}
-      >
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="invite-code" options={{ headerShown: false }} />
-        <Stack.Screen name="strava-callback" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="bike/[id]"
-          options={{ headerShown: false }}
-        />
-      </Stack>
-      {/* Global app-styled dialog — replaces Alert.alert / window.confirm. */}
-      <DialogRoot />
-    </>
+    <ThemeProvider>
+      <ThemedLayout />
+    </ThemeProvider>
   );
 }
 
-const styles = StyleSheet.create({
-  splash: {
-    flex: 1,
-    backgroundColor: Colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-  },
-  splashLogo: {
-    width: 100,
-    height: 100,
-    borderRadius: 28,
-    backgroundColor: Colors.accentDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  splashTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: Colors.text,
-    letterSpacing: -1,
-  },
-  splashSub: {
-    fontSize: 15,
-    color: Colors.textSecondary,
-  },
-});
+const makeStyles = (C: ColorPalette) =>
+  StyleSheet.create({
+    splash: {
+      flex: 1,
+      backgroundColor: C.bg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 16,
+    },
+    splashLogo: {
+      width: 100,
+      height: 100,
+      borderRadius: 28,
+      backgroundColor: C.accentDim,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+    },
+    splashTitle: {
+      fontSize: 32,
+      fontWeight: '800',
+      color: C.text,
+      letterSpacing: -1,
+    },
+    splashSub: {
+      fontSize: 15,
+      color: C.textSecondary,
+    },
+  });

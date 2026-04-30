@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BikeVault — Design Preview</title>
+<style>
+  /* ---------------------------------------------------------------
+     Theme variables. The page exposes two axes: PALETTE and THEME.
+     - palette = velocity | velodrome | carbon
+     - theme   = dark | light
+     The combination resolves to a set of CSS variables below.
+     --------------------------------------------------------------- */
+
+  :root {
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+    --shadow-card: 0 6px 18px rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.08);
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  /* ─── VELOCITY (electric lime) ─── */
+  [data-palette="velocity"][data-theme="dark"] {
+    --bg: #0B0F0A;
+    --surface: #131A11;
+    --card: #1B2317;
+    --card-2: #222D1D;
+    --border: #2A3424;
+    --accent: #C5FF3C;
+    --accent-deep: #8FCC00;
+    --accent-dim: rgba(197,255,60,0.16);
+    --on-accent: #0E1408;
+    --text: #F5F7F3;
+    --text-secondary: #8C9587;
+    --text-tertiary: #4D5447;
+    --good: #34D17A;
+    --monitor: #F7C948;
+    --replace: #FF8A33;
+    --overdue: #FF425A;
+    --good-dim: rgba(52,209,122,0.15);
+    --monitor-dim: rgba(247,201,72,0.15);
+    --replace-dim: rgba(255,138,51,0.15);
+    --overdue-dim: rgba(255,66,90,0.18);
+    --shadow-card: 0 12px 32px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.3);
+    --iso-top: #E6ECDF;
+    --iso-right: #99A48E;
+    --iso-left: #5C6655;
+    --iso-edge: #1B2317;
+  }
+  [data-palette="velocity"][data-theme="light"] {
+    --bg: #F6F8F1;
+    --surface: #FFFFFF;
+    --card: #FFFFFF;
+    --card-2: #F1F4EA;
+    --border: #E1E6D3;
+    --accent: #6BC400;
+    --accent-deep: #4D9100;
+    --accent-dim: rgba(107,196,0,0.13);
+    --on-accent: #FFFFFF;
+    --text: #10160A;
+    --text-secondary: #5C6151;
+    --text-tertiary: #A6AC97;
+    --good: #1FAB60;
+    --monitor: #D9A300;
+    --replace: #E76A14;
+    --overdue: #E2243F;
+    --good-dim: rgba(31,171,96,0.12);
+    --monitor-dim: rgba(217,163,0,0.14);
+    --replace-dim: rgba(231,106,20,0.13);
+    --overdue-dim: rgba(226,36,63,0.13);
+    --shadow-card: 0 6px 18px rgba(15,32,8,0.07), 0 1px 3px rgba(15,32,8,0.05);
+    --iso-top: #FFFFFF;
+    --iso-right: #C7CEB7;
+    --iso-left: #8A9279;
+    --iso-edge: #2C3320;
+  }
+
+  /* ─── VELODROME (electric cyan) ─── */
+  [data-palette="velodrome"][data-theme="dark"] {
+    --bg: #07111A;
+    --surface: #0E1B26;
+    --card: #142434;
+    --card-2: #1B2E40;
+    --border: #213447;
+    --accent: #00E5FF;
+    --accent-deep: #00A8BF;
+    --accent-dim: rgba(0,229,255,0.16);
+    --on-accent: #051522;
+    --text: #F0F6FB;
+    --text-secondary: #7E94A6;
+    --text-tertiary: #3F4F5F;
+    --good: #34D17A;
+    --monitor: #F7C948;
+    --replace: #FF8A33;
+    --overdue: #FF425A;
+    --good-dim: rgba(52,209,122,0.15);
+    --monitor-dim: rgba(247,201,72,0.15);
+    --replace-dim: rgba(255,138,51,0.15);
+    --overdue-dim: rgba(255,66,90,0.18);
+    --shadow-card: 0 12px 36px rgba(0,8,16,0.6), 0 2px 6px rgba(0,0,0,0.3);
+    --iso-top: #E0EDF6;
+    --iso-right: #8DA4B6;
+    --iso-left: #4D6473;
+    --iso-edge: #142434;
+  }
+  [data-palette="velodrome"][data-theme="light"] {
+    --bg: #F1F6FB;
+    --surface: #FFFFFF;
+    --card: #FFFFFF;
+    --card-2: #ECF3F9;
+    --border: #DBE5EE;
+    --accent: #0093A8;
+    --accent-deep: #006B7A;
+    --accent-dim: rgba(0,147,168,0.12);
+    --on-accent: #FFFFFF;
+    --text: #051522;
+    --text-secondary: #4F6577;
+    --text-tertiary: #94A4B2;
+    --good: #1FAB60;
+    --monitor: #D9A300;
+    --replace: #E76A14;
+    --overdue: #E2243F;
+    --good-dim: rgba(31,171,96,0.12);
+    --monitor-dim: rgba(217,163,0,0.14);
+    --replace-dim: rgba(231,106,20,0.13);
+    --overdue-dim: rgba(226,36,63,0.13);
+    --shadow-card: 0 6px 18px rgba(8,32,52,0.07), 0 1px 3px rgba(8,32,52,0.05);
+    --iso-top: #FFFFFF;
+    --iso-right: #BFCFDC;
+    --iso-left: #7C8E9D;
+    --iso-edge: #1A3142;
+  }
+
+  /* ─── CARBON (hot coral + warm gold) ─── */
+  [data-palette="carbon"][data-theme="dark"] {
+    --bg: #0F0A0E;
+    --surface: #1B131A;
+    --card: #221920;
+    --card-2: #2C2029;
+    --border: #332530;
+    --accent: #FF2D6F;
+    --accent-deep: #C0004D;
+    --accent-dim: rgba(255,45,111,0.16);
+    --accent-2: #FFB700;
+    --on-accent: #FFFFFF;
+    --text: #FBF4F7;
+    --text-secondary: #978189;
+    --text-tertiary: #524248;
+    --good: #34D17A;
+    --monitor: #FFB700;
+    --replace: #FF7A2C;
+    --overdue: #FF425A;
+    --good-dim: rgba(52,209,122,0.15);
+    --monitor-dim: rgba(255,183,0,0.15);
+    --replace-dim: rgba(255,122,44,0.15);
+    --overdue-dim: rgba(255,66,90,0.18);
+    --shadow-card: 0 12px 32px rgba(20,0,8,0.55), 0 2px 6px rgba(0,0,0,0.3);
+    --iso-top: #F2E5EA;
+    --iso-right: #A28E96;
+    --iso-left: #5C4A52;
+    --iso-edge: #1B131A;
+  }
+  [data-palette="carbon"][data-theme="light"] {
+    --bg: #FFF7F8;
+    --surface: #FFFFFF;
+    --card: #FFFFFF;
+    --card-2: #FCEDF1;
+    --border: #F0DDE3;
+    --accent: #E60053;
+    --accent-deep: #A00038;
+    --accent-dim: rgba(230,0,83,0.11);
+    --accent-2: #BC7F00;
+    --on-accent: #FFFFFF;
+    --text: #1A0A11;
+    --text-secondary: #6F505A;
+    --text-tertiary: #B49AA3;
+    --good: #1FAB60;
+    --monitor: #B58400;
+    --replace: #DC5F0E;
+    --overdue: #DD1A3D;
+    --good-dim: rgba(31,171,96,0.12);
+    --monitor-dim: rgba(181,132,0,0.14);
+    --replace-dim: rgba(220,95,14,0.13);
+    --overdue-dim: rgba(221,26,61,0.13);
+    --shadow-card: 0 6px 18px rgba(60,8,24,0.06), 0 1px 3px rgba(60,8,24,0.05);
+    --iso-top: #FFFFFF;
+    --iso-right: #D8C2C9;
+    --iso-left: #8E747C;
+    --iso-edge: #2C111B;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+
+  /* ─── Top bar ─── */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--surface) 85%, transparent);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+  }
+  .brand-logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--accent);
+    display: grid;
+    place-items: center;
+    color: var(--on-accent);
+    font-weight: 900;
+    font-size: 14px;
+  }
+  .toggle-group {
+    display: flex;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 2px;
+  }
+  .toggle-group button {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .toggle-group button.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .toggle-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+
+  /* ─── Layout ─── */
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 28px 100px;
+  }
+  section { margin-bottom: 72px; }
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  h1 {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin: 0 0 10px;
+  }
+  .lede {
+    color: var(--text-secondary);
+    font-size: 15px;
+    line-height: 1.5;
+    max-width: 640px;
+    margin: 0;
+  }
+  h2 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin: 0;
+  }
+  .eyebrow {
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .subtitle {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin: 0;
+  }
+
+  /* ─── Palette swatches ─── */
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .swatch {
+    border-radius: var(--radius-md);
+    padding: 14px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    box-shadow: var(--shadow-card);
+  }
+  .swatch-chip {
+    width: 100%;
+    height: 64px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  }
+  .swatch-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .swatch-hex {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  /* ─── Icon grid ─── */
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 14px;
+  }
+  .icon-tile {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    box-shadow: var(--shadow-card);
+    transition: transform 0.2s ease;
+  }
+  .icon-tile:hover { transform: translateY(-2px); }
+  .icon-tile svg {
+    width: 84px;
+    height: 84px;
+  }
+  .icon-tile .label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  /* ─── Surface mockups (cards / dialog / banner) ─── */
+  .mock-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 18px;
+  }
+  .bike-card, .comp-card, .dialog-card, .banner-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+
+  /* Bike card */
+  .bike-card { padding: 0; position: relative; }
+  .bike-strip {
+    height: 6px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+  }
+  .bike-body { padding: 18px 18px 16px; }
+  .bike-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .bike-name {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 3px;
+  }
+  .bike-meta {
+    color: var(--text-secondary);
+    font-size: 12.5px;
+  }
+  .bike-distance {
+    text-align: right;
+  }
+  .bike-distance .num {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+  .bike-distance .unit {
+    color: var(--text-secondary);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .bike-stats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .stat-pill {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pill-good   { background: var(--good-dim);    color: var(--good); }
+  .pill-mon    { background: var(--monitor-dim); color: var(--monitor); }
+  .pill-rep    { background: var(--replace-dim); color: var(--replace); }
+  .pill-over   { background: var(--overdue-dim); color: var(--overdue); }
+  .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* Component card with wear bar */
+  .comp-card { padding: 16px 18px; }
+  .comp-row { display: flex; align-items: center; gap: 14px; }
+  .comp-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--accent-dim);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+  .comp-icon svg { width: 38px; height: 38px; }
+  .comp-info { flex: 1; min-width: 0; }
+  .comp-name { font-size: 15px; font-weight: 700; margin: 0 0 2px; }
+  .comp-sub { color: var(--text-secondary); font-size: 12.5px; }
+  .comp-pct {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .wear-track {
+    margin-top: 12px;
+    height: 8px;
+    background: var(--card-2);
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .wear-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.5s ease, background 0.2s ease;
+  }
+
+  /* Dialog */
+  .dialog-card { padding: 22px; }
+  .dialog-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: var(--accent-dim);
+    display: grid;
+    place-items: center;
+    margin-bottom: 14px;
+  }
+  .dialog-icon svg { width: 42px; height: 42px; }
+  .dialog-title { font-size: 18px; font-weight: 700; margin: 0 0 6px; }
+  .dialog-body { color: var(--text-secondary); font-size: 14px; line-height: 1.5; margin: 0 0 18px; }
+  .dialog-actions { display: flex; gap: 10px; }
+  .btn {
+    flex: 1;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-family: var(--font);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform 0.1s ease, opacity 0.15s ease;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--accent); color: var(--on-accent); }
+  .btn-secondary { background: var(--card-2); color: var(--text); border: 1px solid var(--border); }
+
+  /* Banner */
+  .banner-card {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, var(--good-dim), color-mix(in srgb, var(--good) 8%, transparent));
+    border-color: color-mix(in srgb, var(--good) 25%, var(--border));
+  }
+  .banner-card .icon-wrap {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--good) 18%, transparent);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .banner-card .icon-wrap svg { width: 28px; height: 28px; }
+  .banner-card .text strong { display: block; font-size: 14px; }
+  .banner-card .text span { color: var(--text-secondary); font-size: 12.5px; }
+
+  /* App icon options */
+  .app-icon-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 22px;
+  }
+  .app-icon-tile {
+    text-align: center;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-card);
+  }
+  .app-icon-square {
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 14px;
+    border-radius: 36px;
+    overflow: hidden;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.18), 0 4px 8px rgba(0,0,0,0.08);
+  }
+  .app-icon-name { font-weight: 700; font-size: 14px; }
+  .app-icon-desc { color: var(--text-secondary); font-size: 12px; margin-top: 4px; }
+
+  /* Hint chip in section header */
+  .hint {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 60px;
+    padding: 28px;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 12px;
+  }
+</style>
+</head>
+
+<body data-palette="velocity" data-theme="dark">
+
+<!-- ──────────────────────── TOP BAR ──────────────────────── -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-logo">B</div>
+      BikeVault — Design Preview
+    </div>
+
+    <div style="flex:1"></div>
+
+    <span class="toggle-label">Palette</span>
+    <div class="toggle-group" id="palette-toggle">
+      <button data-palette="velocity" class="active">Velocity</button>
+      <button data-palette="velodrome">Velodrome</button>
+      <button data-palette="carbon">Carbon</button>
+    </div>
+
+    <span class="toggle-label">Theme</span>
+    <div class="toggle-group" id="theme-toggle">
+      <button data-theme="dark" class="active">Dark</button>
+      <button data-theme="light">Light</button>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <!-- ─────────────── INTRO ─────────────── -->
+  <section>
+    <h1>A sportier BikeVault.</h1>
+    <p class="lede">
+      Three palette directions, all sporty and energetic, each with paired light + dark themes.
+      One isometric chunky icon system that reads on both. Surfaces, dialogs, and app-icon options
+      to compare side by side. Toggle the controls above to explore. Nothing here is committed to
+      the app yet — pick a direction (or a hybrid) and we'll roll it out.
+    </p>
+  </section>
+
+  <!-- ─────────────── PALETTE ─────────────── -->
+  <section>
+    <div class="section-header">
+      <span class="eyebrow">01 — Palette</span>
+      <h2 id="palette-title">Velocity</h2>
+      <span class="hint" id="palette-tag">Electric Lime</span>
+    </div>
+    <p class="subtitle" id="palette-desc" style="margin-bottom:22px;">
+      Charged, racing-lawn green on graphite. Very sporty, doesn't compete with Strava orange,
+      and lime stays legible on both light and dark surfaces.
+    </p>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="swatch-chip" style="background:var(--bg)"></div><div class="swatch-name">Background</div><div class="swatch-hex" data-var="--bg"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:var(--surface)"></div><div class="swatch-name">Surface</div><div class="swatch-hex" data-var="--surface"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:var(--card)"></div><div class="swatch-name">Card</div><div class="swatch-hex" data-var="--card"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:var(--accent)"></div><div class="swatch-name">Accent</div><div class="swatch-hex" data-var="--accent"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:var(--text)"></div><div class="swatch-name">Text</div><div class="swatch-hex" data-var="--text"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:var(--good)"></div><div class="swatch-name">Good</div><div class="swatch-hex" data-var="--good"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:var(--monitor)"></div><div class="swatch-name">Monitor</div><div class="swatch-hex" data-var="--monitor"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:var(--replace)"></div><div class="swatch-name">Replace soon</div><div class="swatch-hex" data-var="--replace"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background:var(--overdue)"></div><div class="swatch-name">Overdue</div><div class="swatch-hex" data-var="--overdue"></div></div>
+    </div>
+  </section>
+
+  <!-- ─────────────── ICONS ─────────────── -->
+  <section>
+    <div class="section-header">
+      <span class="eyebrow">02 — Iconography</span>
+      <h2>Isometric chunky set</h2>
+      <span class="hint">3D · cartoon · theme-aware</span>
+    </div>
+    <p class="subtitle" style="margin-bottom:22px;">
+      Each icon is a stack of geometric solids drawn in 30° isometric perspective. Three-tone faces
+      (light top, mid-right, dark left) keep them solid and readable. The active palette accent
+      drops in as the highlight stripe so they retint as you swap palettes.
+    </p>
+    <div class="icon-grid" id="icon-grid"></div>
+  </section>
+
+  <!-- ─────────────── SURFACES ─────────────── -->
+  <section>
+    <div class="section-header">
+      <span class="eyebrow">03 — Surfaces</span>
+      <h2>Cards, dialogs, banners</h2>
+    </div>
+    <p class="subtitle" style="margin-bottom:22px;">
+      Same blocks structure as today — color strip, header row, stat pills, wear bar — re-rendered
+      with the new palette and icon set.
+    </p>
+
+    <div class="mock-grid">
+
+      <!-- Bike card -->
+      <div class="bike-card">
+        <div class="bike-strip"></div>
+        <div class="bike-body">
+          <div class="bike-head">
+            <div>
+              <div class="bike-name">Tarmac SL7</div>
+              <div class="bike-meta">Road · Disc hydraulic</div>
+            </div>
+            <div class="bike-distance">
+              <div class="num">8,420</div>
+              <div class="unit">km</div>
+            </div>
+          </div>
+          <div class="bike-stats">
+            <span class="stat-pill pill-good"><span class="pill-dot"></span>9 healthy</span>
+            <span class="stat-pill pill-mon"><span class="pill-dot"></span>2 monitor</span>
+            <span class="stat-pill pill-over"><span class="pill-dot"></span>1 overdue</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Component card -->
+      <div class="comp-card">
+        <div class="comp-row">
+          <div class="comp-icon" id="comp-icon-host"></div>
+          <div class="comp-info">
+            <div class="comp-name">Chain — KMC X11SL</div>
+            <div class="comp-sub">Installed 12 Mar · 2,140 km</div>
+          </div>
+          <div class="comp-pct" id="comp-pct">71%</div>
+        </div>
+        <div class="wear-track">
+          <div class="wear-fill" id="wear-fill" style="width:71%; background: var(--monitor);"></div>
+        </div>
+      </div>
+
+      <!-- Dialog -->
+      <div class="dialog-card">
+        <div class="dialog-icon" id="dialog-icon-host"></div>
+        <div class="dialog-title">Replace front brake pads?</div>
+        <div class="dialog-body">
+          They've covered 4,820 km — past the 4,500 km recommended limit. We'll archive them and
+          you can log a fresh set next.
+        </div>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary">Not now</button>
+          <button class="btn btn-primary">Replace</button>
+        </div>
+      </div>
+
+      <!-- Banner -->
+      <div class="banner-card">
+        <div class="icon-wrap" id="banner-icon-host"></div>
+        <div class="text">
+          <strong>Synced from Strava</strong>
+          <span>+62 km on Tarmac SL7 · 4 components updated</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─────────────── APP ICON ─────────────── -->
+  <section>
+    <div class="section-header">
+      <span class="eyebrow">04 — App icon</span>
+      <h2>Three concepts</h2>
+    </div>
+    <p class="subtitle" style="margin-bottom:22px;">
+      Each icon retints to the active palette so you can see how it'll feel as a Velocity / Velodrome / Carbon launcher.
+    </p>
+    <div class="app-icon-row" id="app-icon-row"></div>
+  </section>
+
+  <footer>
+    BikeVault design preview · April 2026 · pick a palette + an app-icon concept and I'll wire it through the codebase.
+  </footer>
+</main>
+
+<script>
+/* ───────────────────────────────────────────────────────────────
+   Icon library — isometric chunky SVG.
+   All icons share a 64×64 viewBox and use CSS variables so they
+   retint with palette/theme. Three face colors give the 3D look:
+     iso-top   = top face (lightest)
+     iso-right = right face (mid)
+     iso-left  = left face (darkest)
+     iso-edge  = outline
+   The accent variable drops in for the personality detail.
+   ─────────────────────────────────────────────────────────────── */
+
+const ICONS = {
+
+  /* CHAIN — two interlocked iso ovals on a baseline plane */
+  chain: `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round">
+      <ellipse cx="22" cy="36" rx="11" ry="6" fill="var(--iso-left)"/>
+      <ellipse cx="22" cy="32" rx="11" ry="6" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <ellipse cx="22" cy="32" rx="6" ry="3" fill="var(--card)"/>
+      <ellipse cx="42" cy="40" rx="11" ry="6" fill="var(--iso-left)"/>
+      <ellipse cx="42" cy="36" rx="11" ry="6" fill="var(--iso-right)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <ellipse cx="42" cy="36" rx="6" ry="3" fill="var(--card)"/>
+      <rect x="30" y="30" width="4" height="2" fill="var(--accent)"/>
+    </svg>`,
+
+  /* CASSETTE — stack of 4 graduated discs */
+  cassette: `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round">
+      <ellipse cx="32" cy="50" rx="22" ry="8" fill="var(--iso-left)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <ellipse cx="32" cy="46" rx="22" ry="8" fill="var(--iso-right)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <ellipse cx="32" cy="40" rx="18" ry="6.5" fill="var(--iso-right)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <ellipse cx="32" cy="34" rx="14" ry="5" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <ellipse cx="32" cy="28" rx="10" ry="3.5" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <ellipse cx="32" cy="28" rx="3" ry="1.2" fill="var(--accent)"/>
+    </svg>`,
+
+  /* BRAKE DISC — rotor with cutouts */
+  rotor: `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round">
+      <ellipse cx="32" cy="38" rx="22" ry="9" fill="var(--iso-left)"/>
+      <ellipse cx="32" cy="34" rx="22" ry="9" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <ellipse cx="32" cy="34" rx="14" ry="5.5" fill="var(--card-2)" stroke="var(--iso-edge)" stroke-width="1"/>
+      <ellipse cx="20" cy="34" rx="2.5" ry="1.5" fill="var(--iso-edge)" opacity="0.5"/>
+      <ellipse cx="44" cy="34" rx="2.5" ry="1.5" fill="var(--iso-edge)" opacity="0.5"/>
+      <ellipse cx="32" cy="28.5" rx="2.5" ry="1.5" fill="var(--iso-edge)" opacity="0.5"/>
+      <ellipse cx="32" cy="34" rx="4" ry="1.5" fill="var(--accent)"/>
+    </svg>`,
+
+  /* TIRE — torus with iso shading */
+  tire: `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round">
+      <ellipse cx="32" cy="36" rx="24" ry="12" fill="var(--iso-left)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <ellipse cx="32" cy="32" rx="24" ry="12" fill="var(--iso-right)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <ellipse cx="32" cy="32" rx="14" ry="6" fill="var(--card-2)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+      <path d="M 12 30 L 14 28 M 22 24 L 24 22 M 32 22 L 34 20 M 42 24 L 44 22 M 52 30 L 54 28" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+    </svg>`,
+
+  /* FRAME — diamond bike frame in iso */
+  frame: `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round" stroke-linecap="round">
+      <!-- shadow plane -->
+      <ellipse cx="32" cy="55" rx="24" ry="3" fill="var(--iso-edge)" opacity="0.18"/>
+      <!-- top tube -->
+      <path d="M 14 22 L 46 22 L 50 26 L 18 26 Z" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <!-- down tube + seat tube + chain stay (chunky lines) -->
+      <path d="M 14 22 L 32 46 L 50 26" fill="none" stroke="var(--iso-right)" stroke-width="6" stroke-linecap="round"/>
+      <path d="M 14 22 L 32 46 L 50 26" fill="none" stroke="var(--iso-edge)" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+      <path d="M 32 46 L 46 22" stroke="var(--iso-left)" stroke-width="5" stroke-linecap="round"/>
+      <!-- accent saddle bolt -->
+      <circle cx="46" cy="22" r="3" fill="var(--accent)"/>
+      <!-- wheel hubs -->
+      <circle cx="14" cy="46" r="4" fill="var(--iso-left)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+      <circle cx="50" cy="46" r="4" fill="var(--iso-left)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+    </svg>`,
+
+  /* DERAILLEUR — angular pulley assembly */
+  derailleur: `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round">
+      <!-- arm -->
+      <path d="M 32 14 L 26 36 L 32 38 L 38 16 Z" fill="var(--iso-right)" stroke="var(--iso-edge)" stroke-width="1.4"/>
+      <path d="M 38 16 L 32 14 L 36 12 L 42 14 Z" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="1.4"/>
+      <!-- pulley wheels -->
+      <circle cx="22" cy="42" r="8" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="1.4"/>
+      <circle cx="22" cy="42" r="3" fill="var(--accent)"/>
+      <circle cx="42" cy="48" r="8" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="1.4"/>
+      <circle cx="42" cy="48" r="3" fill="var(--accent)"/>
+      <!-- cage -->
+      <path d="M 22 42 L 42 48" stroke="var(--iso-edge)" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
+    </svg>`,
+
+  /* HUB — cylinder with flanges */
+  hub: `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round">
+      <ellipse cx="32" cy="50" rx="14" ry="5" fill="var(--iso-left)" stroke="var(--iso-edge)" stroke-width="1.4"/>
+      <rect x="18" y="22" width="28" height="28" fill="var(--iso-right)" stroke="var(--iso-edge)" stroke-width="1.4"/>
+      <ellipse cx="32" cy="22" rx="14" ry="5" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="1.4"/>
+      <ellipse cx="32" cy="22" rx="6" ry="2" fill="var(--card-2)"/>
+      <rect x="14" y="20" width="36" height="3" fill="var(--accent)" rx="1.5"/>
+      <rect x="14" y="49" width="36" height="3" fill="var(--accent)" rx="1.5"/>
+    </svg>`,
+
+  /* SADDLE — wedge */
+  saddle: `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M 12 32 Q 32 22 52 32 Q 50 38 32 36 Q 14 38 12 32 Z" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <path d="M 12 32 Q 14 38 32 36 Q 50 38 52 32 Q 48 44 32 42 Q 16 44 12 32 Z" fill="var(--iso-right)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <rect x="30" y="40" width="4" height="14" fill="var(--iso-left)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+      <line x1="32" y1="28" x2="32" y2="40" stroke="var(--accent)" stroke-width="2"/>
+    </svg>`,
+
+  /* HANDLEBAR — drop bar profile */
+  handlebar: `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round" stroke-linecap="round" fill="none">
+      <path d="M 14 22 Q 14 36 22 42 L 22 50" stroke="var(--iso-right)" stroke-width="6"/>
+      <path d="M 50 22 Q 50 36 42 42 L 42 50" stroke="var(--iso-right)" stroke-width="6"/>
+      <path d="M 14 22 Q 14 36 22 42 L 22 50" stroke="var(--iso-edge)" stroke-width="1.5" opacity="0.6"/>
+      <path d="M 50 22 Q 50 36 42 42 L 42 50" stroke="var(--iso-edge)" stroke-width="1.5" opacity="0.6"/>
+      <line x1="14" y1="22" x2="50" y2="22" stroke="var(--iso-top)" stroke-width="6"/>
+      <line x1="14" y1="22" x2="50" y2="22" stroke="var(--iso-edge)" stroke-width="1.5" opacity="0.5"/>
+      <rect x="20" y="46" width="4" height="6" fill="var(--accent)" rx="1"/>
+      <rect x="40" y="46" width="4" height="6" fill="var(--accent)" rx="1"/>
+    </svg>`,
+
+  /* POWER METER — chip cube */
+  power: `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round">
+      <path d="M 32 14 L 50 22 L 50 42 L 32 50 L 14 42 L 14 22 Z" fill="var(--iso-right)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <path d="M 32 14 L 50 22 L 32 30 L 14 22 Z" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <path d="M 32 30 L 50 22 L 50 42 L 32 50 Z" fill="var(--iso-right)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <path d="M 32 30 L 14 22 L 14 42 L 32 50 Z" fill="var(--iso-left)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <!-- lightning bolt accent -->
+      <path d="M 28 28 L 34 32 L 30 35 L 36 40 L 30 36 L 33 33 Z" fill="var(--accent)"/>
+    </svg>`,
+
+  /* WRENCH — service / settings */
+  wrench: `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M 18 18 L 26 26 L 22 30 L 14 22 Q 12 24 14 28 L 36 50 Q 40 52 42 50 L 50 42 Q 52 40 50 36 L 28 14 Q 24 12 22 14 Z"
+        fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <path d="M 14 22 L 22 30 L 22 32 L 14 24 Z" fill="var(--iso-left)" opacity="0.55"/>
+      <circle cx="42" cy="42" r="3" fill="var(--accent)"/>
+    </svg>`,
+
+  /* SENSOR — disc puck */
+  sensor: `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round">
+      <ellipse cx="32" cy="40" rx="18" ry="6" fill="var(--iso-left)" stroke="var(--iso-edge)" stroke-width="1.4"/>
+      <rect x="14" y="30" width="36" height="10" fill="var(--iso-right)" stroke="var(--iso-edge)" stroke-width="1.4"/>
+      <ellipse cx="32" cy="30" rx="18" ry="6" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="1.4"/>
+      <ellipse cx="32" cy="30" rx="5" ry="1.6" fill="var(--accent)"/>
+      <circle cx="44" cy="30" r="1.5" fill="var(--accent)"/>
+    </svg>`,
+};
+
+/* Status icons used in dialog/banner (smaller, theme-aware) */
+const STATUS_ICONS = {
+  warning: `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M 32 12 L 56 50 L 8 50 Z" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="2"/>
+      <path d="M 32 12 L 56 50 L 32 50 Z" fill="var(--iso-right)" stroke="var(--iso-edge)" stroke-width="2"/>
+      <rect x="29" y="24" width="6" height="14" rx="2" fill="var(--accent)"/>
+      <circle cx="32" cy="44" r="3" fill="var(--accent)"/>
+    </svg>`,
+  check: `
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round" stroke-linecap="round">
+      <ellipse cx="32" cy="36" rx="22" ry="8" fill="var(--iso-left)"/>
+      <ellipse cx="32" cy="32" rx="22" ry="8" fill="var(--good)" stroke="var(--iso-edge)" stroke-width="1.5"/>
+      <path d="M 22 32 L 30 40 L 44 24" stroke="white" stroke-width="4" fill="none"/>
+    </svg>`,
+};
+
+/* ───────────────────────────────────────────────────────────────
+   Render the icon library into the icon grid
+   ─────────────────────────────────────────────────────────────── */
+const ICON_LIST = [
+  ['chain', 'Chain'],
+  ['cassette', 'Cassette'],
+  ['rotor', 'Brake disc'],
+  ['tire', 'Tire'],
+  ['frame', 'Frame'],
+  ['derailleur', 'Derailleur'],
+  ['hub', 'Hub'],
+  ['saddle', 'Saddle'],
+  ['handlebar', 'Handlebar'],
+  ['power', 'Power meter'],
+  ['sensor', 'Sensor'],
+  ['wrench', 'Service'],
+];
+
+const grid = document.getElementById('icon-grid');
+ICON_LIST.forEach(([key, label]) => {
+  const tile = document.createElement('div');
+  tile.className = 'icon-tile';
+  tile.innerHTML = ICONS[key] + `<div class="label">${label}</div>`;
+  grid.appendChild(tile);
+});
+
+/* Drop the chain icon into the component card slot, warning into dialog, check into banner */
+document.getElementById('comp-icon-host').innerHTML = ICONS.chain;
+document.getElementById('dialog-icon-host').innerHTML = STATUS_ICONS.warning;
+document.getElementById('banner-icon-host').innerHTML = STATUS_ICONS.check;
+
+/* ───────────────────────────────────────────────────────────────
+   App icon options — three concepts. Each is a single SVG that
+   renders at 160×160 with palette-driven fills.
+   ─────────────────────────────────────────────────────────────── */
+const APP_ICONS = [
+  {
+    name: 'Vault Chain',
+    desc: 'A geometric chain link forming a stylised "B" — locked & loaded.',
+    svg: `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="var(--accent)"/>
+          <stop offset="1" stop-color="var(--accent-deep)"/>
+        </linearGradient>
+      </defs>
+      <rect width="200" height="200" fill="url(#bg1)"/>
+      <!-- chain link 1 -->
+      <rect x="42" y="58" width="64" height="84" rx="32" fill="none" stroke="var(--on-accent)" stroke-width="14"/>
+      <!-- chain link 2 -->
+      <rect x="94" y="58" width="64" height="84" rx="32" fill="none" stroke="var(--on-accent)" stroke-width="14"/>
+      <!-- center pin -->
+      <circle cx="100" cy="100" r="8" fill="var(--on-accent)"/>
+    </svg>`,
+  },
+  {
+    name: 'Cog Mark',
+    desc: 'A chunky isometric cassette as the launcher mark.',
+    svg: `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="var(--accent-dim)"/>
+          <stop offset="1" stop-color="var(--card-2)"/>
+        </linearGradient>
+      </defs>
+      <rect width="200" height="200" fill="url(#bg2)"/>
+      <ellipse cx="100" cy="158" rx="74" ry="22" fill="var(--iso-left)"/>
+      <ellipse cx="100" cy="148" rx="74" ry="22" fill="var(--iso-right)" stroke="var(--iso-edge)" stroke-width="2.5"/>
+      <ellipse cx="100" cy="124" rx="60" ry="18" fill="var(--iso-right)" stroke="var(--iso-edge)" stroke-width="2.5"/>
+      <ellipse cx="100" cy="100" rx="48" ry="14" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="2.5"/>
+      <ellipse cx="100" cy="78" rx="34" ry="10" fill="var(--iso-top)" stroke="var(--iso-edge)" stroke-width="2.5"/>
+      <ellipse cx="100" cy="58" rx="22" ry="6" fill="var(--accent)" stroke="var(--iso-edge)" stroke-width="2"/>
+    </svg>`,
+  },
+  {
+    name: 'Speed Stripe',
+    desc: 'Bold "B" with a diagonal speed stripe — pure sport.',
+    svg: `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <clipPath id="tileClip"><rect width="200" height="200"/></clipPath>
+      </defs>
+      <g clip-path="url(#tileClip)">
+        <rect width="200" height="200" fill="var(--accent)"/>
+        <!-- thin diagonal speed stripe top-right -->
+        <path d="M 200 0 L 200 56 L 56 200 L 0 200 Z" fill="var(--surface)"/>
+        <path d="M 200 56 L 200 76 L 76 200 L 56 200 Z" fill="var(--accent-deep)" opacity="0.7"/>
+        <!-- chunky B sitting on the accent half -->
+        <text x="62" y="158"
+              font-family="-apple-system, 'SF Pro Display', sans-serif"
+              font-weight="900"
+              font-size="180"
+              letter-spacing="-8"
+              fill="var(--on-accent)">B</text>
+      </g>
+    </svg>`,
+  },
+];
+
+const appRow = document.getElementById('app-icon-row');
+APP_ICONS.forEach(opt => {
+  const tile = document.createElement('div');
+  tile.className = 'app-icon-tile';
+  tile.innerHTML = `
+    <div class="app-icon-square">${opt.svg}</div>
+    <div class="app-icon-name">${opt.name}</div>
+    <div class="app-icon-desc">${opt.desc}</div>`;
+  appRow.appendChild(tile);
+});
+
+/* ───────────────────────────────────────────────────────────────
+   Toggle wiring
+   ─────────────────────────────────────────────────────────────── */
+const PALETTE_META = {
+  velocity:  { title: 'Velocity',  tag: 'Electric Lime',
+               desc: "Charged, racing-lawn green on graphite. Very sporty, doesn't compete with Strava orange, and lime stays legible on both light and dark surfaces." },
+  velodrome: { title: 'Velodrome', tag: 'Electric Cyan',
+               desc: 'Cool, fast, high-tech. The cyan reads like a cycling computer display; the deep navy keeps it premium without losing energy.' },
+  carbon:    { title: 'Carbon',    tag: 'Hot Coral + Gold',
+               desc: 'Race-day intensity. Hot coral for primary actions, warm gold accent for secondary. The wine-tinted black keeps it warm rather than clinical.' },
+};
+
+function setActive(group, key, value) {
+  group.querySelectorAll('button').forEach(b => {
+    b.classList.toggle('active', b.dataset[key] === value);
+  });
+}
+
+function refreshSwatchHexes() {
+  const cs = getComputedStyle(document.body);
+  document.querySelectorAll('[data-var]').forEach(el => {
+    el.textContent = cs.getPropertyValue(el.dataset.var).trim().toUpperCase();
+  });
+}
+
+function applyPalette(p) {
+  document.body.dataset.palette = p;
+  const m = PALETTE_META[p];
+  document.getElementById('palette-title').textContent = m.title;
+  document.getElementById('palette-tag').textContent = m.tag;
+  document.getElementById('palette-desc').textContent = m.desc;
+  setActive(document.getElementById('palette-toggle'), 'palette', p);
+  refreshSwatchHexes();
+}
+function applyTheme(t) {
+  document.body.dataset.theme = t;
+  setActive(document.getElementById('theme-toggle'), 'theme', t);
+  refreshSwatchHexes();
+}
+
+document.getElementById('palette-toggle').addEventListener('click', e => {
+  if (e.target.dataset.palette) applyPalette(e.target.dataset.palette);
+});
+document.getElementById('theme-toggle').addEventListener('click', e => {
+  if (e.target.dataset.theme) applyTheme(e.target.dataset.theme);
+});
+
+/* Initial swatch hex labels */
+refreshSwatchHexes();
+</script>
+</body>
+</html>

@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BikeVault — Rendered Icons v5</title>
+<style>
+  :root {
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0B0F0A;
+    --surface: #131A11;
+    --card: #1B2317;
+    --card-2: #222D1D;
+    --border: #2A3424;
+    --accent: #C5FF3C;
+    --accent-deep: #8FCC00;
+    --accent-dim: rgba(197,255,60,0.16);
+    --on-accent: #0E1408;
+    --text: #F5F7F3;
+    --text-secondary: #8C9587;
+    --text-tertiary: #4D5447;
+    --shadow-cast: rgba(0,0,0,0.55);
+  }
+  [data-theme="light"] {
+    --bg: #F6F8F1;
+    --surface: #FFFFFF;
+    --card: #FFFFFF;
+    --card-2: #F1F4EA;
+    --border: #E1E6D3;
+    --accent: #6BC400;
+    --accent-deep: #4D9100;
+    --accent-dim: rgba(107,196,0,0.13);
+    --on-accent: #FFFFFF;
+    --text: #10160A;
+    --text-secondary: #5C6151;
+    --text-tertiary: #A6AC97;
+    --shadow-cast: rgba(28,40,12,0.28);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--font); -webkit-font-smoothing: antialiased;
+    transition: background 0.25s, color 0.25s;
+  }
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 1200px; margin: 0 auto; padding: 14px 28px;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+  .brand-logo {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--accent); display: grid; place-items: center;
+    color: var(--on-accent); font-weight: 900; font-size: 14px;
+  }
+  .pill {
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--accent-dim); color: var(--accent);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .toggle-group {
+    display: flex; background: var(--card-2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 4px; gap: 2px;
+  }
+  .toggle-group button {
+    border: none; background: transparent; color: var(--text-secondary);
+    padding: 7px 14px; border-radius: 8px;
+    font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .toggle-group button.active {
+    background: var(--surface); color: var(--text);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 40px 28px 100px; }
+  h1 { font-size: 38px; font-weight: 800; letter-spacing: -0.025em; margin: 0 0 10px; }
+  .lede { color: var(--text-secondary); font-size: 15px; line-height: 1.55; max-width: 720px; margin: 0 0 50px; }
+  .eyebrow { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin: 0; }
+  .section-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+  section { margin-bottom: 64px; }
+
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .icon-tile {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 28px 14px 18px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    box-shadow: 0 8px 22px var(--shadow-cast);
+  }
+  .icon-tile svg { width: 120px; height: 120px; }
+  .icon-tile .label { font-size: 12.5px; color: var(--text-secondary); font-weight: 600; }
+
+  .ctx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+  .comp-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 18px; padding: 14px 16px;
+    box-shadow: 0 6px 18px var(--shadow-cast);
+  }
+  .comp-row { display: flex; align-items: center; gap: 14px; }
+  .comp-icon {
+    width: 64px; height: 64px;
+    border-radius: 14px;
+    background: var(--card-2); border: 1px solid var(--border);
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .comp-icon svg { width: 56px; height: 56px; }
+  .comp-info { flex: 1; min-width: 0; }
+  .comp-name { font-size: 15px; font-weight: 700; margin: 0 0 2px; }
+  .comp-sub { color: var(--text-secondary); font-size: 12.5px; }
+  .comp-pct { font-family: var(--mono); font-size: 14px; font-weight: 700; }
+  .wear-track { margin-top: 12px; height: 8px; background: var(--card-2); border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
+  .wear-fill { height: 100%; border-radius: 999px; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 60px; padding: 28px;
+    text-align: center; color: var(--text-tertiary); font-size: 12px;
+  }
+</style>
+</head>
+
+<body data-theme="dark">
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-logo">B</div>
+      Rendered Icons · Velocity
+      <span class="pill">v5</span>
+    </div>
+    <div style="flex:1"></div>
+    <div class="toggle-group" id="theme-toggle">
+      <button data-theme="dark" class="active">Dark</button>
+      <button data-theme="light">Light</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <h1>Tighter execution.</h1>
+  <p class="lede">
+    Same soft-3D direction — but every shape now has a real top face and a visible side wall, light
+    falls from the upper-left consistently, specular highlights are placed where the light would
+    actually catch the metal, and component anatomy is accurate (real chain plate outline, real
+    cassette spline, real tire sidewall, real allen-bolt hex socket). Cast shadows tightened so each
+    object reads as sitting on a surface rather than floating.
+  </p>
+
+  <section>
+    <div class="section-head">
+      <span class="eyebrow">01 — The set</span>
+      <h2>Polished objects</h2>
+    </div>
+    <div class="icon-grid" id="icon-grid"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <span class="eyebrow">02 — In context</span>
+      <h2>At label-size, on real cards</h2>
+    </div>
+    <div class="ctx-grid" id="ctx-grid"></div>
+  </section>
+
+  <footer>
+    BikeVault rendered icons v5 · April 2026 · approve and I'll commit the full set across all 40+ component types.
+  </footer>
+</main>
+
+<script>
+/* ───────────────────────────────────────────────────────────────
+   Shared SVG defs — gradients & filters used across every icon.
+   Inserted into each icon SVG so they remain self-contained.
+   ─────────────────────────────────────────────────────────────── */
+const DEFS = `
+  <defs>
+    <!-- POLISHED SILVER (top-lit, runs lighter at top, darker at bottom) -->
+    <linearGradient id="g-silver" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="#F4F7EE"/>
+      <stop offset="0.35" stop-color="#D0D7C3"/>
+      <stop offset="0.7"  stop-color="#8E9682"/>
+      <stop offset="1"    stop-color="#4D5446"/>
+    </linearGradient>
+    <!-- SILVER SIDE WALL (darker, used for visible 3D depth side faces) -->
+    <linearGradient id="g-silver-side" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5A6052"/>
+      <stop offset="1" stop-color="#2A2F22"/>
+    </linearGradient>
+
+    <!-- BRUSHED BLACK (hub body, plastic) -->
+    <linearGradient id="g-black" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#4A5044"/>
+      <stop offset="0.45" stop-color="#252A1F"/>
+      <stop offset="1"   stop-color="#0E1108"/>
+    </linearGradient>
+    <linearGradient id="g-black-side" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1A1D14"/>
+      <stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+
+    <!-- MATTE RUBBER (tire tread, brake pads) -->
+    <linearGradient id="g-rubber" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#3A3F32"/>
+      <stop offset="1"   stop-color="#0E1108"/>
+    </linearGradient>
+
+    <!-- TAN SIDEWALL -->
+    <linearGradient id="g-tan" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#EFD8A0"/>
+      <stop offset="0.5" stop-color="#C9A965"/>
+      <stop offset="1"   stop-color="#7C6230"/>
+    </linearGradient>
+
+    <!-- LIME (accent fluid / valve cap) -->
+    <linearGradient id="g-lime" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#E5FF92"/>
+      <stop offset="0.5" stop-color="#C5FF3C"/>
+      <stop offset="1"   stop-color="#7FB000"/>
+    </linearGradient>
+
+    <!-- SPECULAR HIGHLIGHT (placed at upper-left of objects) -->
+    <radialGradient id="g-shine" cx="0.3" cy="0.2" r="0.5">
+      <stop offset="0"   stop-color="white" stop-opacity="0.85"/>
+      <stop offset="0.6" stop-color="white" stop-opacity="0.15"/>
+      <stop offset="1"   stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- AMBIENT OCCLUSION RING -->
+    <radialGradient id="g-ao" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.7" stop-color="black" stop-opacity="0"/>
+      <stop offset="1"   stop-color="black" stop-opacity="0.4"/>
+    </radialGradient>
+
+    <!-- CAST SHADOW (small radial used as ellipse beneath) -->
+    <radialGradient id="g-cast" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="rgba(0,0,0,0.55)"/>
+      <stop offset="1" stop-color="rgba(0,0,0,0)"/>
+    </radialGradient>
+  </defs>
+`;
+
+/* Helper: gear-tooth polygon point list */
+function teeth(cx, cy, rO, rI, n, startAngle = -Math.PI/2) {
+  const pts = [];
+  for (let i = 0; i < n*2; i++) {
+    const r = i % 2 === 0 ? rO : rI;
+    const a = (i / (n*2)) * Math.PI * 2 + startAngle;
+    pts.push(`${(cx + Math.cos(a)*r).toFixed(2)},${(cy + Math.sin(a)*r).toFixed(2)}`);
+  }
+  return pts.join(' ');
+}
+
+/* Helper: regular polygon (e.g., hexagon) point list */
+function polygon(cx, cy, r, sides, startAngle = -Math.PI/2) {
+  const pts = [];
+  for (let i = 0; i < sides; i++) {
+    const a = (i / sides) * Math.PI * 2 + startAngle;
+    pts.push(`${(cx + Math.cos(a)*r).toFixed(2)},${(cy + Math.sin(a)*r).toFixed(2)}`);
+  }
+  return pts.join(' ');
+}
+
+/* Cast shadow ellipse, placed at the bottom of the object */
+function castShadow(cx, cy, rx, ry = 4) {
+  return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#g-cast)"/>`;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   ICONS
+   ─────────────────────────────────────────────────────────────── */
+const ICONS = {
+
+  /* ─── CHAIN — two interlocked plate links in 3/4 perspective.
+        Each plate has a top face and a visible side wall (depth). ─── */
+  chain: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${castShadow(60, 102, 44)}
+
+      <!-- BACK LINK (raised slightly higher in the frame) -->
+      <g>
+        <!-- side wall (the bottom edge of the plate's thickness) -->
+        <path d="M 12 56 Q 12 64 22 64 L 64 64 Q 74 64 74 56 L 74 50 L 12 50 Z"
+              fill="url(#g-silver-side)"/>
+        <!-- top face: a capsule (figure-8) plate seen face-on -->
+        <path d="M 22 38 L 64 38 A 12 12 0 0 1 64 62 L 22 62 A 12 12 0 0 1 22 38 Z"
+              fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.4"/>
+        <!-- inner pin holes (where the inner plate fits) -->
+        <circle cx="26" cy="50" r="4.5" fill="#0E1108"/>
+        <circle cx="60" cy="50" r="4.5" fill="#0E1108"/>
+        <!-- pin caps with metallic gradient -->
+        <circle cx="26" cy="50" r="3" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="0.8"/>
+        <circle cx="60" cy="50" r="3" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="0.8"/>
+        <!-- highlight pinpoints on each pin -->
+        <circle cx="25" cy="49" r="1" fill="white" opacity="0.8"/>
+        <circle cx="59" cy="49" r="1" fill="white" opacity="0.8"/>
+        <!-- top edge specular -->
+        <path d="M 24 41 Q 44 38 62 41 Q 44 44 24 44 Z" fill="white" opacity="0.5"/>
+      </g>
+
+      <!-- FRONT LINK (lower-right, in front of back link) -->
+      <g>
+        <path d="M 50 78 Q 50 86 60 86 L 102 86 Q 112 86 112 78 L 112 72 L 50 72 Z"
+              fill="url(#g-silver-side)"/>
+        <path d="M 60 60 L 102 60 A 12 12 0 0 1 102 84 L 60 84 A 12 12 0 0 1 60 60 Z"
+              fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.4"/>
+        <circle cx="64" cy="72" r="4.5" fill="#0E1108"/>
+        <circle cx="98" cy="72" r="4.5" fill="#0E1108"/>
+        <circle cx="64" cy="72" r="3" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="0.8"/>
+        <circle cx="98" cy="72" r="3" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="0.8"/>
+        <circle cx="63" cy="71" r="1" fill="white" opacity="0.8"/>
+        <circle cx="97" cy="71" r="1" fill="white" opacity="0.8"/>
+        <path d="M 62 63 Q 82 60 100 63 Q 82 66 62 66 Z" fill="white" opacity="0.5"/>
+      </g>
+
+      <!-- accent oil drop on front plate -->
+      <ellipse cx="80" cy="78" rx="3" ry="1.8" fill="var(--accent)"/>
+      <ellipse cx="79.5" cy="77.5" rx="1" ry="0.6" fill="white" opacity="0.7"/>
+    </svg>`,
+
+  /* ─── CASSETTE — front view of stacked cogs, with each smaller cog
+        offset slightly upward to suggest 3D stack depth ─── */
+  cassette: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${castShadow(60, 106, 48)}
+
+      <!-- Cog 1: largest, bottom of stack -->
+      <ellipse cx="60" cy="76" rx="50" ry="8" fill="#13160C"/>
+      <polygon points="${teeth(60, 70, 50, 44, 26)}" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.2"/>
+      <circle cx="60" cy="70" r="40" fill="url(#g-silver-side)" stroke="#1A1F12" stroke-width="0.8"/>
+
+      <!-- Cog 2: medium, raised -->
+      <ellipse cx="60" cy="70" rx="40" ry="6" fill="#13160C"/>
+      <polygon points="${teeth(60, 64, 40, 35, 22)}" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.2"/>
+      <circle cx="60" cy="64" r="30" fill="url(#g-silver-side)" stroke="#1A1F12" stroke-width="0.8"/>
+
+      <!-- Cog 3: small -->
+      <ellipse cx="60" cy="64" rx="30" ry="5" fill="#13160C"/>
+      <polygon points="${teeth(60, 58, 30, 25, 17)}" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.2"/>
+      <circle cx="60" cy="58" r="20" fill="url(#g-silver-side)" stroke="#1A1F12" stroke-width="0.8"/>
+
+      <!-- Cog 4: smallest, top of stack -->
+      <ellipse cx="60" cy="58" rx="20" ry="4" fill="#13160C"/>
+      <polygon points="${teeth(60, 53, 20, 16, 12)}" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.2"/>
+
+      <!-- Center splined hub -->
+      <circle cx="60" cy="53" r="11" fill="url(#g-black)" stroke="#1A1F12" stroke-width="1"/>
+      <!-- spline notches (4 directions) -->
+      <g fill="#0E1108">
+        <rect x="58.5" y="44" width="3" height="4" rx="0.5"/>
+        <rect x="58.5" y="58" width="3" height="4" rx="0.5"/>
+        <rect x="49"   y="51.5" width="4" height="3" rx="0.5"/>
+        <rect x="67"   y="51.5" width="4" height="3" rx="0.5"/>
+      </g>
+      <!-- center axle hole -->
+      <circle cx="60" cy="53" r="4" fill="#0E1108"/>
+
+      <!-- specular highlight raking across upper-left of stack -->
+      <ellipse cx="40" cy="40" rx="22" ry="5" fill="url(#g-shine)"/>
+
+      <!-- accent center jewel -->
+      <circle cx="60" cy="53" r="2" fill="var(--accent)"/>
+    </svg>`,
+
+  /* ─── TIRE — head-on tire with tan sidewall + dark tread + tread blocks ─── */
+  tire: (() => {
+    // Generate tread blocks oriented radially around the tire
+    const blocks = [];
+    const n = 24;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+      const cx = 60 + Math.cos(a) * 47;
+      const cy = 60 + Math.sin(a) * 47;
+      const rot = (a * 180 / Math.PI) + 90;
+      blocks.push(`<rect x="${(cx-3).toFixed(2)}" y="${(cy-2).toFixed(2)}" width="6" height="4" rx="1" fill="#0E1108" transform="rotate(${rot.toFixed(2)} ${cx.toFixed(2)} ${cy.toFixed(2)})"/>`);
+    }
+    return `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${castShadow(60, 108, 46, 4)}
+
+      <!-- outer rubber (tread surface) -->
+      <circle cx="60" cy="60" r="52" fill="url(#g-rubber)" stroke="#0E1108" stroke-width="1.2"/>
+      <!-- tread blocks -->
+      ${blocks.join('')}
+      <!-- tan sidewall ring -->
+      <circle cx="60" cy="60" r="42" fill="url(#g-tan)" stroke="#5A4625" stroke-width="0.8"/>
+      <!-- inner sidewall edge (darker rim) -->
+      <circle cx="60" cy="60" r="32" fill="url(#g-tan)" stroke="#7C6230" stroke-width="0.8" opacity="0.55"/>
+      <!-- inner hole (where rim/spokes would be) -->
+      <circle cx="60" cy="60" r="26" fill="var(--card-2)" stroke="#1A1F12" stroke-width="1"/>
+      <!-- valve stem at top -->
+      <rect x="58" y="2" width="4" height="12" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="0.6"/>
+      <rect x="56" y="13" width="8" height="3" fill="url(#g-silver-side)" stroke="#1A1F12" stroke-width="0.6"/>
+      <rect x="57" y="0" width="6" height="4" rx="1" fill="url(#g-lime)" stroke="#1A1F12" stroke-width="0.6"/>
+      <!-- top sheen across tan sidewall -->
+      <path d="M 30 38 Q 60 32 90 38 Q 60 42 30 42 Z" fill="white" opacity="0.45"/>
+      <!-- ambient occlusion ring on tread -->
+      <circle cx="60" cy="60" r="52" fill="url(#g-ao)"/>
+    </svg>`;
+  })(),
+
+  /* ─── HUB — cylindrical hub from the side, with two flared flanges
+        and an axle protruding both sides ─── */
+  hub: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${castShadow(60, 96, 44, 4)}
+
+      <!-- Axle (silver rod through middle, drawn first so flanges sit on top) -->
+      <rect x="2" y="58" width="116" height="4" rx="1" fill="url(#g-silver-side)"/>
+      <rect x="2" y="58" width="116" height="1.5" fill="url(#g-silver)" opacity="0.7"/>
+
+      <!-- Left flange (flared disc) -->
+      <ellipse cx="32" cy="60" rx="6" ry="22" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.2"/>
+      <ellipse cx="32" cy="60" rx="3" ry="18" fill="url(#g-silver-side)"/>
+      <!-- spoke holes on left flange -->
+      <g fill="#0E1108">
+        <circle cx="30" cy="42" r="1.6"/>
+        <circle cx="30" cy="50" r="1.6"/>
+        <circle cx="30" cy="60" r="1.6"/>
+        <circle cx="30" cy="70" r="1.6"/>
+        <circle cx="30" cy="78" r="1.6"/>
+      </g>
+
+      <!-- Body cylinder (matte black) -->
+      <rect x="32" y="40" width="56" height="40" fill="url(#g-black)" stroke="#0E1108" stroke-width="1"/>
+      <!-- top edge sheen on body -->
+      <rect x="34" y="42" width="52" height="5" rx="1" fill="white" opacity="0.18"/>
+      <!-- accent stripe on body -->
+      <rect x="32" y="55" width="56" height="4" fill="var(--accent)"/>
+      <rect x="32" y="55.5" width="56" height="1" fill="white" opacity="0.5"/>
+      <!-- maker logo dot -->
+      <circle cx="60" cy="48" r="2" fill="#0E1108"/>
+
+      <!-- Right flange (flared disc) -->
+      <ellipse cx="88" cy="60" rx="6" ry="22" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.2"/>
+      <ellipse cx="88" cy="60" rx="3" ry="18" fill="url(#g-silver-side)"/>
+      <g fill="#0E1108">
+        <circle cx="86" cy="42" r="1.6"/>
+        <circle cx="86" cy="50" r="1.6"/>
+        <circle cx="86" cy="60" r="1.6"/>
+        <circle cx="86" cy="70" r="1.6"/>
+        <circle cx="86" cy="78" r="1.6"/>
+      </g>
+
+      <!-- End caps (silver, on the axle ends) -->
+      <ellipse cx="6" cy="60" rx="2" ry="4" fill="url(#g-silver-side)"/>
+      <ellipse cx="114" cy="60" rx="2" ry="4" fill="url(#g-silver-side)"/>
+    </svg>`,
+
+  /* ─── ROTOR — wavy 6-bolt rotor with vented S-slots ─── */
+  rotor: (() => {
+    const slots = [];
+    for (let i = 0; i < 6; i++) {
+      slots.push(`
+        <g transform="rotate(${i*60} 60 60)">
+          <path d="M 60 22 Q 67 32 64 41 Q 60 47 56 41 Q 53 32 60 22 Z"
+                fill="url(#g-black)" stroke="#1A1F12" stroke-width="0.8"/>
+        </g>`);
+    }
+    const bolts = [];
+    for (let i = 0; i < 6; i++) {
+      const a = i * 60 * Math.PI / 180;
+      const x = 60 + Math.cos(a) * 14;
+      const y = 60 + Math.sin(a) * 14;
+      bolts.push(`
+        <circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="2.6" fill="url(#g-silver-side)" stroke="#0E1108" stroke-width="0.6"/>
+        <polygon points="${polygon(x, y, 1.6, 6, Math.PI/6)}" fill="#0E1108"/>
+      `);
+    }
+    // Wavy edge: 14 gentle scallops
+    const wavy = teeth(60, 60, 50, 47, 14);
+    return `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${castShadow(60, 108, 46, 4)}
+
+      <!-- Wavy outer rotor disc -->
+      <polygon points="${wavy}" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.2"/>
+      <!-- Inner braking band rings (subtle ring lines) -->
+      <circle cx="60" cy="60" r="44" fill="none" stroke="#5A6052" stroke-width="0.8" opacity="0.7"/>
+      <circle cx="60" cy="60" r="28" fill="none" stroke="#5A6052" stroke-width="0.8" opacity="0.7"/>
+      <!-- vented S-slots -->
+      ${slots.join('')}
+
+      <!-- Spider hub (inner disc) -->
+      <circle cx="60" cy="60" r="22" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1"/>
+      <!-- bolts -->
+      ${bolts.join('')}
+      <!-- center spline -->
+      <circle cx="60" cy="60" r="7" fill="url(#g-black)" stroke="#1A1F12" stroke-width="0.8"/>
+      <circle cx="60" cy="60" r="3" fill="#0E1108"/>
+
+      <!-- specular sheen across upper-left -->
+      <ellipse cx="42" cy="34" rx="26" ry="8" fill="url(#g-shine)"/>
+      <!-- ambient occlusion -->
+      <circle cx="60" cy="60" r="50" fill="url(#g-ao)"/>
+      <!-- accent center jewel -->
+      <circle cx="60" cy="60" r="2" fill="var(--accent)"/>
+    </svg>`;
+  })(),
+
+  /* ─── BRAKE PADS — pair of pads with backing plate, mounting tab,
+        and accent wear-line stripe on the rubber face ─── */
+  pads: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${castShadow(60, 102, 44, 4)}
+
+      <!-- LEFT PAD -->
+      <g>
+        <!-- side wall (depth on bottom of backing) -->
+        <path d="M 14 86 L 38 86 L 38 78 L 14 78 Z" fill="url(#g-silver-side)"/>
+        <!-- backing plate (silver) -->
+        <rect x="14" y="38" width="24" height="48" rx="3" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.4"/>
+        <!-- rubber pad face (mounted on the inner side) -->
+        <rect x="34" y="42" width="14" height="40" rx="2" fill="url(#g-rubber)" stroke="#1A1F12" stroke-width="1"/>
+        <!-- accent wear-indicator stripe -->
+        <rect x="36" y="58" width="10" height="3" fill="var(--accent)"/>
+        <rect x="36" y="58.5" width="10" height="1" fill="white" opacity="0.5"/>
+        <!-- mounting tab on top -->
+        <rect x="18" y="28" width="16" height="10" rx="2" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.2"/>
+        <circle cx="26" cy="33" r="2" fill="#0E1108"/>
+        <circle cx="26" cy="33" r="1" fill="url(#g-silver-side)"/>
+        <!-- side specular -->
+        <rect x="16" y="40" width="3" height="44" rx="1" fill="white" opacity="0.5"/>
+      </g>
+
+      <!-- RIGHT PAD (mirror) -->
+      <g>
+        <path d="M 82 86 L 106 86 L 106 78 L 82 78 Z" fill="url(#g-silver-side)"/>
+        <rect x="82" y="38" width="24" height="48" rx="3" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.4"/>
+        <rect x="72" y="42" width="14" height="40" rx="2" fill="url(#g-rubber)" stroke="#1A1F12" stroke-width="1"/>
+        <rect x="74" y="58" width="10" height="3" fill="var(--accent)"/>
+        <rect x="74" y="58.5" width="10" height="1" fill="white" opacity="0.5"/>
+        <rect x="86" y="28" width="16" height="10" rx="2" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.2"/>
+        <circle cx="94" cy="33" r="2" fill="#0E1108"/>
+        <circle cx="94" cy="33" r="1" fill="url(#g-silver-side)"/>
+        <rect x="84" y="40" width="3" height="44" rx="1" fill="white" opacity="0.5"/>
+      </g>
+
+      <!-- spring clip linking the two tabs at the top -->
+      <path d="M 26 28 Q 60 18 94 28" fill="none" stroke="url(#g-silver-side)" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>`,
+
+  /* ─── BOLTS — two stacked allen bolts, 30° tilt, with proper hex socket ─── */
+  bolts: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${castShadow(60, 102, 42, 4)}
+
+      <!-- BACK BOLT (rotated, pointing upper-right) -->
+      <g transform="rotate(-22 60 60)">
+        <!-- threaded shaft -->
+        <rect x="30" y="42" width="42" height="14" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.2"/>
+        <!-- thread lines -->
+        <g stroke="#1A1F12" stroke-width="0.6" opacity="0.85">
+          <line x1="34" y1="42" x2="34" y2="56"/>
+          <line x1="40" y1="42" x2="40" y2="56"/>
+          <line x1="46" y1="42" x2="46" y2="56"/>
+          <line x1="52" y1="42" x2="52" y2="56"/>
+          <line x1="58" y1="42" x2="58" y2="56"/>
+          <line x1="64" y1="42" x2="64" y2="56"/>
+          <line x1="70" y1="42" x2="70" y2="56"/>
+        </g>
+        <!-- shaft side wall -->
+        <rect x="30" y="55" width="42" height="3" fill="url(#g-silver-side)"/>
+        <!-- bolt head (cylindrical, slightly wider) -->
+        <rect x="70" y="36" width="22" height="26" rx="2" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.4"/>
+        <!-- head right-side (curved depth via ellipse) -->
+        <ellipse cx="92" cy="49" rx="3" ry="13" fill="url(#g-silver-side)" stroke="#1A1F12" stroke-width="0.8"/>
+        <!-- hex socket on top of head (proper hexagon) -->
+        <polygon points="${polygon(81, 49, 6, 6)}" fill="#0E1108" stroke="#1A1F12" stroke-width="0.8"/>
+        <polygon points="${polygon(81, 49, 4, 6)}" fill="#1A1F12"/>
+        <!-- specular on head top -->
+        <rect x="72" y="38" width="18" height="4" rx="1" fill="white" opacity="0.6"/>
+      </g>
+
+      <!-- FRONT BOLT (lower, slightly different angle) -->
+      <g transform="rotate(-30 60 60) translate(2 18)">
+        <rect x="32" y="42" width="38" height="13" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.2"/>
+        <g stroke="#1A1F12" stroke-width="0.6" opacity="0.85">
+          <line x1="36" y1="42" x2="36" y2="55"/>
+          <line x1="42" y1="42" x2="42" y2="55"/>
+          <line x1="48" y1="42" x2="48" y2="55"/>
+          <line x1="54" y1="42" x2="54" y2="55"/>
+          <line x1="60" y1="42" x2="60" y2="55"/>
+          <line x1="66" y1="42" x2="66" y2="55"/>
+        </g>
+        <rect x="32" y="54" width="38" height="3" fill="url(#g-silver-side)"/>
+        <rect x="68" y="36" width="20" height="25" rx="2" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.4"/>
+        <ellipse cx="88" cy="48.5" rx="2.5" ry="12" fill="url(#g-silver-side)" stroke="#1A1F12" stroke-width="0.8"/>
+        <polygon points="${polygon(78, 48.5, 5.5, 6)}" fill="#0E1108" stroke="#1A1F12" stroke-width="0.8"/>
+        <polygon points="${polygon(78, 48.5, 3.5, 6)}" fill="#1A1F12"/>
+        <rect x="70" y="38" width="16" height="4" rx="1" fill="white" opacity="0.6"/>
+      </g>
+    </svg>`,
+
+  /* ─── INNER TUBE — donut with proper presta valve and lime cap ─── */
+  tube: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${castShadow(60, 106, 42, 4)}
+
+      <!-- tube outer torus (rubber) -->
+      <ellipse cx="60" cy="72" rx="46" ry="32" fill="url(#g-rubber)" stroke="#0E1108" stroke-width="1.4"/>
+      <!-- inner hole -->
+      <ellipse cx="60" cy="72" rx="22" ry="14" fill="var(--card-2)" stroke="#1A1F12" stroke-width="1"/>
+      <!-- coil seam line subtly suggesting coiled rubber -->
+      <path d="M 18 60 Q 60 84 102 60" stroke="#0E1108" stroke-width="1" fill="none" opacity="0.5"/>
+      <!-- top sheen on rubber -->
+      <ellipse cx="42" cy="48" rx="22" ry="6" fill="white" opacity="0.18"/>
+
+      <!-- VALVE STEM (presta-style, sticking up from the tube) -->
+      <!-- valve nut at base where it meets tube -->
+      <rect x="50" y="40" width="20" height="6" rx="1" fill="url(#g-silver-side)" stroke="#1A1F12" stroke-width="0.8"/>
+      <!-- main valve stem -->
+      <rect x="55" y="20" width="10" height="22" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1"/>
+      <!-- side wall on stem -->
+      <rect x="63" y="20" width="2" height="22" fill="url(#g-silver-side)"/>
+      <!-- presta knurled nut near top -->
+      <rect x="56" y="22" width="8" height="3" fill="url(#g-silver-side)" stroke="#1A1F12" stroke-width="0.6"/>
+      <rect x="56" y="26" width="8" height="3" fill="url(#g-silver-side)" stroke="#1A1F12" stroke-width="0.6"/>
+      <!-- valve cap (accent lime) -->
+      <rect x="53" y="10" width="14" height="11" rx="2" fill="url(#g-lime)" stroke="#1A1F12" stroke-width="1"/>
+      <!-- cap top sheen -->
+      <rect x="55" y="12" width="10" height="3" rx="1" fill="white" opacity="0.55"/>
+      <!-- cap grip ridges -->
+      <g stroke="#1A1F12" stroke-width="0.5" opacity="0.6">
+        <line x1="56" y1="14" x2="56" y2="20"/>
+        <line x1="60" y1="14" x2="60" y2="20"/>
+        <line x1="64" y1="14" x2="64" y2="20"/>
+      </g>
+    </svg>`,
+
+  /* ─── SEALANT BOTTLE — tapered plastic bottle with liquid level + label ─── */
+  sealant: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${castShadow(60, 108, 32, 4)}
+
+      <!-- bottle body: tapered (wider at bottom) -->
+      <path d="M 32 38
+               Q 32 36 34 36
+               L 86 36
+               Q 88 36 88 38
+               L 92 100
+               Q 92 104 88 104
+               L 32 104
+               Q 28 104 28 100
+               Z"
+            fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.4"/>
+      <!-- liquid fill (clip to bottle interior) -->
+      <path d="M 30 64
+               L 90 64
+               L 91.5 100
+               Q 92 104 88 104
+               L 32 104
+               Q 28 104 28 100
+               Z"
+            fill="url(#g-lime)" opacity="0.95"/>
+      <!-- liquid surface (small ellipse showing meniscus) -->
+      <ellipse cx="60" cy="64" rx="30" ry="2" fill="var(--accent-deep)" opacity="0.7"/>
+      <ellipse cx="60" cy="63.5" rx="30" ry="1" fill="white" opacity="0.5"/>
+      <!-- bottle outline overlay -->
+      <path d="M 32 38 Q 32 36 34 36 L 86 36 Q 88 36 88 38 L 92 100 Q 92 104 88 104 L 32 104 Q 28 104 28 100 Z"
+            fill="none" stroke="#1A1F12" stroke-width="1.4"/>
+      <!-- side highlight (left edge) -->
+      <path d="M 31 40 Q 30 70 30 100" stroke="white" stroke-width="3" fill="none" opacity="0.4"/>
+
+      <!-- neck -->
+      <rect x="48" y="22" width="24" height="14" rx="1" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1.2"/>
+      <rect x="68" y="24" width="3" height="10" fill="url(#g-silver-side)"/>
+
+      <!-- cap (matte black with grip ridges) -->
+      <rect x="44" y="8" width="32" height="16" rx="2" fill="url(#g-black)" stroke="#1A1F12" stroke-width="1.2"/>
+      <!-- cap grip ridges -->
+      <g stroke="#0E1108" stroke-width="0.6" opacity="0.7">
+        <line x1="48" y1="11" x2="48" y2="21"/>
+        <line x1="52" y1="11" x2="52" y2="21"/>
+        <line x1="56" y1="11" x2="56" y2="21"/>
+        <line x1="60" y1="11" x2="60" y2="21"/>
+        <line x1="64" y1="11" x2="64" y2="21"/>
+        <line x1="68" y1="11" x2="68" y2="21"/>
+        <line x1="72" y1="11" x2="72" y2="21"/>
+      </g>
+      <!-- cap sheen -->
+      <rect x="46" y="10" width="28" height="3" rx="1" fill="white" opacity="0.4"/>
+
+      <!-- LABEL (white sticker) -->
+      <rect x="36" y="44" width="48" height="14" rx="1" fill="white" opacity="0.9" stroke="#1A1F12" stroke-width="0.5"/>
+      <text x="60" y="54" text-anchor="middle"
+            font-family="-apple-system, sans-serif" font-weight="800" font-size="9"
+            fill="#1A1F12" letter-spacing="1">SEAL</text>
+    </svg>`,
+
+  /* ─── PEDAL — flat platform pedal in 3/4 view with pin caps ─── */
+  pedal: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${castShadow(60, 100, 44, 4)}
+
+      <!-- spindle (axle, sticking out the right) -->
+      <rect x="92" y="62" width="22" height="6" rx="2" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="1"/>
+      <ellipse cx="114" cy="65" rx="2" ry="3" fill="url(#g-silver-side)"/>
+
+      <!-- platform side (depth, drawn before top so top covers it) -->
+      <path d="M 14 64 L 92 50 L 100 60 L 100 70 L 22 84 L 14 74 Z" fill="url(#g-black-side)"/>
+
+      <!-- platform top face -->
+      <path d="M 14 64 L 92 50 L 100 60 L 22 74 Z" fill="url(#g-black)" stroke="#0E1108" stroke-width="1.2"/>
+
+      <!-- traction pins (cylindrical with end caps + accent tops) -->
+      ${(() => {
+        const pins = [
+          [30,62],[46,59],[62,56],[78,53],
+          [38,68],[54,65],[70,62],[86,59]
+        ];
+        return pins.map(([x,y]) => `
+          <ellipse cx="${x}" cy="${y+3}" rx="2.4" ry="0.8" fill="#0E1108"/>
+          <circle cx="${x}" cy="${y}" r="2.4" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="0.6"/>
+          <circle cx="${x-0.7}" cy="${y-0.7}" r="0.9" fill="white" opacity="0.7"/>
+        `).join('');
+      })()}
+
+      <!-- top edge sheen -->
+      <path d="M 18 64 L 90 52 L 90 55 L 18 67 Z" fill="white" opacity="0.18"/>
+
+      <!-- accent dot on platform body (logo) -->
+      <circle cx="56" cy="68" r="2.5" fill="var(--accent)"/>
+    </svg>`,
+
+  /* ─── SADDLE — 3/4 side profile of a road saddle on its rails ─── */
+  saddle: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${castShadow(60, 96, 36, 4)}
+
+      <!-- saddle main body, drawn as a long teardrop silhouette -->
+      <path d="M 12 52
+               Q 22 44 50 44
+               Q 80 44 96 50
+               Q 104 54 100 62
+               Q 92 66 76 66
+               Q 56 64 36 68
+               Q 22 70 14 64
+               Z"
+            fill="url(#g-black)" stroke="#0E1108" stroke-width="1.3"/>
+      <!-- bottom shadow side (depth) -->
+      <path d="M 14 64
+               Q 22 70 36 68
+               Q 56 66 76 66
+               Q 92 66 100 62
+               Q 96 76 60 78
+               Q 26 78 14 64 Z"
+            fill="#0E1108"/>
+
+      <!-- top sheen (long thin highlight along the upper curve) -->
+      <path d="M 24 50 Q 50 44 84 48 Q 50 50 24 54 Z" fill="white" opacity="0.4"/>
+
+      <!-- accent center seam stripe -->
+      <path d="M 22 56 Q 56 50 96 60" stroke="var(--accent)" stroke-width="1.6" fill="none" opacity="0.85"/>
+
+      <!-- rails (silver, two parallel curves underneath) -->
+      <g stroke="url(#g-silver)" stroke-width="2.4" stroke-linecap="round" fill="none">
+        <path d="M 30 72 Q 60 82 88 72"/>
+      </g>
+      <g stroke="#0E1108" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.6">
+        <path d="M 30 72 Q 60 82 88 72"/>
+      </g>
+      <!-- rail mounting points -->
+      <circle cx="30" cy="72" r="2" fill="url(#g-silver-side)"/>
+      <circle cx="88" cy="72" r="2" fill="url(#g-silver-side)"/>
+
+      <!-- seat post -->
+      <rect x="56" y="78" width="8" height="20" fill="url(#g-silver-side)" stroke="#1A1F12" stroke-width="1"/>
+      <rect x="57.5" y="80" width="2" height="16" fill="white" opacity="0.5"/>
+      <!-- post clamp ring -->
+      <rect x="54" y="76" width="12" height="4" rx="1" fill="url(#g-black)" stroke="#1A1F12" stroke-width="1"/>
+    </svg>`,
+
+  /* ─── PULLEY WHEELS — two black plastic jockey wheels, side-by-side
+        with bearings and lime accent on front wheel center ─── */
+  pulleys: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${DEFS}
+      ${castShadow(60, 102, 46, 4)}
+
+      <!-- BACK WHEEL (slightly higher, smaller for depth) -->
+      <g transform="translate(-12 -10)">
+        <polygon points="${teeth(60, 60, 26, 22, 12)}" fill="url(#g-black)" stroke="#0E1108" stroke-width="1.2"/>
+        <!-- inner ring (bearing) -->
+        <circle cx="60" cy="60" r="14" fill="url(#g-black-side)" stroke="#1A1F12" stroke-width="0.8"/>
+        <circle cx="60" cy="60" r="9" fill="url(#g-silver-side)" stroke="#0E1108" stroke-width="0.8"/>
+        <circle cx="60" cy="60" r="6" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="0.6"/>
+        <circle cx="60" cy="60" r="2" fill="#0E1108"/>
+        <!-- specular highlight -->
+        <ellipse cx="50" cy="46" rx="14" ry="3" fill="white" opacity="0.4"/>
+      </g>
+
+      <!-- FRONT WHEEL (lower-right, fully visible) -->
+      <g transform="translate(14 12)">
+        <polygon points="${teeth(60, 60, 28, 23, 12)}" fill="url(#g-black)" stroke="#0E1108" stroke-width="1.4"/>
+        <!-- inner ring (bearing) -->
+        <circle cx="60" cy="60" r="15" fill="url(#g-black-side)" stroke="#1A1F12" stroke-width="0.8"/>
+        <circle cx="60" cy="60" r="10" fill="url(#g-silver-side)" stroke="#0E1108" stroke-width="0.8"/>
+        <circle cx="60" cy="60" r="7" fill="url(#g-silver)" stroke="#1A1F12" stroke-width="0.6"/>
+        <!-- accent center -->
+        <circle cx="60" cy="60" r="3" fill="var(--accent)"/>
+        <circle cx="59" cy="59" r="1" fill="white" opacity="0.65"/>
+        <!-- specular highlight on outer wheel face -->
+        <ellipse cx="50" cy="46" rx="14" ry="3.5" fill="white" opacity="0.5"/>
+      </g>
+    </svg>`,
+};
+
+/* ───────────────────────────────────────────────────────────────
+   Render
+   ─────────────────────────────────────────────────────────────── */
+const ICON_LIST = [
+  ['chain',    'Chain'],
+  ['cassette', 'Cassette'],
+  ['tire',     'Tire'],
+  ['rotor',    'Brake rotor'],
+  ['pads',     'Brake pads'],
+  ['hub',      'Hub'],
+  ['pulleys',  'Pulley wheels'],
+  ['pedal',    'Pedal'],
+  ['saddle',   'Saddle'],
+  ['tube',     'Inner tube'],
+  ['sealant',  'Sealant'],
+  ['bolts',    'Service'],
+];
+
+const grid = document.getElementById('icon-grid');
+ICON_LIST.forEach(([key, label]) => {
+  const tile = document.createElement('div');
+  tile.className = 'icon-tile';
+  tile.innerHTML = ICONS[key] + `<div class="label">${label}</div>`;
+  grid.appendChild(tile);
+});
+
+const CTX = [
+  { icon: 'chain',    name: 'Chain — KMC X11SL',          sub: 'Installed 12 Mar · 2,140 km',   pct: 71,  color: '#F7C948' },
+  { icon: 'cassette', name: 'Cassette — Ultegra R8000',   sub: 'Installed 8 Jan · 1,920 km',    pct: 22,  color: '#34D17A' },
+  { icon: 'pads',     name: 'Front brake pads',           sub: 'Installed 30 Sep · 4,820 km',   pct: 102, color: '#FF425A' },
+  { icon: 'tire',     name: 'Front tyre — GP5000',        sub: 'Installed 4 Mar · 1,140 km',    pct: 28,  color: '#34D17A' },
+  { icon: 'pulleys',  name: 'Rear derailleur — XT M8100', sub: 'Installed 1 Apr · 240 km',      pct: 4,   color: '#34D17A' },
+  { icon: 'rotor',    name: 'Front rotor — RT-MT800',     sub: 'Installed 12 Aug · 8,200 km',   pct: 88,  color: '#FF8A33' },
+  { icon: 'sealant',  name: 'Tubeless sealant',           sub: 'Topped up 18 Apr · 110 km',     pct: 12,  color: '#34D17A' },
+  { icon: 'tube',     name: 'Inner tube — spare',         sub: 'In saddlebag',                  pct: 0,   color: '#34D17A' },
+];
+
+const ctxHost = document.getElementById('ctx-grid');
+CTX.forEach(c => {
+  const card = document.createElement('div');
+  card.className = 'comp-card';
+  card.innerHTML = `
+    <div class="comp-row">
+      <div class="comp-icon">${ICONS[c.icon]}</div>
+      <div class="comp-info">
+        <div class="comp-name">${c.name}</div>
+        <div class="comp-sub">${c.sub}</div>
+      </div>
+      <div class="comp-pct" style="color:${c.color}">${c.pct}%</div>
+    </div>
+    <div class="wear-track">
+      <div class="wear-fill" style="width:${Math.min(c.pct,100)}%; background:${c.color};"></div>
+    </div>`;
+  ctxHost.appendChild(card);
+});
+
+document.getElementById('theme-toggle').addEventListener('click', e => {
+  const t = e.target.dataset.theme;
+  if (!t) return;
+  document.body.dataset.theme = t;
+  document.querySelectorAll('#theme-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === t);
+  });
+});
+</script>
+</body>
+</html>

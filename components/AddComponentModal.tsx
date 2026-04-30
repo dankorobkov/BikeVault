@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../theme/ThemeProvider';
+import type { ColorPalette } from '../constants/colors';
 import {
   COMPONENT_TYPES,
   COMPONENT_GROUP_LABELS,
@@ -48,6 +49,8 @@ interface Props {
     lubeType?: ChainLubeType;
     lastLubedAt?: number;
     lubeIntervalKm?: number;
+    /** Component weight in kilograms (decimals OK). Optional. */
+    weight?: number;
   }) => Promise<void>;
 }
 
@@ -60,6 +63,8 @@ export default function AddComponentModal({
   onClose,
   onAdd,
 }: Props) {
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { useMetric } = useAppStore();
   const unit = unitLabel(useMetric);
 
@@ -75,6 +80,10 @@ export default function AddComponentModal({
   const [maxLifespan, setMaxLifespan] = useState('');
   const [attentionFreq, setAttentionFreq] = useState('');
   const [notes, setNotes] = useState('');
+  // Component weight in kilograms (string in the input so an empty
+  // value means "not weighed" rather than "0 kg"). Decimals accepted
+  // via decimal-pad keyboard — e.g. "0.25" for a 250 g chain.
+  const [weight, setWeight] = useState('');
   const [isElectric, setIsElectric] = useState(false);
   const [chargeInterval, setChargeInterval] = useState('');
   // Chain-lube tracking (only surfaced when category === 'chain').
@@ -162,6 +171,7 @@ export default function AddComponentModal({
           category === 'chain' && lubeType && lubeIntervalOverride
             ? parseNum(lubeIntervalOverride)
             : undefined,
+        weight: weight ? parseNum(weight) : undefined,
       });
       resetForm();
       onClose();
@@ -178,6 +188,7 @@ export default function AddComponentModal({
     setMaxLifespan('');
     setAttentionFreq('');
     setNotes('');
+    setWeight('');
     setIsElectric(false);
     setChargeInterval('');
     setLubeType(null);
@@ -209,7 +220,7 @@ export default function AddComponentModal({
           {step === 'details' ? (
             <TouchableOpacity onPress={handleAdd} disabled={!name.trim() || saving}>
               {saving ? (
-                <ActivityIndicator color={Colors.accent} />
+                <ActivityIndicator color={C.accent} />
               ) : (
                 <Text style={[styles.saveBtn, !name.trim() && styles.saveBtnDisabled]}>Save</Text>
               )}
@@ -255,9 +266,9 @@ export default function AddComponentModal({
 
             {/* Selected category badge */}
             <TouchableOpacity style={styles.selectedBadge} onPress={() => setStep('category')}>
-              <Ionicons name={typeInfo.icon as any} size={16} color={Colors.accent} />
+              <Ionicons name={typeInfo.icon as any} size={16} color={C.accent} />
               <Text style={styles.selectedBadgeText}>{typeInfo.label}</Text>
-              <Ionicons name="swap-horizontal-outline" size={13} color={Colors.accent} />
+              <Ionicons name="swap-horizontal-outline" size={13} color={C.accent} />
             </TouchableOpacity>
 
             {/* Basic info */}
@@ -267,7 +278,7 @@ export default function AddComponentModal({
                 <TextInput
                   style={styles.input}
                   placeholder="Component name *"
-                  placeholderTextColor={Colors.textTertiary}
+                  placeholderTextColor={C.textTertiary}
                   value={name}
                   onChangeText={setName}
                 />
@@ -275,10 +286,26 @@ export default function AddComponentModal({
                 <TextInput
                   style={styles.input}
                   placeholder="Brand (optional)"
-                  placeholderTextColor={Colors.textTertiary}
+                  placeholderTextColor={C.textTertiary}
                   value={brand}
                   onChangeText={setBrand}
                 />
+                <View style={styles.inputDivider} />
+                {/* Weight in kilograms (decimals allowed — e.g. 0.25
+                    for a chain, 8.25 for a frame). Optional. Feeds
+                    into the parent bike's "sum-of-components" weight
+                    when set. */}
+                <View style={styles.inputWithUnit}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    placeholder="Weight (optional) — e.g. 0.25"
+                    placeholderTextColor={C.textTertiary}
+                    value={weight}
+                    onChangeText={setWeight}
+                    keyboardType="decimal-pad"
+                  />
+                  <Text style={styles.unitLabel}>kg</Text>
+                </View>
               </View>
             </View>
 
@@ -299,7 +326,7 @@ export default function AddComponentModal({
                     onChange={setInstallDate}
                     maxDate={Date.now()}
                     align="right"
-                    color={Colors.accent}
+                    color={C.accent}
                     fontWeight="500"
                   />
                 </View>
@@ -310,7 +337,7 @@ export default function AddComponentModal({
                       <TextInput
                         style={[styles.input, { flex: 1 }]}
                         placeholder="Already ridden on this part — leave blank if brand new"
-                        placeholderTextColor={Colors.textTertiary}
+                        placeholderTextColor={C.textTertiary}
                         value={priorDistance}
                         onChangeText={setPriorDistance}
                         keyboardType="numeric"
@@ -324,7 +351,7 @@ export default function AddComponentModal({
                   <TextInput
                     style={[styles.input, { flex: 1 }]}
                     placeholder={'Max lifespan — default: ' + formatNumber(typeInfo.defaultLifespan)}
-                    placeholderTextColor={Colors.textTertiary}
+                    placeholderTextColor={C.textTertiary}
                     value={maxLifespan}
                     onChangeText={setMaxLifespan}
                     keyboardType="numeric"
@@ -336,7 +363,7 @@ export default function AddComponentModal({
                   <TextInput
                     style={[styles.input, { flex: 1 }]}
                     placeholder="Service reminder every — e.g. 300"
-                    placeholderTextColor={Colors.textTertiary}
+                    placeholderTextColor={C.textTertiary}
                     value={attentionFreq}
                     onChangeText={setAttentionFreq}
                     keyboardType="numeric"
@@ -363,8 +390,8 @@ export default function AddComponentModal({
                   <Switch
                     value={isElectric}
                     onValueChange={setIsElectric}
-                    trackColor={{ true: Colors.accent, false: Colors.border }}
-                    thumbColor={Colors.white}
+                    trackColor={{ true: C.accent, false: C.border }}
+                    thumbColor={C.white}
                   />
                 </View>
                 {isElectric && (
@@ -372,7 +399,7 @@ export default function AddComponentModal({
                     <TextInput
                       style={styles.input}
                       placeholder="Typical days from full charge to empty"
-                      placeholderTextColor={Colors.textTertiary}
+                      placeholderTextColor={C.textTertiary}
                       value={chargeInterval}
                       onChangeText={setChargeInterval}
                       keyboardType="numeric"
@@ -416,7 +443,7 @@ export default function AddComponentModal({
                           <Ionicons
                             name={meta.icon}
                             size={14}
-                            color={isSelected ? Colors.accent : Colors.textSecondary}
+                            color={isSelected ? C.accent : C.textSecondary}
                           />
                           <Text
                             style={[
@@ -450,7 +477,7 @@ export default function AddComponentModal({
                           onChange={setLastLubedAt}
                           maxDate={Date.now()}
                           align="right"
-                          color={Colors.accent}
+                          color={C.accent}
                           fontWeight="500"
                         />
                       </View>
@@ -462,7 +489,7 @@ export default function AddComponentModal({
                             'Re-lube every — default: ' +
                             formatNumber(CHAIN_LUBE_TYPES[lubeType].defaultIntervalKm)
                           }
-                          placeholderTextColor={Colors.textTertiary}
+                          placeholderTextColor={C.textTertiary}
                           value={lubeIntervalOverride}
                           onChangeText={setLubeIntervalOverride}
                           keyboardType="numeric"
@@ -481,7 +508,7 @@ export default function AddComponentModal({
               <TextInput
                 style={[styles.input, styles.notesInput]}
                 placeholder="Any notes (optional)"
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={C.textTertiary}
                 value={notes}
                 onChangeText={setNotes}
                 multiline
@@ -494,8 +521,8 @@ export default function AddComponentModal({
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg },
+const makeStyles = (C: ColorPalette) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -503,18 +530,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: C.border,
   },
-  title: { fontSize: 17, fontWeight: '600', color: Colors.text },
-  cancelBtn: { fontSize: 16, color: Colors.textSecondary },
-  saveBtn: { fontSize: 16, fontWeight: '600', color: Colors.accent },
+  title: { fontSize: 17, fontWeight: '600', color: C.text },
+  cancelBtn: { fontSize: 16, color: C.textSecondary },
+  saveBtn: { fontSize: 16, fontWeight: '600', color: C.accent },
   saveBtnDisabled: { opacity: 0.4 },
   content: { padding: 20, gap: 24, paddingBottom: 48 },
   section: { gap: 10 },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
@@ -525,25 +552,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 99,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: C.border,
   },
   bubbleActive: {
-    backgroundColor: Colors.accentDim,
-    borderColor: Colors.accent,
+    backgroundColor: C.accentDim,
+    borderColor: C.accent,
   },
-  bubbleText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '500' },
-  bubbleTextActive: { color: Colors.accent, fontWeight: '600' },
+  bubbleText: { fontSize: 14, color: C.textSecondary, fontWeight: '500' },
+  bubbleTextActive: { color: C.accent, fontWeight: '600' },
   lubeBubbleInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 
   // ── Details step ──────────────────────────────────────────────────────────
-  hint: { fontSize: 12, color: Colors.textTertiary, lineHeight: 17 },
-  inputGroup: { backgroundColor: Colors.card, borderRadius: 14, overflow: 'hidden' },
+  hint: { fontSize: 12, color: C.textTertiary, lineHeight: 17 },
+  inputGroup: { backgroundColor: C.card, borderRadius: 14, overflow: 'hidden' },
   inputWithUnit: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.card,
+    backgroundColor: C.card,
   },
   labeledRow: {
     flexDirection: 'row',
@@ -553,42 +580,42 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   labelCol: { flex: 1 },
-  fieldLabel: { fontSize: 15, fontWeight: '500', color: Colors.text },
-  fieldSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
-  input: { paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: Colors.text },
+  fieldLabel: { fontSize: 15, fontWeight: '500', color: C.text },
+  fieldSub: { fontSize: 12, color: C.textSecondary, marginTop: 1 },
+  input: { paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: C.text },
   unitLabel: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     fontWeight: '500',
     paddingRight: 16,
   },
   notesInput: {
     minHeight: 80,
     textAlignVertical: 'top',
-    backgroundColor: Colors.card,
+    backgroundColor: C.card,
     borderRadius: 14,
   },
-  inputDivider: { height: 1, backgroundColor: Colors.border, marginLeft: 16 },
+  inputDivider: { height: 1, backgroundColor: C.border, marginLeft: 16 },
   selectedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: Colors.accentDim,
+    backgroundColor: C.accentDim,
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 99,
   },
-  selectedBadgeText: { fontSize: 14, fontWeight: '600', color: Colors.accent },
+  selectedBadgeText: { fontSize: 14, fontWeight: '600', color: C.accent },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.card,
+    backgroundColor: C.card,
     borderRadius: 14,
     padding: 14,
     gap: 12,
   },
-  switchLabel: { fontSize: 15, fontWeight: '500', color: Colors.text, flex: 1 },
-  switchSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  switchLabel: { fontSize: 15, fontWeight: '500', color: C.text, flex: 1 },
+  switchSub: { fontSize: 12, color: C.textSecondary, marginTop: 2 },
 });

@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BikeVault — Isometric Icons</title>
+<style>
+  :root {
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  /* ──────────── VELOCITY · DARK + iso material palette ──────────── */
+  [data-theme="dark"] {
+    --bg: #0B0F0A;
+    --surface: #131A11;
+    --card: #1B2317;
+    --card-2: #222D1D;
+    --border: #2A3424;
+    --accent: #C5FF3C;
+    --accent-deep: #8FCC00;
+    --accent-dim: rgba(197,255,60,0.16);
+    --on-accent: #0E1408;
+    --text: #F5F7F3;
+    --text-secondary: #8C9587;
+    --text-tertiary: #4D5447;
+    --shadow-cast: rgba(0,0,0,0.55);
+
+    /* Isometric materials — three faces per material (top, right, left) */
+    --iso-edge:        #0B0F0A;
+
+    --iso-base-top:    #4A5044;
+    --iso-base-r:      #2F342B;
+    --iso-base-l:      #1A1D14;
+
+    --iso-metal-top:   #DDE3CF;
+    --iso-metal-r:     #97A088;
+    --iso-metal-l:     #5C6253;
+
+    --iso-accent-top:  #C5FF3C;
+    --iso-accent-r:    #8FCC00;
+    --iso-accent-l:    #4F7000;
+
+    --iso-slate-top:   #8FA8B4;
+    --iso-slate-r:     #5B7B8C;
+    --iso-slate-l:     #36556A;
+
+    --iso-rubber-top:  #3A3F32;
+    --iso-rubber-r:    #20251A;
+    --iso-rubber-l:    #0E1108;
+
+    --iso-bolt:        #DDE3CF;
+  }
+  /* ──────────── VELOCITY · LIGHT ──────────── */
+  [data-theme="light"] {
+    --bg: #F6F8F1;
+    --surface: #FFFFFF;
+    --card: #FFFFFF;
+    --card-2: #F1F4EA;
+    --border: #E1E6D3;
+    --accent: #6BC400;
+    --accent-deep: #4D9100;
+    --accent-dim: rgba(107,196,0,0.13);
+    --on-accent: #FFFFFF;
+    --text: #10160A;
+    --text-secondary: #5C6151;
+    --text-tertiary: #A6AC97;
+    --shadow-cast: rgba(28,40,12,0.22);
+
+    --iso-edge:        #1A1F12;
+
+    --iso-base-top:    #B0B7A2;
+    --iso-base-r:      #7E8773;
+    --iso-base-l:      #4F5747;
+
+    --iso-metal-top:   #E5E9D8;
+    --iso-metal-r:     #ABB39C;
+    --iso-metal-l:     #6F7864;
+
+    --iso-accent-top:  #8FE000;
+    --iso-accent-r:    #6BC400;
+    --iso-accent-l:    #4D8A00;
+
+    --iso-slate-top:   #A8BFC9;
+    --iso-slate-r:     #6F8C9B;
+    --iso-slate-l:     #44637A;
+
+    --iso-rubber-top:  #4F574A;
+    --iso-rubber-r:    #36392F;
+    --iso-rubber-l:    #1F2218;
+
+    --iso-bolt:        #E5E9D8;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--font); -webkit-font-smoothing: antialiased;
+    transition: background 0.25s, color 0.25s;
+  }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 1200px; margin: 0 auto; padding: 14px 28px;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+  .brand-logo {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--accent); display: grid; place-items: center;
+    color: var(--on-accent); font-weight: 900; font-size: 14px;
+  }
+  .pill {
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--accent-dim); color: var(--accent);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .toggle-group {
+    display: flex; background: var(--card-2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 4px; gap: 2px;
+  }
+  .toggle-group button {
+    border: none; background: transparent; color: var(--text-secondary);
+    padding: 7px 14px; border-radius: 8px;
+    font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .toggle-group button.active {
+    background: var(--surface); color: var(--text);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 40px 28px 100px; }
+  h1 { font-size: 38px; font-weight: 800; letter-spacing: -0.025em; margin: 0 0 10px; }
+  .lede { color: var(--text-secondary); font-size: 15px; line-height: 1.55; max-width: 720px; margin: 0 0 50px; }
+  .eyebrow { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin: 0; }
+  .section-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+  section { margin-bottom: 64px; }
+
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .icon-tile {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 24px 14px 18px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    box-shadow: 0 8px 22px var(--shadow-cast);
+  }
+  .icon-tile svg { width: 130px; height: 130px; }
+  .icon-tile .label { font-size: 12.5px; color: var(--text-secondary); font-weight: 600; }
+
+  .ctx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+  .comp-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 18px; padding: 14px 16px;
+    box-shadow: 0 6px 18px var(--shadow-cast);
+  }
+  .comp-row { display: flex; align-items: center; gap: 14px; }
+  .comp-icon {
+    width: 64px; height: 64px;
+    border-radius: 14px;
+    background: var(--card-2); border: 1px solid var(--border);
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .comp-icon svg { width: 56px; height: 56px; }
+  .comp-info { flex: 1; min-width: 0; }
+  .comp-name { font-size: 15px; font-weight: 700; margin: 0 0 2px; }
+  .comp-sub { color: var(--text-secondary); font-size: 12.5px; }
+  .comp-pct { font-family: var(--mono); font-size: 14px; font-weight: 700; }
+  .wear-track { margin-top: 12px; height: 8px; background: var(--card-2); border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
+  .wear-fill { height: 100%; border-radius: 999px; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 60px; padding: 28px;
+    text-align: center; color: var(--text-tertiary); font-size: 12px;
+  }
+</style>
+</head>
+
+<body data-theme="dark">
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-logo">B</div>
+      Isometric Icons · Velocity
+      <span class="pill">v6</span>
+    </div>
+    <div style="flex:1"></div>
+    <div class="toggle-group" id="theme-toggle">
+      <button data-theme="dark" class="active">Dark</button>
+      <button data-theme="light">Light</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <h1>Industrial isometric.</h1>
+  <p class="lede">
+    True 2:1 isometric projection, flat fills, no gradients. Each component sits on a grey base
+    plate with corner bolts (like the reference). Three colors per material — lighter top face, mid
+    right face, dark left face — give the 3D form. Lime is the brand accent reserved for active /
+    moving parts; slate blue handles secondary structural details; metal greys do the heavy lifting.
+  </p>
+
+  <section>
+    <div class="section-head">
+      <span class="eyebrow">01 — The set</span>
+      <h2>Mounted components</h2>
+    </div>
+    <div class="icon-grid" id="icon-grid"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <span class="eyebrow">02 — In context</span>
+      <h2>At label-size, on real cards</h2>
+    </div>
+    <div class="ctx-grid" id="ctx-grid"></div>
+  </section>
+
+  <footer>
+    BikeVault iso icons v6 · April 2026 · approve and I'll commit the full set across all 40+ component types.
+  </footer>
+</main>
+
+<script>
+/* ───────────────────────────────────────────────────────────────
+   Iso convention used throughout: 2:1 pixel-art isometric.
+     world (x, y, z) → screen (x - y, (x + y) / 2 - z)
+   - World X axis points right-and-down on screen
+   - World Y axis points left-and-down on screen
+   - World Z axis points straight up
+
+   Each icon is hand-built: a grey base plate + the component
+   stack on top of it. Visible faces fill in three tones:
+     top  = lightest (brand-* or metal-* "-top")
+     right = mid     ("-r")
+     left  = darkest ("-l")
+   Outlines use --iso-edge.
+
+   Variable shorthand inside SVGs:
+     E = --iso-edge
+     Bt/Br/Bl = base top/right/left
+     Mt/Mr/Ml = metal
+     At/Ar/Al = accent (lime)
+     St/Sr/Sl = slate
+     Rt/Rr/Rl = rubber
+   ─────────────────────────────────────────────────────────────── */
+
+/* Reusable iso base plate (32 × 32 × 6 world units).
+   Centered around screen (60, 92). Corner bolts included. */
+function isoBase() {
+  return `
+    <!-- top face: diamond -->
+    <polygon points="60,76 92,92 60,108 28,92" fill="var(--iso-base-top)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+    <!-- right face -->
+    <polygon points="92,92 60,108 60,114 92,98" fill="var(--iso-base-r)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+    <!-- left face -->
+    <polygon points="28,92 60,108 60,114 28,98" fill="var(--iso-base-l)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+    <!-- corner bolts (small dots on the top face) -->
+    <circle cx="60" cy="80" r="1.8" fill="var(--iso-bolt)" stroke="var(--iso-edge)" stroke-width="0.5"/>
+    <circle cx="86" cy="92" r="1.8" fill="var(--iso-bolt)" stroke="var(--iso-edge)" stroke-width="0.5"/>
+    <circle cx="60" cy="104" r="1.8" fill="var(--iso-bolt)" stroke="var(--iso-edge)" stroke-width="0.5"/>
+    <circle cx="34" cy="92" r="1.8" fill="var(--iso-bolt)" stroke="var(--iso-edge)" stroke-width="0.5"/>
+  `;
+}
+
+/* Helper: an iso vertical cylinder (like a cog or hub disc).
+   - cx, cy: screen coords for the *center of the top face*
+   - rx: top ellipse horizontal semi-axis (= world radius)
+   - ry: top ellipse vertical semi-axis (= world radius / 2)
+   - h: visible height of side wall (in screen px)
+   - top/right colors; left ellipse end color = right
+*/
+function isoCyl(cx, cy, rx, ry, h, topVar, rVar) {
+  return `
+    <!-- back (bottom) ellipse, drawn first -->
+    <ellipse cx="${cx}" cy="${cy + h}" rx="${rx}" ry="${ry}" fill="var(${rVar})" stroke="var(--iso-edge)" stroke-width="1"/>
+    <!-- side wall rectangle (covers front half of bottom ellipse) -->
+    <rect x="${cx - rx}" y="${cy}" width="${rx * 2}" height="${h}" fill="var(${rVar})" stroke="var(--iso-edge)" stroke-width="1"/>
+    <!-- top ellipse -->
+    <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="var(${topVar})" stroke="var(--iso-edge)" stroke-width="1.2"/>
+  `;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   ICONS — each ~120×120 viewBox, with a base plate and the
+   component composed of iso primitives on top.
+   ─────────────────────────────────────────────────────────────── */
+const ICONS = {
+
+  /* ─── CASSETTE — stack of 4 cogs on a base plate ─── */
+  cassette: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${isoBase()}
+      <!-- cog 1 (largest, sits directly on base) -->
+      ${isoCyl(60, 70, 22, 9, 4, '--iso-metal-top', '--iso-metal-r')}
+      <!-- cog 2 -->
+      ${isoCyl(60, 60, 17, 7, 4, '--iso-metal-top', '--iso-metal-r')}
+      <!-- cog 3 -->
+      ${isoCyl(60, 50, 12, 5, 4, '--iso-metal-top', '--iso-metal-r')}
+      <!-- cog 4 (smallest, accent-colored) -->
+      ${isoCyl(60, 40, 7, 3.5, 4, '--iso-accent-top', '--iso-accent-r')}
+      <!-- spline going up through center -->
+      <ellipse cx="60" cy="34" rx="3" ry="1.4" fill="var(--iso-slate-top)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+      <rect x="57" y="34" width="6" height="3" fill="var(--iso-slate-r)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+      <ellipse cx="60" cy="37" rx="3" ry="1.4" fill="var(--iso-slate-r)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+      <!-- tooth notches around each cog (small dark marks at the cardinal points) -->
+      <g fill="var(--iso-edge)">
+        <rect x="38" y="68" width="3" height="2"/>
+        <rect x="79" y="68" width="3" height="2"/>
+        <rect x="59" y="60.5" width="2" height="2"/>
+        <rect x="59" y="79.5" width="2" height="2"/>
+      </g>
+    </svg>`,
+
+  /* ─── CHAIN — three iso "donut" links arranged in a line on a base ─── */
+  chain: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${isoBase()}
+      <!-- A "chain link" is an iso pill: top face (oblong ellipse) + side wall + inner hole.
+           We use 3 links arranged left → center → right above the base plate. -->
+
+      <!-- LINK 1 (left, accent-colored) -->
+      <g>
+        <!-- side wall (front) -->
+        <path d="M 24,76 Q 24,82 30,82 L 50,82 Q 56,82 56,76 L 56,72 L 24,72 Z"
+              fill="var(--iso-accent-r)" stroke="var(--iso-edge)" stroke-width="1.1"/>
+        <!-- top face (oval donut) -->
+        <ellipse cx="40" cy="72" rx="16" ry="6" fill="var(--iso-accent-top)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+        <!-- inner hole (cutout) -->
+        <ellipse cx="40" cy="72" rx="9" ry="2.5" fill="var(--card-2)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+      </g>
+
+      <!-- LINK 2 (center, metal) -->
+      <g>
+        <path d="M 44,72 Q 44,78 50,78 L 70,78 Q 76,78 76,72 L 76,68 L 44,68 Z"
+              fill="var(--iso-metal-r)" stroke="var(--iso-edge)" stroke-width="1.1"/>
+        <ellipse cx="60" cy="68" rx="16" ry="6" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+        <ellipse cx="60" cy="68" rx="9" ry="2.5" fill="var(--card-2)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+      </g>
+
+      <!-- LINK 3 (right, accent) -->
+      <g>
+        <path d="M 64,68 Q 64,74 70,74 L 90,74 Q 96,74 96,68 L 96,64 L 64,64 Z"
+              fill="var(--iso-accent-r)" stroke="var(--iso-edge)" stroke-width="1.1"/>
+        <ellipse cx="80" cy="64" rx="16" ry="6" fill="var(--iso-accent-top)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+        <ellipse cx="80" cy="64" rx="9" ry="2.5" fill="var(--card-2)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+      </g>
+    </svg>`,
+
+  /* ─── HUB — horizontal cylinder with two flared flanges on a base ─── */
+  hub: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${isoBase()}
+
+      <!-- The hub lies horizontally above the base. Drawn as an iso
+           horizontal cylinder: left ellipse end + side rect + right ellipse end -->
+
+      <!-- Mount post connecting hub to base -->
+      <rect x="56" y="64" width="8" height="14" fill="var(--iso-slate-r)" stroke="var(--iso-edge)" stroke-width="1"/>
+      <polygon points="56,64 64,64 64,78 56,78" fill="var(--iso-slate-l)" stroke="var(--iso-edge)" stroke-width="1"/>
+      <ellipse cx="60" cy="64" rx="4" ry="1.5" fill="var(--iso-slate-top)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+
+      <!-- Hub axle (silver rod) extends past flanges on both sides -->
+      <ellipse cx="22" cy="56" rx="3" ry="2" fill="var(--iso-metal-r)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+      <rect x="22" y="54" width="76" height="4" fill="var(--iso-metal-l)" stroke="var(--iso-edge)" stroke-width="0.6"/>
+      <ellipse cx="98" cy="56" rx="3" ry="2" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+
+      <!-- Left flange (cylinder seen end-on) -->
+      <ellipse cx="32" cy="56" rx="4.5" ry="11" fill="var(--iso-metal-l)" stroke="var(--iso-edge)" stroke-width="1"/>
+      <ellipse cx="34" cy="56" rx="3" ry="9" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="0.6"/>
+
+      <!-- Hub body (matte black/slate cylinder side) -->
+      <rect x="34" y="48" width="52" height="16" fill="var(--iso-rubber-r)" stroke="var(--iso-edge)" stroke-width="1"/>
+      <!-- top edge stripe -->
+      <rect x="34" y="48" width="52" height="3" fill="var(--iso-rubber-top)"/>
+      <!-- accent stripe along middle -->
+      <rect x="34" y="55" width="52" height="3" fill="var(--iso-accent-r)" stroke="var(--iso-edge)" stroke-width="0.4"/>
+
+      <!-- Right flange -->
+      <ellipse cx="86" cy="56" rx="4.5" ry="11" fill="var(--iso-metal-r)" stroke="var(--iso-edge)" stroke-width="1"/>
+      <ellipse cx="86" cy="56" rx="3" ry="9" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="0.6"/>
+      <!-- spoke holes on right flange -->
+      <g fill="var(--iso-edge)">
+        <circle cx="86" cy="49" r="0.8"/>
+        <circle cx="86" cy="56" r="0.8"/>
+        <circle cx="86" cy="63" r="0.8"/>
+      </g>
+    </svg>`,
+
+  /* ─── TIRE — vertical wheel (iso-rotated ellipse) on a forked stand ─── */
+  tire: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${isoBase()}
+
+      <!-- Fork stand (slate) holding the wheel up -->
+      <polygon points="40,84 38,68 42,68 44,82" fill="var(--iso-slate-l)" stroke="var(--iso-edge)" stroke-width="1"/>
+      <polygon points="80,84 78,68 82,68 80,82" fill="var(--iso-slate-r)" stroke="var(--iso-edge)" stroke-width="1"/>
+
+      <!-- Hub axle (passes through center of wheel) -->
+      <ellipse cx="60" cy="60" rx="3" ry="1.5" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="0.6"/>
+
+      <!-- Tire (iso ellipse rotated to look like a wheel viewed at iso angle) -->
+      <!-- Outer rubber -->
+      <ellipse cx="60" cy="56" rx="36" ry="20" fill="var(--iso-rubber-r)" stroke="var(--iso-edge)" stroke-width="1.4" transform="rotate(-30 60 56)"/>
+      <!-- Inner rim (lime accent) -->
+      <ellipse cx="60" cy="56" rx="28" ry="14" fill="var(--iso-accent-l)" stroke="var(--iso-edge)" stroke-width="1" transform="rotate(-30 60 56)"/>
+      <!-- Spokes (5 thin lines) -->
+      <g stroke="var(--iso-metal-top)" stroke-width="1.4" stroke-linecap="round" transform="rotate(-30 60 56)">
+        <line x1="60" y1="56" x2="84" y2="48"/>
+        <line x1="60" y1="56" x2="80" y2="64"/>
+        <line x1="60" y1="56" x2="60" y2="40"/>
+        <line x1="60" y1="56" x2="40" y2="48"/>
+        <line x1="60" y1="56" x2="36" y2="64"/>
+      </g>
+      <!-- Hub center -->
+      <circle cx="60" cy="56" r="3.5" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="1"/>
+
+      <!-- Tread blocks on the outer ring (small dashes around the rotated ellipse) -->
+      <g fill="var(--iso-edge)" transform="rotate(-30 60 56)">
+        <rect x="58" y="35" width="4" height="2"/>
+        <rect x="58" y="75" width="4" height="2"/>
+        <rect x="22" y="55" width="2" height="3"/>
+        <rect x="96" y="55" width="2" height="3"/>
+        <rect x="38" y="40" width="3" height="2.5" transform="rotate(-30 39 41)"/>
+        <rect x="80" y="40" width="3" height="2.5" transform="rotate(30 81 41)"/>
+        <rect x="38" y="70" width="3" height="2.5" transform="rotate(30 39 71)"/>
+        <rect x="80" y="70" width="3" height="2.5" transform="rotate(-30 81 71)"/>
+      </g>
+    </svg>`,
+
+  /* ─── ROTOR — disc lying flat on a hub mount ─── */
+  rotor: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${isoBase()}
+
+      <!-- Disc lying flat (iso ellipse top face + thin side wall) -->
+      <!-- bottom ellipse -->
+      <ellipse cx="60" cy="74" rx="36" ry="12" fill="var(--iso-metal-r)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+      <!-- side wall -->
+      <rect x="24" y="68" width="72" height="6" fill="var(--iso-metal-r)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+      <!-- top face (rotor) -->
+      <ellipse cx="60" cy="68" rx="36" ry="12" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="1.4"/>
+
+      <!-- Vented slots on the rotor (6 small ellipses arranged radially in iso) -->
+      <g fill="var(--iso-edge)">
+        <ellipse cx="42" cy="62" rx="2.5" ry="1"/>
+        <ellipse cx="78" cy="62" rx="2.5" ry="1"/>
+        <ellipse cx="42" cy="74" rx="2.5" ry="1"/>
+        <ellipse cx="78" cy="74" rx="2.5" ry="1"/>
+        <ellipse cx="60" cy="58" rx="3" ry="1"/>
+        <ellipse cx="60" cy="78" rx="3" ry="1"/>
+      </g>
+
+      <!-- Inner braking band ring -->
+      <ellipse cx="60" cy="68" rx="14" ry="4.5" fill="var(--iso-rubber-top)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+
+      <!-- 6-bolt pattern on inner hub -->
+      <g fill="var(--iso-bolt)" stroke="var(--iso-edge)" stroke-width="0.5">
+        <circle cx="50" cy="68" r="1.2"/>
+        <circle cx="70" cy="68" r="1.2"/>
+        <circle cx="56" cy="64" r="1.2"/>
+        <circle cx="64" cy="64" r="1.2"/>
+        <circle cx="56" cy="72" r="1.2"/>
+        <circle cx="64" cy="72" r="1.2"/>
+      </g>
+
+      <!-- Center spline -->
+      <ellipse cx="60" cy="68" rx="3" ry="1" fill="var(--iso-accent-top)" stroke="var(--iso-edge)" stroke-width="0.6"/>
+
+      <!-- Mount post -->
+      <rect x="58" y="80" width="4" height="6" fill="var(--iso-slate-r)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+    </svg>`,
+
+  /* ─── BRAKE PADS — pair of mounted pads on a base ─── */
+  pads: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${isoBase()}
+
+      <!-- LEFT PAD -->
+      <g>
+        <!-- backing plate (iso box: top, right, left faces) -->
+        <polygon points="32,60 38,63 38,84 32,81" fill="var(--iso-metal-l)" stroke="var(--iso-edge)" stroke-width="1"/>
+        <polygon points="38,63 50,57 50,78 38,84" fill="var(--iso-metal-r)" stroke="var(--iso-edge)" stroke-width="1"/>
+        <polygon points="32,60 38,63 50,57 44,54" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="1"/>
+        <!-- pad rubber face (visible from the inner side) -->
+        <polygon points="50,57 53,59 53,80 50,78" fill="var(--iso-rubber-l)" stroke="var(--iso-edge)" stroke-width="1"/>
+        <polygon points="44,54 50,57 53,59 47,56" fill="var(--iso-rubber-top)" stroke="var(--iso-edge)" stroke-width="1"/>
+        <!-- accent wear stripe -->
+        <rect x="50" y="66" width="3" height="3" fill="var(--iso-accent-top)"/>
+        <!-- mounting tab -->
+        <ellipse cx="38" cy="51" rx="3" ry="1.5" fill="var(--iso-bolt)" stroke="var(--iso-edge)" stroke-width="0.6"/>
+        <rect x="36" y="51" width="4" height="6" fill="var(--iso-metal-r)" stroke="var(--iso-edge)" stroke-width="0.6"/>
+      </g>
+
+      <!-- RIGHT PAD (mirrored) -->
+      <g>
+        <polygon points="88,60 82,63 82,84 88,81" fill="var(--iso-metal-r)" stroke="var(--iso-edge)" stroke-width="1"/>
+        <polygon points="82,63 70,57 70,78 82,84" fill="var(--iso-metal-l)" stroke="var(--iso-edge)" stroke-width="1"/>
+        <polygon points="88,60 82,63 70,57 76,54" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="1"/>
+        <polygon points="70,57 67,59 67,80 70,78" fill="var(--iso-rubber-r)" stroke="var(--iso-edge)" stroke-width="1"/>
+        <polygon points="76,54 70,57 67,59 73,56" fill="var(--iso-rubber-top)" stroke="var(--iso-edge)" stroke-width="1"/>
+        <rect x="67" y="66" width="3" height="3" fill="var(--iso-accent-top)"/>
+        <ellipse cx="82" cy="51" rx="3" ry="1.5" fill="var(--iso-bolt)" stroke="var(--iso-edge)" stroke-width="0.6"/>
+        <rect x="80" y="51" width="4" height="6" fill="var(--iso-metal-l)" stroke="var(--iso-edge)" stroke-width="0.6"/>
+      </g>
+
+      <!-- spring clip arching across top -->
+      <path d="M 38,51 Q 60,38 82,51" stroke="var(--iso-slate-r)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    </svg>`,
+
+  /* ─── PEDAL — flat platform with traction pins on a base ─── */
+  pedal: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${isoBase()}
+
+      <!-- Spindle running along world X axis (right-back) -->
+      <polygon points="60,68 90,52 96,55 66,71" fill="var(--iso-metal-r)" stroke="var(--iso-edge)" stroke-width="1"/>
+      <polygon points="66,71 96,55 96,59 66,75" fill="var(--iso-metal-l)" stroke="var(--iso-edge)" stroke-width="1"/>
+      <polygon points="60,68 66,71 96,55 90,52" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="1"/>
+
+      <!-- Pedal platform: an iso box -->
+      <!-- left face -->
+      <polygon points="22,72 30,76 30,84 22,80" fill="var(--iso-rubber-l)" stroke="var(--iso-edge)" stroke-width="1.1"/>
+      <!-- right face -->
+      <polygon points="80,52 88,56 88,64 80,60" fill="var(--iso-rubber-r)" stroke="var(--iso-edge)" stroke-width="1.1"/>
+      <!-- front face (long parallelogram facing us) -->
+      <polygon points="22,80 30,76 88,56 80,60 80,68 22,88" fill="var(--iso-rubber-r)" stroke="var(--iso-edge)" stroke-width="1.1"/>
+      <!-- top face -->
+      <polygon points="22,72 30,76 88,56 80,52" fill="var(--iso-rubber-top)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+
+      <!-- Traction pins (4 lime accent dots on top face, in a 2×2 arrangement) -->
+      <g>
+        <circle cx="40" cy="68" r="2" fill="var(--iso-accent-top)" stroke="var(--iso-edge)" stroke-width="0.5"/>
+        <circle cx="55" cy="62" r="2" fill="var(--iso-accent-top)" stroke="var(--iso-edge)" stroke-width="0.5"/>
+        <circle cx="70" cy="56" r="2" fill="var(--iso-accent-top)" stroke="var(--iso-edge)" stroke-width="0.5"/>
+        <circle cx="48" cy="73" r="2" fill="var(--iso-accent-top)" stroke="var(--iso-edge)" stroke-width="0.5"/>
+        <circle cx="63" cy="67" r="2" fill="var(--iso-accent-top)" stroke="var(--iso-edge)" stroke-width="0.5"/>
+        <circle cx="78" cy="61" r="2" fill="var(--iso-accent-top)" stroke="var(--iso-edge)" stroke-width="0.5"/>
+      </g>
+    </svg>`,
+
+  /* ─── SADDLE — saddle silhouette on a vertical post ─── */
+  saddle: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${isoBase()}
+
+      <!-- seat post -->
+      <polygon points="56,52 60,54 60,76 56,74" fill="var(--iso-slate-l)" stroke="var(--iso-edge)" stroke-width="1"/>
+      <polygon points="60,54 64,52 64,74 60,76" fill="var(--iso-slate-r)" stroke="var(--iso-edge)" stroke-width="1"/>
+      <polygon points="56,52 60,50 64,52 60,54" fill="var(--iso-slate-top)" stroke="var(--iso-edge)" stroke-width="1"/>
+
+      <!-- post clamp ring -->
+      <ellipse cx="60" cy="50" rx="6" ry="2" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+      <rect x="54" y="50" width="12" height="3" fill="var(--iso-metal-r)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+      <ellipse cx="60" cy="53" rx="6" ry="2" fill="var(--iso-metal-r)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+
+      <!-- Saddle body — pointed nose at front-left, wider back at right-back.
+           Drawn as iso elongated shape with top/right/left faces. -->
+      <!-- left/front face -->
+      <path d="M 20,42 Q 28,32 50,30 L 60,40 Q 50,46 30,46 Q 22,46 20,42 Z"
+            fill="var(--iso-rubber-r)" stroke="var(--iso-edge)" stroke-width="1.1"/>
+      <!-- top face -->
+      <path d="M 20,42 Q 28,32 50,30 Q 78,28 96,38 Q 86,46 60,42 Q 38,42 28,46 Q 22,46 20,42 Z"
+            fill="var(--iso-rubber-top)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+      <!-- right/back face -->
+      <path d="M 96,38 Q 86,46 60,42 L 60,46 Q 84,50 96,42 Z"
+            fill="var(--iso-rubber-l)" stroke="var(--iso-edge)" stroke-width="1.1"/>
+
+      <!-- accent center seam -->
+      <path d="M 28,42 Q 60,38 92,40" stroke="var(--iso-accent-top)" stroke-width="1.3" fill="none" opacity="0.95"/>
+    </svg>`,
+
+  /* ─── BOLTS — three hex bolts standing up on the base plate ─── */
+  bolts: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${isoBase()}
+
+      <!-- Each bolt: hex head (top diamond + side faces) + cylindrical shaft going down into the base.
+           Three bolts arranged left, center, right on the base top face. -->
+
+      <!-- bolt 1 (left, slate) -->
+      <g>
+        <!-- shaft -->
+        <rect x="34" y="64" width="6" height="20" fill="var(--iso-slate-r)" stroke="var(--iso-edge)" stroke-width="1"/>
+        <ellipse cx="37" cy="84" rx="3" ry="1.5" fill="var(--iso-slate-l)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+        <!-- hex head (iso hexagon: visible top + right + left faces) -->
+        <polygon points="37,52 43,55 43,64 37,67 31,64 31,55" fill="var(--iso-slate-r)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+        <polygon points="37,52 43,55 37,58 31,55" fill="var(--iso-slate-top)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+        <!-- hex socket -->
+        <polygon points="37,55 40,56.5 40,59 37,60.5 34,59 34,56.5" fill="var(--iso-edge)"/>
+      </g>
+
+      <!-- bolt 2 (center, accent lime) -->
+      <g>
+        <rect x="57" y="60" width="6" height="20" fill="var(--iso-accent-r)" stroke="var(--iso-edge)" stroke-width="1"/>
+        <ellipse cx="60" cy="80" rx="3" ry="1.5" fill="var(--iso-accent-l)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+        <polygon points="60,46 66,49 66,58 60,61 54,58 54,49" fill="var(--iso-accent-r)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+        <polygon points="60,46 66,49 60,52 54,49" fill="var(--iso-accent-top)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+        <polygon points="60,49 63,50.5 63,53 60,54.5 57,53 57,50.5" fill="var(--iso-edge)"/>
+      </g>
+
+      <!-- bolt 3 (right, metal) -->
+      <g>
+        <rect x="80" y="64" width="6" height="20" fill="var(--iso-metal-r)" stroke="var(--iso-edge)" stroke-width="1"/>
+        <ellipse cx="83" cy="84" rx="3" ry="1.5" fill="var(--iso-metal-l)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+        <polygon points="83,52 89,55 89,64 83,67 77,64 77,55" fill="var(--iso-metal-r)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+        <polygon points="83,52 89,55 83,58 77,55" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="1.2"/>
+        <polygon points="83,55 86,56.5 86,59 83,60.5 80,59 80,56.5" fill="var(--iso-edge)"/>
+      </g>
+    </svg>`,
+
+  /* ─── PULLEY WHEELS — two small black plastic cogs side-by-side on a frame ─── */
+  pulleys: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${isoBase()}
+
+      <!-- Mounting frame (slate) -->
+      <polygon points="38,76 60,86 82,76 82,68 60,78 38,68" fill="var(--iso-slate-r)" stroke="var(--iso-edge)" stroke-width="1.1"/>
+      <polygon points="38,68 60,78 82,68 60,58" fill="var(--iso-slate-top)" stroke="var(--iso-edge)" stroke-width="1.1"/>
+
+      <!-- Top pulley wheel -->
+      ${isoCyl(46, 50, 9, 4.5, 4, '--iso-rubber-top', '--iso-rubber-r')}
+      <ellipse cx="46" cy="50" rx="3" ry="1.5" fill="var(--iso-accent-top)" stroke="var(--iso-edge)" stroke-width="0.6"/>
+      <!-- tooth notches on top wheel -->
+      <g fill="var(--iso-edge)">
+        <rect x="36" y="49" width="2" height="2"/>
+        <rect x="54" y="49" width="2" height="2"/>
+        <rect x="45" y="45.5" width="2" height="2"/>
+        <rect x="45" y="53.5" width="2" height="2"/>
+      </g>
+
+      <!-- Bottom pulley wheel (slightly offset) -->
+      ${isoCyl(74, 56, 9, 4.5, 4, '--iso-rubber-top', '--iso-rubber-r')}
+      <ellipse cx="74" cy="56" rx="3" ry="1.5" fill="var(--iso-accent-top)" stroke="var(--iso-edge)" stroke-width="0.6"/>
+      <g fill="var(--iso-edge)">
+        <rect x="64" y="55" width="2" height="2"/>
+        <rect x="82" y="55" width="2" height="2"/>
+        <rect x="73" y="51.5" width="2" height="2"/>
+        <rect x="73" y="59.5" width="2" height="2"/>
+      </g>
+
+      <!-- chain path between them -->
+      <path d="M 46,46 L 46,42 L 74,52 L 74,52" stroke="var(--iso-metal-l)" stroke-width="1" fill="none" stroke-linecap="round"/>
+    </svg>`,
+
+  /* ─── SEALANT BOTTLE — plastic bottle on a base ─── */
+  sealant: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${isoBase()}
+
+      <!-- Bottle: tapered iso shape (wider at bottom) -->
+      <!-- left face -->
+      <polygon points="44,82 52,86 52,46 44,42" fill="var(--iso-metal-l)" stroke="var(--iso-edge)" stroke-width="1.1"/>
+      <!-- right face -->
+      <polygon points="76,82 68,86 68,46 76,42" fill="var(--iso-metal-r)" stroke="var(--iso-edge)" stroke-width="1.1"/>
+      <!-- front face (with liquid level visible) -->
+      <polygon points="52,86 68,86 68,46 52,46" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="1.1"/>
+      <!-- liquid fill (lime) on front face, lower 60% -->
+      <polygon points="52,86 68,86 68,62 52,62" fill="var(--iso-accent-top)" stroke="var(--iso-edge)" stroke-width="0.6"/>
+      <!-- liquid surface line -->
+      <line x1="52" y1="62" x2="68" y2="62" stroke="var(--iso-accent-l)" stroke-width="1.2"/>
+
+      <!-- top of bottle (small iso top face) -->
+      <polygon points="44,42 52,46 68,46 76,42 60,38" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="1"/>
+
+      <!-- neck -->
+      <rect x="54" y="32" width="12" height="6" fill="var(--iso-slate-r)" stroke="var(--iso-edge)" stroke-width="1"/>
+      <polygon points="54,32 66,32 60,30" fill="var(--iso-slate-top)" stroke="var(--iso-edge)" stroke-width="1"/>
+
+      <!-- cap (matte black, with grip ridges) -->
+      <polygon points="50,30 70,30 70,22 50,22" fill="var(--iso-rubber-r)" stroke="var(--iso-edge)" stroke-width="1"/>
+      <polygon points="50,22 70,22 60,16" fill="var(--iso-rubber-top)" stroke="var(--iso-edge)" stroke-width="1"/>
+      <g stroke="var(--iso-edge)" stroke-width="0.5" opacity="0.7">
+        <line x1="54" y1="22" x2="54" y2="30"/>
+        <line x1="58" y1="22" x2="58" y2="30"/>
+        <line x1="62" y1="22" x2="62" y2="30"/>
+        <line x1="66" y1="22" x2="66" y2="30"/>
+      </g>
+
+      <!-- Label -->
+      <rect x="54" y="50" width="12" height="8" fill="white" opacity="0.92" stroke="var(--iso-edge)" stroke-width="0.5"/>
+    </svg>`,
+
+  /* ─── FRAME / BIKE — full bike silhouette in iso ─── */
+  bike: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      ${isoBase()}
+
+      <!-- Two wheels (iso ellipses, rotated) -->
+      <g>
+        <ellipse cx="34" cy="78" rx="14" ry="7" fill="var(--iso-rubber-r)" stroke="var(--iso-edge)" stroke-width="1.2" transform="rotate(-30 34 78)"/>
+        <ellipse cx="34" cy="78" rx="9" ry="4.5" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="0.8" transform="rotate(-30 34 78)"/>
+        <circle cx="34" cy="78" r="1.5" fill="var(--iso-accent-top)"/>
+      </g>
+      <g>
+        <ellipse cx="86" cy="78" rx="14" ry="7" fill="var(--iso-rubber-r)" stroke="var(--iso-edge)" stroke-width="1.2" transform="rotate(-30 86 78)"/>
+        <ellipse cx="86" cy="78" rx="9" ry="4.5" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="0.8" transform="rotate(-30 86 78)"/>
+        <circle cx="86" cy="78" r="1.5" fill="var(--iso-accent-top)"/>
+      </g>
+
+      <!-- Frame tubes (lime) -->
+      <g stroke="var(--iso-accent-r)" stroke-width="4" stroke-linecap="round" fill="none">
+        <line x1="40" y1="58" x2="74" y2="48"/>      <!-- top tube -->
+        <line x1="40" y1="58" x2="60" y2="78"/>      <!-- down tube -->
+        <line x1="60" y1="78" x2="68" y2="48"/>      <!-- seat tube -->
+        <line x1="60" y1="78" x2="86" y2="78"/>      <!-- chainstay -->
+        <line x1="68" y1="48" x2="86" y2="78"/>      <!-- seatstay -->
+        <line x1="40" y1="58" x2="34" y2="78"/>      <!-- fork -->
+      </g>
+      <!-- Frame outline (thin black overlay for definition) -->
+      <g stroke="var(--iso-edge)" stroke-width="1" stroke-linecap="round" fill="none" opacity="0.9">
+        <line x1="40" y1="58" x2="74" y2="48"/>
+        <line x1="40" y1="58" x2="60" y2="78"/>
+        <line x1="60" y1="78" x2="68" y2="48"/>
+        <line x1="60" y1="78" x2="86" y2="78"/>
+        <line x1="68" y1="48" x2="86" y2="78"/>
+        <line x1="40" y1="58" x2="34" y2="78"/>
+      </g>
+
+      <!-- handlebar -->
+      <line x1="38" y1="50" x2="44" y2="48" stroke="var(--iso-slate-r)" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="40" y1="58" x2="40" y2="50" stroke="var(--iso-slate-r)" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- saddle -->
+      <ellipse cx="68" cy="46" rx="6" ry="2" fill="var(--iso-rubber-top)" stroke="var(--iso-edge)" stroke-width="0.8"/>
+      <!-- bottom bracket -->
+      <circle cx="60" cy="78" r="3" fill="var(--iso-metal-top)" stroke="var(--iso-edge)" stroke-width="1"/>
+    </svg>`,
+};
+
+/* ───────────────────────────────────────────────────────────────
+   Render
+   ─────────────────────────────────────────────────────────────── */
+const ICON_LIST = [
+  ['cassette', 'Cassette'],
+  ['chain',    'Chain'],
+  ['hub',      'Hub'],
+  ['tire',     'Wheel'],
+  ['rotor',    'Brake rotor'],
+  ['pads',     'Brake pads'],
+  ['pedal',    'Pedal'],
+  ['saddle',   'Saddle'],
+  ['pulleys',  'Pulley wheels'],
+  ['sealant',  'Sealant'],
+  ['bolts',    'Service'],
+  ['bike',     'Bike'],
+];
+
+const grid = document.getElementById('icon-grid');
+ICON_LIST.forEach(([key, label]) => {
+  const tile = document.createElement('div');
+  tile.className = 'icon-tile';
+  tile.innerHTML = ICONS[key] + `<div class="label">${label}</div>`;
+  grid.appendChild(tile);
+});
+
+const CTX = [
+  { icon: 'chain',    name: 'Chain — KMC X11SL',          sub: 'Installed 12 Mar · 2,140 km',   pct: 71,  color: '#F7C948' },
+  { icon: 'cassette', name: 'Cassette — Ultegra R8000',   sub: 'Installed 8 Jan · 1,920 km',    pct: 22,  color: '#34D17A' },
+  { icon: 'pads',     name: 'Front brake pads',           sub: 'Installed 30 Sep · 4,820 km',   pct: 102, color: '#FF425A' },
+  { icon: 'tire',     name: 'Front tyre — GP5000',        sub: 'Installed 4 Mar · 1,140 km',    pct: 28,  color: '#34D17A' },
+  { icon: 'pulleys',  name: 'Rear derailleur — XT M8100', sub: 'Installed 1 Apr · 240 km',      pct: 4,   color: '#34D17A' },
+  { icon: 'rotor',    name: 'Front rotor — RT-MT800',     sub: 'Installed 12 Aug · 8,200 km',   pct: 88,  color: '#FF8A33' },
+  { icon: 'sealant',  name: 'Tubeless sealant',           sub: 'Topped up 18 Apr · 110 km',     pct: 12,  color: '#34D17A' },
+  { icon: 'bolts',    name: 'Service kit — bolts',        sub: 'Last inspection 4 Apr',         pct: 0,   color: '#34D17A' },
+];
+
+const ctxHost = document.getElementById('ctx-grid');
+CTX.forEach(c => {
+  const card = document.createElement('div');
+  card.className = 'comp-card';
+  card.innerHTML = `
+    <div class="comp-row">
+      <div class="comp-icon">${ICONS[c.icon]}</div>
+      <div class="comp-info">
+        <div class="comp-name">${c.name}</div>
+        <div class="comp-sub">${c.sub}</div>
+      </div>
+      <div class="comp-pct" style="color:${c.color}">${c.pct}%</div>
+    </div>
+    <div class="wear-track">
+      <div class="wear-fill" style="width:${Math.min(c.pct,100)}%; background:${c.color};"></div>
+    </div>`;
+  ctxHost.appendChild(card);
+});
+
+document.getElementById('theme-toggle').addEventListener('click', e => {
+  const t = e.target.dataset.theme;
+  if (!t) return;
+  document.body.dataset.theme = t;
+  document.querySelectorAll('#theme-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === t);
+  });
+});
+</script>
+</body>
+</html>

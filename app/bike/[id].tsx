@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -23,9 +23,14 @@ import {
   installOnBike,
 } from '../../services/componentsService';
 import { deleteBike, updateBike } from '../../services/bikesService';
-import { getValidToken, fetchBikeOdometerSnapshot } from '../../services/stravaService';
+import { getValidToken } from '../../services/stravaService';
+import {
+  correctBackdatedInstall,
+  applyBikeTotalSnapshot,
+} from '../../services/backdateCorrection';
 import { Analytics } from '../../services/analytics';
-import { Colors } from '../../constants/colors';
+import { useThemeColors } from '../../theme/ThemeProvider';
+import type { ColorPalette } from '../../constants/colors';
 import { formatNumber } from '../../constants/units';
 import { BIKE_TYPE_LABELS, BRAKE_SYSTEM_LABELS, COMPONENT_TYPES } from '../../constants/componentTypes';
 import ComponentCard from '../../components/ComponentCard';
@@ -40,18 +45,24 @@ import {
   isIndoorBike,
   hiddenComponentCategoriesForBike,
   defaultActivityForBikeType,
+  effectiveBikeWeight,
+  sumComponentWeights,
+  formatWeight,
   type BikeComponent,
   type ComponentCategory,
   type ChainLubeType,
   type StravaActivity,
   type BikeType,
   type BrakeSystem,
+  type BikeWeightMode,
   type StravaActivityType,
 } from '../../types';
 
 const STRAVA_API = 'https://www.strava.com/api/v3';
 
 export default function BikeDetailScreen() {
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const topInset = useTopInset();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -118,7 +129,7 @@ export default function BikeDetailScreen() {
     if (isDataLoading) {
       return (
         <View style={styles.notFound}>
-          <ActivityIndicator size="large" color={Colors.accent} />
+          <ActivityIndicator size="large" color={C.accent} />
         </View>
       );
     }
@@ -127,7 +138,7 @@ export default function BikeDetailScreen() {
         <Ionicons
           name="bicycle-outline"
           size={44}
-          color={Colors.textTertiary}
+          color={C.textTertiary}
           style={{ marginBottom: 12 }}
         />
         <Text style={styles.notFoundText}>Bike not found</Text>
@@ -135,7 +146,7 @@ export default function BikeDetailScreen() {
           onPress={() => router.replace('/(tabs)')}
           style={styles.notFoundBtn}
         >
-          <Ionicons name="arrow-back" size={16} color={Colors.white} />
+          <Ionicons name="arrow-back" size={16} color={C.white} />
           <Text style={styles.notFoundBtnText}>Back to bikes</Text>
         </TouchableOpacity>
       </View>
@@ -148,85 +159,25 @@ export default function BikeDetailScreen() {
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   /**
-   * Strava's `start_date` resolution is a single second, so anything
-   * back-dated by less than a couple of seconds is effectively "now" —
-   * skip the correction in that case to avoid an extra HTTP call.
+   * Run the shared back-date correction against this bike. We pass the
+   * full `bikes` array down so attribution matches the migration
+   * (gear-tagged rides go to their real owner, no falling-through to
+   * defaultActivity on the wrong bike).
    */
-  const BACKDATE_THRESHOLD_MS = 60_000;
-
-  /**
-   * Correct a modal-computed `installDistance` when the install date
-   * is back-dated.
-   *
-   * The modal computes `installDistance = bikeDistance − prior`, which
-   * is fine when installDate = now but wrong when it's earlier: any
-   * ride between installDate and today is already baked into
-   * `bikeDistance`, so "Already ridden" reads 0.
-   *
-   * The correction derives both the bike's current odometer AND its
-   * odometer at installDate from the same activity fetch (single
-   * `/athlete/activities` pagination), so there's no staleness race
-   * with an incremental sync and no second HTTP round-trip:
-   *
-   *   snapshot.totalDistance   = sum of km on all bike activities
-   *   snapshot.installDistance = sum of km on activities before installDate
-   *   finalInstallDistance     = max(0, snapshot.installDistance − prior)
-   *
-   * With that, `ridden = totalDistance − finalInstallDistance =
-   * (km ridden since install on the bike) + prior`, which is exactly
-   * the semantic the UI promises.
-   *
-   * Returns `{ ok: false }` on any failure so callers fall back to the
-   * modal's uncorrected value rather than persisting a half-computed
-   * one.
-   */
-  const correctInstallDistanceForBackdate = async (
+  const runBackdateCorrection = async (
     rawInstallDistance: number,
-    staleBikeTotal: number,
     installDate: number
-  ): Promise<
-    | { ok: false }
-    | { ok: true; installDistance: number; bikeTotalDistance: number }
-  > => {
-    if (!userId || !stravaTokens || !bike) return { ok: false };
-    if (Date.now() - installDate < BACKDATE_THRESHOLD_MS) return { ok: false };
-    const prior = Math.max(0, staleBikeTotal - rawInstallDistance);
-    try {
-      const tokens = await getValidToken(userId, stravaTokens);
-      const snap = await fetchBikeOdometerSnapshot(
-        tokens.accessToken,
-        bike,
-        installDate
-      );
-      if (!snap) return { ok: false };
-      return {
-        ok: true,
-        // Floor at 0 — a part installed before the user's earliest
-        // tracked ride should never read as "negative wear".
-        installDistance: Math.max(0, snap.installDistance - prior),
-        bikeTotalDistance: snap.totalDistance,
-      };
-    } catch (e) {
-      console.warn('Install-distance back-date correction failed:', e);
-      return { ok: false };
-    }
-  };
-
-  /**
-   * If the snapshot disagrees with the current bike total, write the
-   * new total through so the UI (and subsequent components on this
-   * bike) see the same number the correction was computed against.
-   * Avoids a pointless write when the totals match.
-   */
-  const syncBikeTotalFromSnapshot = async (newTotal: number) => {
-    if (!bike || !userId) return;
-    if (newTotal === (bike.totalDistance ?? 0)) return;
-    try {
-      await updateBike(userId, bike.id, { totalDistance: newTotal });
-      updateBikeLocal(bike.id, { totalDistance: newTotal, updatedAt: Date.now() });
-    } catch (e) {
-      console.warn('Bike totalDistance update from snapshot failed:', e);
-    }
+  ) => {
+    if (!userId) return { ok: false as const };
+    return correctBackdatedInstall({
+      userId,
+      bike,
+      allBikes: bikes,
+      stravaTokens,
+      rawInstallDistance,
+      staleBikeTotal: bike?.totalDistance ?? 0,
+      installDate,
+    });
   };
 
   const doAddComponent = async (data: {
@@ -244,22 +195,27 @@ export default function BikeDetailScreen() {
     lubeType?: ChainLubeType;
     lastLubedAt?: number;
     lubeIntervalKm?: number;
+    weight?: number;
   }) => {
     if (!userId) return;
     // When installDate is back-dated, derive install + total from the
     // full activity history so "Already ridden" matches the km ridden
     // since the part went on. Falls back to the modal's value when
     // Strava can't be queried.
-    const correction = await correctInstallDistanceForBackdate(
+    const correction = await runBackdateCorrection(
       data.installDistance,
-      bike?.totalDistance ?? 0,
       data.installDate
     );
     const correctedInstallDistance = correction.ok
       ? correction.installDistance
       : data.installDistance;
-    if (correction.ok) {
-      await syncBikeTotalFromSnapshot(correction.bikeTotalDistance);
+    if (correction.ok && bike) {
+      await applyBikeTotalSnapshot({
+        userId,
+        bike,
+        newTotalKm: correction.bikeTotalDistance,
+        updateBikeLocal,
+      });
     }
     const newComp = await addComponent(userId, {
       bikeId: id,
@@ -282,6 +238,7 @@ export default function BikeDetailScreen() {
       // correctly measure km-since-lube going forward.
       lubeDistanceAtLastLube:
         data.lubeType && bike ? bike.totalDistance : undefined,
+      weight: data.weight,
     });
     addComponentLocal(newComp);
     Analytics.addComponent(data.category, data.isElectric);
@@ -304,6 +261,7 @@ export default function BikeDetailScreen() {
     lubeType?: ChainLubeType;
     lastLubedAt?: number;
     lubeIntervalKm?: number;
+    weight?: number;
   }) => {
     if (!userId) return;
 
@@ -355,13 +313,17 @@ export default function BikeDetailScreen() {
       updates.installDate !== undefined &&
       (updates.bikeId === undefined || updates.bikeId === id);
     if (stayingOnThisBike) {
-      const correction = await correctInstallDistanceForBackdate(
+      const correction = await runBackdateCorrection(
         updates.installDistance!,
-        bike?.totalDistance ?? 0,
         updates.installDate!
       );
-      if (correction.ok) {
-        await syncBikeTotalFromSnapshot(correction.bikeTotalDistance);
+      if (correction.ok && bike) {
+        await applyBikeTotalSnapshot({
+          userId,
+          bike,
+          newTotalKm: correction.bikeTotalDistance,
+          updateBikeLocal,
+        });
         if (correction.installDistance !== updates.installDistance) {
           nextUpdates = { ...updates, installDistance: correction.installDistance };
         }
@@ -445,10 +407,40 @@ export default function BikeDetailScreen() {
     brakeSystem: BrakeSystem;
     color: string;
     defaultActivity: StravaActivityType;
+    weight: number | null;
+    weightMode: BikeWeightMode;
   }) => {
     if (!userId) return;
-    await updateBike(userId, id, data);
-    updateBikeLocal(id, { ...data, updatedAt: Date.now() });
+    // EditBikeModal sends `weight: null` to clear an existing value
+    // (Firestore accepts null) and a positive number to set one.
+    // `updateBike` strips undefined keys, so we have to forward null
+    // explicitly when the user wants the field removed.
+    const writeData: Record<string, unknown> = {
+      name: data.name,
+      brand: data.brand,
+      type: data.type,
+      brakeSystem: data.brakeSystem,
+      color: data.color,
+      defaultActivity: data.defaultActivity,
+      weightMode: data.weightMode,
+    };
+    if (data.weight !== null) writeData.weight = data.weight;
+    else writeData.weight = null;
+
+    await updateBike(userId, id, writeData);
+    updateBikeLocal(id, {
+      name: data.name,
+      brand: data.brand,
+      type: data.type,
+      brakeSystem: data.brakeSystem,
+      color: data.color,
+      defaultActivity: data.defaultActivity,
+      // Local store mirrors Firestore: `null` => undefined so reads
+      // through `bike.weight` return `undefined` for cleared bikes.
+      weight: data.weight ?? undefined,
+      weightMode: data.weightMode,
+      updatedAt: Date.now(),
+    });
     Analytics.editBike();
   };
 
@@ -497,7 +489,7 @@ export default function BikeDetailScreen() {
           style={[styles.backBtn, { paddingTop: topInset }]}
           onPress={() => router.canGoBack() ? router.back() : router.replace('/')}
         >
-          <Ionicons name="arrow-back" size={18} color={Colors.accent} />
+          <Ionicons name="arrow-back" size={18} color={C.accent} />
           <Text style={styles.backText}>Bikes</Text>
         </TouchableOpacity>
 
@@ -524,10 +516,10 @@ export default function BikeDetailScreen() {
                   onPress={() => setShowEditBike(true)}
                   style={styles.editBtn}
                 >
-                  <Ionicons name="pencil-outline" size={16} color={Colors.accent} />
+                  <Ionicons name="pencil-outline" size={16} color={C.accent} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleDeleteBike} style={styles.deleteBtn}>
-                  <Ionicons name="trash-outline" size={16} color={Colors.danger} />
+                  <Ionicons name="trash-outline" size={16} color={C.danger} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -547,12 +539,59 @@ export default function BikeDetailScreen() {
               </View>
               <View style={styles.heroStatDivider} />
               <TouchableOpacity style={styles.heroStat} onPress={openAddRide}>
-                <Ionicons name="add-circle-outline" size={22} color={Colors.accent} />
+                <Ionicons name="add-circle-outline" size={22} color={C.accent} />
                 <Text style={styles.heroStatLabel}>add ride</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
+
+        {/* Weight card — only renders when there's something to show.
+            In Manual / Mixed: bike.weight (the user's number).
+            In Sum: live total of installed components with weight set.
+            Mixed also lists the components total alongside as a sanity
+            check — the difference is the un-tracked frame + hardware. */}
+        {(() => {
+          const eff = effectiveBikeWeight(bike, components);
+          const mode: BikeWeightMode = bike.weightMode ?? 'manual';
+          const partsSum = sumComponentWeights(bike.id, components);
+          if (eff === null && partsSum === 0) return null;
+          return (
+            <View style={styles.weightCard}>
+              <View style={styles.weightIconWrap}>
+                <Ionicons name="scale-outline" size={20} color={C.accent} />
+              </View>
+              <View style={styles.weightBody}>
+                <Text style={styles.weightHeader}>Weight</Text>
+                <View style={styles.weightRow}>
+                  <Text style={styles.weightValue}>
+                    {eff !== null ? formatWeight(eff) : '—'}
+                  </Text>
+                  <Text style={styles.weightModeLabel}>
+                    {mode === 'sum'
+                      ? 'sum of parts'
+                      : mode === 'mixed'
+                      ? 'mixed'
+                      : 'manual'}
+                  </Text>
+                </View>
+                {mode === 'mixed' && partsSum > 0 && (
+                  <Text style={styles.weightHint}>
+                    Parts total: {formatWeight(partsSum)}
+                    {eff !== null
+                      ? ' · diff: ' + formatWeight(Math.abs(eff - partsSum))
+                      : ''}
+                  </Text>
+                )}
+                {mode === 'sum' && partsSum === 0 && (
+                  <Text style={styles.weightHint}>
+                    No installed components have a weight yet.
+                  </Text>
+                )}
+              </View>
+            </View>
+          );
+        })()}
 
         {/* Indoor setup info card */}
         {isIndoorBike(bike.type) && (
@@ -565,7 +604,7 @@ export default function BikeDetailScreen() {
                     : 'sync-circle-outline'
                 }
                 size={20}
-                color={Colors.accent}
+                color={C.accent}
               />
             </View>
             <View style={styles.indoorBody}>
@@ -595,7 +634,7 @@ export default function BikeDetailScreen() {
           if (stray.length === 0) return null;
           return (
             <View style={styles.strayCard}>
-              <Ionicons name="warning-outline" size={18} color={Colors.warning} />
+              <Ionicons name="warning-outline" size={18} color={C.warning} />
               <Text style={styles.strayText}>
                 {stray.length} active part
                 {stray.length === 1 ? '' : 's'} don't apply to this setup —
@@ -610,7 +649,7 @@ export default function BikeDetailScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Last Rides</Text>
             {loadingRides ? (
-              <ActivityIndicator color={Colors.accent} style={{ marginTop: 12 }} />
+              <ActivityIndicator color={C.accent} style={{ marginTop: 12 }} />
             ) : activities.length === 0 ? (
               <Text style={styles.noRides}>No recent Strava rides found for this bike.</Text>
             ) : (
@@ -618,7 +657,7 @@ export default function BikeDetailScreen() {
                 {activities.map((act) => (
                   <View key={act.id} style={styles.rideRow}>
                     <View style={styles.rideIcon}>
-                      <Ionicons name="bicycle-outline" size={16} color={Colors.accent} />
+                      <Ionicons name="bicycle-outline" size={16} color={C.accent} />
                     </View>
                     <View style={styles.rideInfo}>
                       <Text style={styles.rideName} numberOfLines={1}>
@@ -654,7 +693,7 @@ export default function BikeDetailScreen() {
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={() => setShowAdd(true)} style={styles.addBtn}>
-              <Ionicons name="add" size={18} color={Colors.accent} />
+              <Ionicons name="add" size={18} color={C.accent} />
               <Text style={styles.addBtnText}>Add</Text>
             </TouchableOpacity>
           </View>
@@ -725,6 +764,7 @@ export default function BikeDetailScreen() {
         onRetire={handleRetire}
         onMoveToStock={handleMoveToStock}
         onInstallOnBike={handleEditInstallOnBike}
+        onDelete={handleDeleteComponent}
       />
 
       {/* Manual Add Ride modal */}
@@ -740,11 +780,11 @@ export default function BikeDetailScreen() {
 
             {/* Date */}
             <View style={styles.rideFieldRow}>
-              <Ionicons name="calendar-outline" size={16} color={Colors.textSecondary} />
+              <Ionicons name="calendar-outline" size={16} color={C.textSecondary} />
               <TextInput
                 style={[styles.rideInput, { flex: 1 }]}
                 placeholder="Date — e.g. 15 Apr 2026"
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={C.textTertiary}
                 value={rideDate}
                 onChangeText={setRideDate}
               />
@@ -752,11 +792,11 @@ export default function BikeDetailScreen() {
 
             {/* Name */}
             <View style={styles.rideFieldRow}>
-              <Ionicons name="text-outline" size={16} color={Colors.textSecondary} />
+              <Ionicons name="text-outline" size={16} color={C.textSecondary} />
               <TextInput
                 style={[styles.rideInput, { flex: 1 }]}
                 placeholder="Ride name (optional)"
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={C.textTertiary}
                 value={rideName}
                 onChangeText={setRideName}
               />
@@ -764,11 +804,11 @@ export default function BikeDetailScreen() {
 
             {/* Distance */}
             <View style={styles.rideFieldRow}>
-              <Ionicons name="speedometer-outline" size={16} color={Colors.textSecondary} />
+              <Ionicons name="speedometer-outline" size={16} color={C.textSecondary} />
               <TextInput
                 style={[styles.rideInput, { flex: 1 }]}
                 placeholder="Distance in km *"
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={C.textTertiary}
                 value={rideKm}
                 onChangeText={setRideKm}
                 keyboardType="numeric"
@@ -781,7 +821,7 @@ export default function BikeDetailScreen() {
                 style={styles.rideModalCancel}
                 onPress={() => setShowAddRide(false)}
               >
-                <Text style={{ color: Colors.textSecondary, fontSize: 15 }}>Cancel</Text>
+                <Text style={{ color: C.textSecondary, fontSize: 15 }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.rideModalSave, !rideKm && styles.rideModalSaveDisabled]}
@@ -789,9 +829,9 @@ export default function BikeDetailScreen() {
                 disabled={!rideKm || addingRide}
               >
                 {addingRide ? (
-                  <ActivityIndicator color={Colors.white} />
+                  <ActivityIndicator color={C.white} />
                 ) : (
-                  <Text style={{ color: Colors.white, fontWeight: '700', fontSize: 15 }}>
+                  <Text style={{ color: C.white, fontWeight: '700', fontSize: 15 }}>
                     {rideKm ? 'Add ' + formatNumber(Number(rideKm.replace(/[,\s]/g, ''))) + ' km' : 'Add Ride'}
                   </Text>
                 )}
@@ -804,27 +844,27 @@ export default function BikeDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg },
+const makeStyles = (C: ColorPalette) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.bg },
   notFound: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.bg,
+    backgroundColor: C.bg,
     padding: 24,
   },
-  notFoundText: { color: Colors.textSecondary, fontSize: 16 },
+  notFoundText: { color: C.textSecondary, fontSize: 16 },
   notFoundBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.accent,
+    backgroundColor: C.accent,
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 14,
     marginTop: 18,
   },
-  notFoundBtnText: { fontSize: 15, fontWeight: '700', color: Colors.white },
+  notFoundBtnText: { fontSize: 15, fontWeight: '700', color: C.white },
   content: { paddingBottom: 40 },
 
   backBtn: {
@@ -834,28 +874,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 8,
   },
-  backText: { fontSize: 15, color: Colors.accent, fontWeight: '500' },
+  backText: { fontSize: 15, color: C.accent, fontWeight: '500' },
 
   hero: {
     flexDirection: 'row',
     margin: 20,
     marginTop: 4,
-    backgroundColor: Colors.card,
+    backgroundColor: C.card,
     borderRadius: 20,
     overflow: 'hidden',
   },
   colorBar: { width: 5 },
   heroBody: { flex: 1, padding: 18, gap: 14 },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  bikeName: { fontSize: 22, fontWeight: '700', color: Colors.text, letterSpacing: -0.5 },
-  bikeMeta: { fontSize: 13, color: Colors.textSecondary, marginTop: 3 },
-  bikeDate: { fontSize: 12, color: Colors.textTertiary, marginTop: 2 },
+  bikeName: { fontSize: 22, fontWeight: '700', color: C.text, letterSpacing: -0.5 },
+  bikeMeta: { fontSize: 13, color: C.textSecondary, marginTop: 3 },
+  bikeDate: { fontSize: 12, color: C.textTertiary, marginTop: 2 },
   heroBtns: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   editBtn: {
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: Colors.accentDim,
+    backgroundColor: C.accentDim,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -863,15 +903,15 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: Colors.dangerDim,
+    backgroundColor: C.dangerDim,
     alignItems: 'center',
     justifyContent: 'center',
   },
   heroStats: { flexDirection: 'row', alignItems: 'center' },
   heroStat: { flex: 1, alignItems: 'center', gap: 3 },
-  heroStatValue: { fontSize: 18, fontWeight: '700', color: Colors.text },
-  heroStatLabel: { fontSize: 11, color: Colors.textSecondary },
-  heroStatDivider: { width: 1, height: 32, backgroundColor: Colors.border },
+  heroStatValue: { fontSize: 18, fontWeight: '700', color: C.text },
+  heroStatLabel: { fontSize: 11, color: C.textSecondary },
+  heroStatDivider: { width: 1, height: 32, backgroundColor: C.border },
 
   indoorCard: {
     flexDirection: 'row',
@@ -880,9 +920,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     padding: 14,
     borderRadius: 14,
-    backgroundColor: Colors.card,
+    backgroundColor: C.card,
     borderWidth: 1,
-    borderColor: Colors.accentDim,
+    borderColor: C.accentDim,
   },
   indoorIconWrap: {
     width: 36,
@@ -890,11 +930,39 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.accentDim,
+    backgroundColor: C.accentDim,
   },
   indoorBody: { flex: 1, gap: 4 },
-  indoorTitle: { fontSize: 15, fontWeight: '700', color: Colors.text },
-  indoorText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
+  indoorTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  indoorText: { fontSize: 13, color: C.textSecondary, lineHeight: 19 },
+  weightCard: {
+    flexDirection: 'row',
+    gap: 12,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: C.card,
+  },
+  weightIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.accentDim,
+  },
+  weightBody: { flex: 1, gap: 4 },
+  weightHeader: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: C.textSecondary,
+    letterSpacing: 1,
+  },
+  weightRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  weightValue: { fontSize: 20, fontWeight: '700', color: C.text },
+  weightModeLabel: { fontSize: 12, color: C.textTertiary, fontWeight: '500' },
+  weightHint: { fontSize: 12, color: C.textSecondary, marginTop: 2 },
   strayCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -903,9 +971,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: Colors.dangerDim,
+    backgroundColor: C.dangerDim,
   },
-  strayText: { flex: 1, fontSize: 13, color: Colors.warning, lineHeight: 18 },
+  strayText: { flex: 1, fontSize: 13, color: C.warning, lineHeight: 18 },
 
   section: { paddingHorizontal: 20, marginBottom: 20 },
   componentList: { paddingHorizontal: 20 },
@@ -916,15 +984,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 12,
   },
-  sectionTitle: { fontSize: 20, fontWeight: '700', color: Colors.text, marginBottom: 12 },
+  sectionTitle: { fontSize: 20, fontWeight: '700', color: C.text, marginBottom: 12 },
   sectionActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   retiredToggle: {
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 99,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
   },
-  retiredToggleText: { fontSize: 12, color: Colors.textSecondary, fontWeight: '500' },
+  retiredToggleText: { fontSize: 12, color: C.textSecondary, fontWeight: '500' },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -932,31 +1000,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 99,
-    backgroundColor: Colors.accentDim,
+    backgroundColor: C.accentDim,
   },
-  addBtnText: { fontSize: 14, fontWeight: '600', color: Colors.accent },
+  addBtnText: { fontSize: 14, fontWeight: '600', color: C.accent },
 
-  noRides: { fontSize: 13, color: Colors.textSecondary },
-  rideList: { backgroundColor: Colors.card, borderRadius: 14, overflow: 'hidden' },
+  noRides: { fontSize: 13, color: C.textSecondary },
+  rideList: { backgroundColor: C.card, borderRadius: 14, overflow: 'hidden' },
   rideRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: C.border,
   },
   rideIcon: {
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: Colors.accentDim,
+    backgroundColor: C.accentDim,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rideInfo: { flex: 1 },
-  rideName: { fontSize: 14, fontWeight: '500', color: Colors.text },
-  rideMeta: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  rideName: { fontSize: 14, fontWeight: '500', color: C.text },
+  rideMeta: { fontSize: 12, color: C.textSecondary, marginTop: 2 },
 
   overlay: {
     flex: 1,
@@ -966,26 +1034,26 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   rideModal: {
-    backgroundColor: Colors.card,
+    backgroundColor: C.card,
     borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 380,
     gap: 12,
   },
-  rideModalTitle: { fontSize: 18, fontWeight: '700', color: Colors.text },
+  rideModalTitle: { fontSize: 18, fontWeight: '700', color: C.text },
   rideFieldRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderRadius: 12,
     paddingHorizontal: 14,
   },
   rideInput: {
     paddingVertical: 12,
     fontSize: 15,
-    color: Colors.text,
+    color: C.text,
   },
   rideModalActions: { flexDirection: 'row', gap: 10, marginTop: 2 },
   rideModalCancel: {
@@ -993,14 +1061,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 13,
     borderRadius: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
   },
   rideModalSave: {
     flex: 2,
     alignItems: 'center',
     paddingVertical: 13,
     borderRadius: 12,
-    backgroundColor: Colors.accent,
+    backgroundColor: C.accent,
   },
   rideModalSaveDisabled: { opacity: 0.4 },
 });

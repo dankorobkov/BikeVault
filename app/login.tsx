@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,9 @@ import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { auth } from '../config/firebase';
 import { Analytics } from '../services/analytics';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../theme/ThemeProvider';
+import type { ColorPalette } from '../constants/colors';
+import BikeIcon from '../components/BikeIcon';
 import { dialog } from '../components/AppDialog';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -33,6 +35,8 @@ const discovery = {
 
 export default function LoginScreen() {
   const router = useRouter();
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [loading, setLoading] = useState<'google' | 'anon' | null>(null);
 
   const redirectUri = AuthSession.makeRedirectUri({
@@ -113,7 +117,7 @@ export default function LoginScreen() {
       {/* Logo area */}
       <View style={styles.hero}>
         <View style={styles.logoBox}>
-          <Ionicons name="bicycle" size={52} color={Colors.accent} />
+          <BikeIcon name="bike" variant="fill" size={52} color={C.accent} accent={C.accent} />
         </View>
         <Text style={styles.appName}>BikeVault</Text>
         <Text style={styles.tagline}>Track every part. Ride with confidence.</Text>
@@ -127,11 +131,11 @@ export default function LoginScreen() {
           disabled={loading !== null}
         >
           {loading === 'google' ? (
-            <ActivityIndicator color={Colors.text} />
+            <ActivityIndicator color={C.text} />
           ) : (
             <>
-              <Ionicons name="logo-google" size={20} color={Colors.text} />
-              <Text style={[styles.btnText, { color: Colors.text }]}>
+              <Ionicons name="logo-google" size={20} color={C.text} />
+              <Text style={[styles.btnText, { color: C.text }]}>
                 Continue with Google
               </Text>
             </>
@@ -150,11 +154,11 @@ export default function LoginScreen() {
           disabled={loading !== null}
         >
           {loading === 'anon' ? (
-            <ActivityIndicator color={Colors.textSecondary} />
+            <ActivityIndicator color={C.textSecondary} />
           ) : (
             <>
-              <Ionicons name="person-outline" size={20} color={Colors.textSecondary} />
-              <Text style={[styles.btnText, { color: Colors.textSecondary }]}>
+              <Ionicons name="person-outline" size={20} color={C.textSecondary} />
+              <Text style={[styles.btnText, { color: C.textSecondary }]}>
                 Continue without account
               </Text>
             </>
@@ -171,10 +175,10 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (C: ColorPalette) => StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Colors.bg,
+    backgroundColor: C.bg,
     justifyContent: 'space-between',
     paddingHorizontal: 28,
     paddingTop: 100,
@@ -185,19 +189,19 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 28,
-    backgroundColor: Colors.accentDim,
+    backgroundColor: C.accentDim,
     alignItems: 'center',
     justifyContent: 'center',
   },
   appName: {
     fontSize: 36,
     fontWeight: '800',
-    color: Colors.text,
+    color: C.text,
     letterSpacing: -1,
   },
   tagline: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -210,11 +214,11 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 16,
   },
-  googleBtn: { backgroundColor: Colors.card },
+  googleBtn: { backgroundColor: C.card },
   anonBtn: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: C.border,
   },
   btnText: { fontSize: 16, fontWeight: '600' },
   divider: {
@@ -226,16 +230,16 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: C.border,
   },
   dividerText: {
-    color: Colors.textTertiary,
+    color: C.textTertiary,
     fontSize: 12,
     fontWeight: '500',
   },
   disclaimer: {
     fontSize: 12,
-    color: Colors.textTertiary,
+    color: C.textTertiary,
     textAlign: 'center',
     lineHeight: 17,
     marginTop: 4,

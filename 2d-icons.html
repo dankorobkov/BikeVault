@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BikeVault — 2D Icons</title>
+<style>
+  :root {
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0B0F0A;
+    --surface: #131A11;
+    --card: #1B2317;
+    --card-2: #222D1D;
+    --border: #2A3424;
+    --accent: #C5FF3C;
+    --accent-deep: #8FCC00;
+    --accent-dim: rgba(197,255,60,0.16);
+    --on-accent: #0E1408;
+    --text: #F5F7F3;
+    --text-secondary: #8C9587;
+    --text-tertiary: #4D5447;
+    --shadow-cast: rgba(0,0,0,0.55);
+    --icon-base:    #DFE5D2;
+    --icon-base-2:  #8C9587;
+  }
+  [data-theme="light"] {
+    --bg: #F6F8F1;
+    --surface: #FFFFFF;
+    --card: #FFFFFF;
+    --card-2: #F1F4EA;
+    --border: #E1E6D3;
+    --accent: #6BC400;
+    --accent-deep: #4D9100;
+    --accent-dim: rgba(107,196,0,0.13);
+    --on-accent: #FFFFFF;
+    --text: #10160A;
+    --text-secondary: #5C6151;
+    --text-tertiary: #A6AC97;
+    --shadow-cast: rgba(28,40,12,0.18);
+    --icon-base:    #1F2419;
+    --icon-base-2:  #6F7864;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--font); -webkit-font-smoothing: antialiased;
+    transition: background 0.25s, color 0.25s;
+  }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 1200px; margin: 0 auto; padding: 14px 28px;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+  .brand-logo {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--accent); display: grid; place-items: center;
+    color: var(--on-accent); font-weight: 900; font-size: 14px;
+  }
+  .pill {
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--accent-dim); color: var(--accent);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .toggle-group {
+    display: flex; background: var(--card-2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 4px; gap: 2px;
+  }
+  .toggle-group button {
+    border: none; background: transparent; color: var(--text-secondary);
+    padding: 7px 14px; border-radius: 8px;
+    font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .toggle-group button.active {
+    background: var(--surface); color: var(--text);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 40px 28px 100px; }
+  h1 { font-size: 38px; font-weight: 800; letter-spacing: -0.025em; margin: 0 0 10px; }
+  .lede { color: var(--text-secondary); font-size: 15px; line-height: 1.55; max-width: 720px; margin: 0 0 50px; }
+  .eyebrow { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin: 0; }
+  .section-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+  section { margin-bottom: 64px; }
+
+  /* Icon grid — large display for review */
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 14px;
+  }
+  .icon-tile {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 24px 14px 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    box-shadow: 0 4px 14px var(--shadow-cast);
+  }
+  .icon-tile svg {
+    width: 64px; height: 64px;
+  }
+  .icon-tile .label {
+    font-size: 12.5px; color: var(--text-secondary); font-weight: 600;
+  }
+
+  /* Size showcase: shows the same icon at 24/32/48/64px */
+  .size-row {
+    display: flex; align-items: center; gap: 24px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 18px; padding: 24px;
+    box-shadow: 0 4px 14px var(--shadow-cast);
+  }
+  .size-row .label { font-size: 13px; color: var(--text-secondary); font-weight: 600; min-width: 80px; }
+  .size-row .sizes { display: flex; gap: 24px; align-items: baseline; flex: 1; }
+  .size-row .sizes > div { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .size-row .sizes svg { display: block; }
+  .size-row .sizes .px { font-size: 11px; color: var(--text-tertiary); font-family: var(--mono); }
+
+  /* In-context cards */
+  .ctx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+  .comp-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 18px; padding: 14px 16px;
+    box-shadow: 0 4px 14px var(--shadow-cast);
+  }
+  .comp-row { display: flex; align-items: center; gap: 14px; }
+  .comp-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: var(--card-2);
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .comp-icon svg { width: 28px; height: 28px; }
+  .comp-info { flex: 1; min-width: 0; }
+  .comp-name { font-size: 15px; font-weight: 700; margin: 0 0 2px; }
+  .comp-sub { color: var(--text-secondary); font-size: 12.5px; }
+  .comp-pct { font-family: var(--mono); font-size: 14px; font-weight: 700; }
+  .wear-track { margin-top: 12px; height: 6px; background: var(--card-2); border-radius: 999px; overflow: hidden; }
+  .wear-fill { height: 100%; border-radius: 999px; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 60px; padding: 28px;
+    text-align: center; color: var(--text-tertiary); font-size: 12px;
+  }
+</style>
+</head>
+
+<body data-theme="dark">
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-logo">B</div>
+      2D Icons · Velocity
+      <span class="pill">v8</span>
+    </div>
+    <div style="flex:1"></div>
+    <div class="toggle-group" id="theme-toggle">
+      <button data-theme="dark" class="active">Dark</button>
+      <button data-theme="light">Light</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <h1>2D, filled, with intent.</h1>
+  <p class="lede">
+    Filled silhouettes — like Phosphor Fill or SF Symbols, but with a single lime accent placed on
+    the active or distinctive part of each component. The base fill is theme-aware (light on dark
+    background, dark on light), the accent stays lime in both. They're built on a 24×24 viewBox
+    so they ship clean at any display size.
+  </p>
+
+  <section>
+    <div class="section-head">
+      <span class="eyebrow">01 — The set</span>
+      <h2>Fifteen icons</h2>
+    </div>
+    <div class="icon-grid" id="icon-grid"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <span class="eyebrow">02 — At every size</span>
+      <h2>How the chain icon scales</h2>
+    </div>
+    <div class="size-row" id="size-row"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <span class="eyebrow">03 — In context</span>
+      <h2>On real component cards (28px)</h2>
+    </div>
+    <div class="ctx-grid" id="ctx-grid"></div>
+  </section>
+
+  <footer>
+    BikeVault 2D icons v8 · April 2026 · approve and I'll wire them through the app, replacing Ionicons.
+  </footer>
+</main>
+
+<script>
+/* ───────────────────────────────────────────────────────────────
+   2D ICONS — 24×24 viewBox, filled duotone style.
+   Each icon uses two colors:
+     - var(--icon-base) for the main silhouette
+     - var(--accent)   for the single tactical accent
+
+   Design rules:
+   - Crisp filled shapes, no strokes (the fill IS the outline)
+   - Round caps on lines (stroke-linecap="round" where strokes are used)
+   - Accent placed on the most distinctive / active part
+   - Recognisable at 24px without a label
+   ─────────────────────────────────────────────────────────────── */
+
+const ICONS = {
+
+  /* CHAIN — three side-view chain links with an oil drop accent */
+  chain: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <!-- left link plate -->
+      <rect x="1" y="9.5" width="9" height="5" rx="2.5" fill="var(--icon-base)"/>
+      <!-- middle link plate (slightly lower, alternating) -->
+      <rect x="7.5" y="11" width="9" height="5" rx="2.5" fill="var(--icon-base)"/>
+      <!-- right link plate -->
+      <rect x="14" y="9.5" width="9" height="5" rx="2.5" fill="var(--icon-base)"/>
+      <!-- pin rollers (small dark dots) -->
+      <circle cx="3" cy="12" r="0.9" fill="var(--card)"/>
+      <circle cx="9.5" cy="13.5" r="0.9" fill="var(--card)"/>
+      <circle cx="15.5" cy="13.5" r="0.9" fill="var(--card)"/>
+      <circle cx="21" cy="12" r="0.9" fill="var(--card)"/>
+      <!-- accent oil drop -->
+      <ellipse cx="12" cy="13.5" rx="1.6" ry="1.2" fill="var(--accent)"/>
+    </svg>`,
+
+  /* CASSETTE — concentric stacked cogs (head-on view) */
+  cassette: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <!-- outermost cog -->
+      <circle cx="12" cy="12" r="10" fill="var(--icon-base)"/>
+      <!-- ring 1 cutout -->
+      <circle cx="12" cy="12" r="8" fill="var(--card)"/>
+      <!-- middle cog -->
+      <circle cx="12" cy="12" r="7" fill="var(--icon-base)"/>
+      <!-- ring 2 cutout -->
+      <circle cx="12" cy="12" r="5" fill="var(--card)"/>
+      <!-- inner cog -->
+      <circle cx="12" cy="12" r="4" fill="var(--icon-base)"/>
+      <!-- center hub spline (accent) -->
+      <circle cx="12" cy="12" r="2" fill="var(--accent)"/>
+      <!-- spline notches on accent (small dark wedges) -->
+      <rect x="11.5" y="9.8" width="1" height="1.2" fill="var(--card)"/>
+      <rect x="11.5" y="13" width="1" height="1.2" fill="var(--card)"/>
+      <rect x="9.8" y="11.5" width="1.2" height="1" fill="var(--card)"/>
+      <rect x="13" y="11.5" width="1.2" height="1" fill="var(--card)"/>
+    </svg>`,
+
+  /* WHEEL — full wheel with rim, spokes, hub, accent center */
+  wheel: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <!-- outer tire -->
+      <circle cx="12" cy="12" r="10.5" fill="var(--icon-base)"/>
+      <!-- rim cutout -->
+      <circle cx="12" cy="12" r="8.5" fill="var(--card)"/>
+      <!-- thin rim ring -->
+      <circle cx="12" cy="12" r="8.5" stroke="var(--icon-base)" stroke-width="1" fill="none"/>
+      <!-- spokes (8 thin lines from hub to rim) -->
+      <g stroke="var(--icon-base)" stroke-width="1" stroke-linecap="round">
+        <line x1="12" y1="3.5" x2="12" y2="20.5"/>
+        <line x1="3.5" y1="12" x2="20.5" y2="12"/>
+        <line x1="6"   y1="6"   x2="18"  y2="18"/>
+        <line x1="18"  y1="6"   x2="6"   y2="18"/>
+      </g>
+      <!-- hub (accent) -->
+      <circle cx="12" cy="12" r="2.2" fill="var(--accent)"/>
+    </svg>`,
+
+  /* TIRE — donut/ring with valve at top, accent valve cap */
+  tire: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <!-- outer ring -->
+      <circle cx="12" cy="13" r="9" fill="var(--icon-base)"/>
+      <!-- inner hole -->
+      <circle cx="12" cy="13" r="4.5" fill="var(--card)"/>
+      <!-- tread blocks (small radial marks around the outer rim) -->
+      <g fill="var(--card)">
+        <rect x="11.5" y="4.5" width="1" height="2"/>
+        <rect x="11.5" y="19.5" width="1" height="2"/>
+        <rect x="4"  y="12.5" width="2" height="1"/>
+        <rect x="18" y="12.5" width="2" height="1"/>
+        <rect x="6.5" y="6.5" width="1.5" height="1.5" transform="rotate(-45 7.25 7.25)"/>
+        <rect x="16" y="6.5" width="1.5" height="1.5" transform="rotate(45 16.75 7.25)"/>
+        <rect x="6.5" y="17.5" width="1.5" height="1.5" transform="rotate(45 7.25 18.25)"/>
+        <rect x="16" y="17.5" width="1.5" height="1.5" transform="rotate(-45 16.75 18.25)"/>
+      </g>
+      <!-- valve stem -->
+      <rect x="11" y="0.5" width="2" height="3.5" rx="0.4" fill="var(--icon-base)"/>
+      <!-- accent valve cap -->
+      <rect x="10.5" y="0" width="3" height="1.5" rx="0.4" fill="var(--accent)"/>
+    </svg>`,
+
+  /* ROTOR — disc with vented slots, 6-bolt pattern, accent center */
+  rotor: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <!-- outer disc -->
+      <circle cx="12" cy="12" r="10" fill="var(--icon-base)"/>
+      <!-- 6 vented slots (elongated cutouts arranged radially) -->
+      <g fill="var(--card)">
+        <ellipse cx="12" cy="4.5" rx="0.9" ry="2.5"/>
+        <ellipse cx="12" cy="19.5" rx="0.9" ry="2.5"/>
+        <ellipse cx="18.5" cy="8.25" rx="0.9" ry="2.5" transform="rotate(60 18.5 8.25)"/>
+        <ellipse cx="18.5" cy="15.75" rx="0.9" ry="2.5" transform="rotate(-60 18.5 15.75)"/>
+        <ellipse cx="5.5" cy="8.25" rx="0.9" ry="2.5" transform="rotate(-60 5.5 8.25)"/>
+        <ellipse cx="5.5" cy="15.75" rx="0.9" ry="2.5" transform="rotate(60 5.5 15.75)"/>
+      </g>
+      <!-- inner disc cutout (smaller) -->
+      <circle cx="12" cy="12" r="4" fill="var(--card)"/>
+      <!-- 6-bolt mount pattern -->
+      <circle cx="12" cy="12" r="3.6" fill="var(--icon-base)"/>
+      <g fill="var(--card)">
+        <circle cx="12" cy="9.5" r="0.6"/>
+        <circle cx="12" cy="14.5" r="0.6"/>
+        <circle cx="14.2" cy="10.75" r="0.6"/>
+        <circle cx="9.8" cy="10.75" r="0.6"/>
+        <circle cx="14.2" cy="13.25" r="0.6"/>
+        <circle cx="9.8" cy="13.25" r="0.6"/>
+      </g>
+      <!-- accent center spline -->
+      <circle cx="12" cy="12" r="1.4" fill="var(--accent)"/>
+    </svg>`,
+
+  /* BRAKE PADS — pair of pads facing each other, accent wear stripe */
+  pads: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <!-- left pad (backing + rubber face) -->
+      <rect x="2" y="6" width="3.5" height="12" rx="1" fill="var(--icon-base)"/>
+      <rect x="5" y="7.5" width="2.5" height="9" rx="0.6" fill="var(--icon-base-2)"/>
+      <!-- right pad -->
+      <rect x="18.5" y="6" width="3.5" height="12" rx="1" fill="var(--icon-base)"/>
+      <rect x="16.5" y="7.5" width="2.5" height="9" rx="0.6" fill="var(--icon-base-2)"/>
+      <!-- spring clip arch -->
+      <path d="M 4 5 Q 12 2 20 5" stroke="var(--icon-base)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+      <!-- accent wear-line stripes on each pad face -->
+      <rect x="5" y="11.5" width="2.5" height="1" fill="var(--accent)"/>
+      <rect x="16.5" y="11.5" width="2.5" height="1" fill="var(--accent)"/>
+    </svg>`,
+
+  /* PEDAL — flat platform from above with traction pins, accent spindle */
+  pedal: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <!-- platform -->
+      <rect x="2.5" y="7" width="14" height="10" rx="1.5" fill="var(--icon-base)"/>
+      <!-- pin caps (3x3 grid on platform) -->
+      <g fill="var(--card)">
+        <circle cx="5" cy="9.5" r="0.7"/>
+        <circle cx="9.5" cy="9.5" r="0.7"/>
+        <circle cx="14" cy="9.5" r="0.7"/>
+        <circle cx="5" cy="12" r="0.7"/>
+        <circle cx="9.5" cy="12" r="0.7"/>
+        <circle cx="14" cy="12" r="0.7"/>
+        <circle cx="5" cy="14.5" r="0.7"/>
+        <circle cx="9.5" cy="14.5" r="0.7"/>
+        <circle cx="14" cy="14.5" r="0.7"/>
+      </g>
+      <!-- spindle extending right (accent) -->
+      <rect x="16.5" y="11" width="5" height="2" rx="0.5" fill="var(--accent)"/>
+    </svg>`,
+
+  /* SADDLE — side profile with rails and post, accent center seam */
+  saddle: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <!-- saddle body silhouette -->
+      <path d="M 1 9 Q 6 6 13 7 Q 20 8 23 11 Q 19 12.5 13 12 Q 6 12.5 1 11 Z"
+            fill="var(--icon-base)"/>
+      <!-- accent center seam -->
+      <path d="M 4 9.5 Q 13 8 21 11" stroke="var(--accent)" stroke-width="1" fill="none"/>
+      <!-- rails -->
+      <path d="M 5 13 Q 13 16 19 13" stroke="var(--icon-base)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+      <!-- seat post -->
+      <rect x="11" y="14.5" width="2" height="8" rx="0.4" fill="var(--icon-base)"/>
+    </svg>`,
+
+  /* HANDLEBAR — drop bar with bar tape grips */
+  handlebar: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <!-- top bar -->
+      <line x1="3" y1="6" x2="21" y2="6" stroke="var(--icon-base)" stroke-width="2" stroke-linecap="round"/>
+      <!-- left drop -->
+      <path d="M 3 6 Q 1 11 4 16 L 4 19" stroke="var(--icon-base)" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <!-- right drop -->
+      <path d="M 21 6 Q 23 11 20 16 L 20 19" stroke="var(--icon-base)" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <!-- stem clamp -->
+      <rect x="11" y="4.5" width="2" height="3" rx="0.4" fill="var(--icon-base)"/>
+      <!-- accent bar tape grips -->
+      <rect x="3" y="17.5" width="2.5" height="3.5" rx="1.2" fill="var(--accent)"/>
+      <rect x="18.5" y="17.5" width="2.5" height="3.5" rx="1.2" fill="var(--accent)"/>
+    </svg>`,
+
+  /* HUB — cylindrical hub with two flanges, accent stripe */
+  hub: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <!-- axle -->
+      <rect x="1" y="11" width="22" height="2" rx="0.5" fill="var(--icon-base-2)"/>
+      <!-- left flange -->
+      <ellipse cx="6" cy="12" rx="2" ry="6" fill="var(--icon-base)"/>
+      <!-- right flange -->
+      <ellipse cx="18" cy="12" rx="2" ry="6" fill="var(--icon-base)"/>
+      <!-- main body cylinder -->
+      <rect x="6" y="8" width="12" height="8" rx="0.5" fill="var(--icon-base)"/>
+      <!-- spoke holes on flanges -->
+      <g fill="var(--card)">
+        <circle cx="6" cy="8.5" r="0.4"/>
+        <circle cx="6" cy="12" r="0.4"/>
+        <circle cx="6" cy="15.5" r="0.4"/>
+        <circle cx="18" cy="8.5" r="0.4"/>
+        <circle cx="18" cy="12" r="0.4"/>
+        <circle cx="18" cy="15.5" r="0.4"/>
+      </g>
+      <!-- accent body stripe -->
+      <rect x="6" y="11" width="12" height="2" fill="var(--accent)"/>
+    </svg>`,
+
+  /* FRAME — diamond bike frame silhouette, accent on tubes */
+  frame: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <!-- Frame tubes -->
+      <g stroke="var(--icon-base)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <!-- top tube -->
+        <line x1="6" y1="9" x2="16" y2="7"/>
+        <!-- down tube -->
+        <line x1="6" y1="9" x2="12" y2="16"/>
+        <!-- seat tube -->
+        <line x1="12" y1="16" x2="14.5" y2="7"/>
+        <!-- chainstay -->
+        <line x1="12" y1="16" x2="19" y2="16"/>
+        <!-- seatstay -->
+        <line x1="14.5" y1="7" x2="19" y2="16"/>
+        <!-- fork -->
+        <line x1="6" y1="9" x2="4" y2="16"/>
+      </g>
+      <!-- Junction points -->
+      <circle cx="6" cy="9" r="1.4" fill="var(--icon-base)"/>
+      <circle cx="12" cy="16" r="1.4" fill="var(--icon-base)"/>
+      <!-- accent saddle on top of seat tube -->
+      <ellipse cx="14.5" cy="7" rx="2.5" ry="0.8" fill="var(--accent)"/>
+    </svg>`,
+
+  /* WRENCH / SERVICE — combination wrench, accent on handle */
+  wrench: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <g transform="rotate(-30 12 12)">
+        <!-- handle -->
+        <rect x="11" y="4" width="2" height="13" fill="var(--icon-base)"/>
+        <!-- box-end ring (top) -->
+        <circle cx="12" cy="4" r="3" fill="var(--icon-base)"/>
+        <circle cx="12" cy="4" r="1.4" fill="var(--card)"/>
+        <!-- open-end jaw (bottom) -->
+        <path d="M 9.5 17 L 9.5 19.5 L 11 21 L 13 21 L 14.5 19.5 L 14.5 17 L 13.5 17 L 13.5 19 L 12.7 19.7 L 11.3 19.7 L 10.5 19 L 10.5 17 Z"
+              fill="var(--icon-base)"/>
+        <!-- accent grip on handle -->
+        <rect x="10.5" y="9" width="3" height="4" rx="0.4" fill="var(--accent)"/>
+      </g>
+    </svg>`,
+
+  /* DERAILLEUR / PULLEY WHEELS — two stacked cogs */
+  derailleur: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <!-- back cog -->
+      <circle cx="9" cy="9" r="5" fill="var(--icon-base)"/>
+      <circle cx="9" cy="9" r="2" fill="var(--card)"/>
+      <circle cx="9" cy="9" r="1" fill="var(--icon-base)"/>
+      <!-- tooth notches on back cog -->
+      <g fill="var(--card)">
+        <rect x="8.5" y="3.5" width="1" height="1.2"/>
+        <rect x="8.5" y="13.3" width="1" height="1.2"/>
+        <rect x="3.5" y="8.5" width="1.2" height="1"/>
+        <rect x="13.3" y="8.5" width="1.2" height="1"/>
+      </g>
+
+      <!-- front cog -->
+      <circle cx="15" cy="15" r="5" fill="var(--icon-base)"/>
+      <circle cx="15" cy="15" r="2" fill="var(--card)"/>
+      <circle cx="15" cy="15" r="1" fill="var(--accent)"/>
+      <g fill="var(--card)">
+        <rect x="14.5" y="9.5" width="1" height="1.2"/>
+        <rect x="14.5" y="19.3" width="1" height="1.2"/>
+        <rect x="9.5" y="14.5" width="1.2" height="1"/>
+        <rect x="19.3" y="14.5" width="1.2" height="1"/>
+      </g>
+
+      <!-- chain path between them -->
+      <line x1="9" y1="4" x2="15" y2="10" stroke="var(--icon-base)" stroke-width="1.2" stroke-linecap="round"/>
+    </svg>`,
+
+  /* SEALANT BOTTLE — plastic bottle with liquid level, accent fluid */
+  sealant: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <!-- cap -->
+      <rect x="9" y="1" width="6" height="3" rx="0.5" fill="var(--icon-base)"/>
+      <!-- neck -->
+      <rect x="10.5" y="4" width="3" height="2" fill="var(--icon-base-2)"/>
+      <!-- bottle body (tapered) -->
+      <path d="M 5 7 Q 5 6 6 6 L 18 6 Q 19 6 19 7 L 19 21 Q 19 22 18 22 L 6 22 Q 5 22 5 21 Z"
+            fill="var(--icon-base)"/>
+      <!-- accent liquid (lower 60% of bottle) -->
+      <path d="M 6 13 L 18 13 L 18 21 Q 18 21.5 17.5 21.5 L 6.5 21.5 Q 6 21.5 6 21 Z"
+            fill="var(--accent)"/>
+      <!-- white label area -->
+      <rect x="7.5" y="8" width="9" height="3.5" fill="var(--card)"/>
+    </svg>`,
+
+  /* INNER TUBE — coiled donut with valve */
+  tube: `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <!-- tube outer -->
+      <ellipse cx="12" cy="14" rx="9" ry="7" fill="var(--icon-base)"/>
+      <!-- inner hole -->
+      <ellipse cx="12" cy="14" rx="4" ry="3" fill="var(--card)"/>
+      <!-- valve stem -->
+      <rect x="11" y="3.5" width="2" height="4.5" fill="var(--icon-base-2)"/>
+      <!-- accent valve cap -->
+      <rect x="10.5" y="2" width="3" height="2" rx="0.5" fill="var(--accent)"/>
+    </svg>`,
+};
+
+/* ───────────────────────────────────────────────────────────────
+   Render
+   ─────────────────────────────────────────────────────────────── */
+const ICON_LIST = [
+  ['chain',      'Chain'],
+  ['cassette',   'Cassette'],
+  ['wheel',      'Wheel'],
+  ['tire',       'Tire'],
+  ['rotor',      'Brake rotor'],
+  ['pads',       'Brake pads'],
+  ['pedal',      'Pedal'],
+  ['saddle',     'Saddle'],
+  ['handlebar',  'Handlebar'],
+  ['hub',        'Hub'],
+  ['frame',      'Frame'],
+  ['derailleur', 'Derailleur'],
+  ['tube',       'Inner tube'],
+  ['sealant',    'Sealant'],
+  ['wrench',     'Service'],
+];
+
+const grid = document.getElementById('icon-grid');
+ICON_LIST.forEach(([key, label]) => {
+  const tile = document.createElement('div');
+  tile.className = 'icon-tile';
+  tile.innerHTML = ICONS[key] + `<div class="label">${label}</div>`;
+  grid.appendChild(tile);
+});
+
+/* Size showcase: chain at 16/24/32/48/64 */
+const sizes = [16, 24, 32, 48, 64];
+const sizeRow = document.getElementById('size-row');
+sizeRow.innerHTML = `
+  <div class="label">Chain icon →</div>
+  <div class="sizes">
+    ${sizes.map(s => `
+      <div>
+        <div style="width:${s}px; height:${s}px; display:grid; place-items:center;">
+          ${ICONS.chain.replace('<svg', `<svg width="${s}" height="${s}"`)}
+        </div>
+        <div class="px">${s}px</div>
+      </div>
+    `).join('')}
+  </div>
+`;
+
+/* In-context cards */
+const CTX = [
+  { icon: 'chain',      name: 'Chain — KMC X11SL',          sub: 'Installed 12 Mar · 2,140 km',   pct: 71,  color: '#F7C948' },
+  { icon: 'cassette',   name: 'Cassette — Ultegra R8000',   sub: 'Installed 8 Jan · 1,920 km',    pct: 22,  color: '#34D17A' },
+  { icon: 'pads',       name: 'Front brake pads',           sub: 'Installed 30 Sep · 4,820 km',   pct: 102, color: '#FF425A' },
+  { icon: 'tire',       name: 'Front tyre — GP5000',        sub: 'Installed 4 Mar · 1,140 km',    pct: 28,  color: '#34D17A' },
+  { icon: 'derailleur', name: 'Rear derailleur — XT M8100', sub: 'Installed 1 Apr · 240 km',      pct: 4,   color: '#34D17A' },
+  { icon: 'rotor',      name: 'Front rotor — RT-MT800',     sub: 'Installed 12 Aug · 8,200 km',   pct: 88,  color: '#FF8A33' },
+  { icon: 'sealant',    name: 'Tubeless sealant',           sub: 'Topped up 18 Apr · 110 km',     pct: 12,  color: '#34D17A' },
+  { icon: 'tube',       name: 'Inner tube — spare',         sub: 'In saddlebag',                  pct: 0,   color: '#34D17A' },
+];
+
+const ctxHost = document.getElementById('ctx-grid');
+CTX.forEach(c => {
+  const card = document.createElement('div');
+  card.className = 'comp-card';
+  card.innerHTML = `
+    <div class="comp-row">
+      <div class="comp-icon">${ICONS[c.icon]}</div>
+      <div class="comp-info">
+        <div class="comp-name">${c.name}</div>
+        <div class="comp-sub">${c.sub}</div>
+      </div>
+      <div class="comp-pct" style="color:${c.color}">${c.pct}%</div>
+    </div>
+    <div class="wear-track">
+      <div class="wear-fill" style="width:${Math.min(c.pct,100)}%; background:${c.color};"></div>
+    </div>`;
+  ctxHost.appendChild(card);
+});
+
+document.getElementById('theme-toggle').addEventListener('click', e => {
+  const t = e.target.dataset.theme;
+  if (!t) return;
+  document.body.dataset.theme = t;
+  document.querySelectorAll('#theme-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === t);
+  });
+});
+</script>
+</body>
+</html>

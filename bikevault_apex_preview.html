@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BikeVault — Apex Icon System</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #0A0A0F; min-height: 100vh; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+  color: #F2EDE3;
+  padding: 80px 48px 120px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.page { max-width: 920px; margin: 0 auto; }
+.eyebrow {
+  font-size: 11px; color: #FF4936; letter-spacing: 0.16em;
+  text-transform: uppercase; font-weight: 500; margin-bottom: 12px;
+}
+h1 {
+  font-size: 56px; font-weight: 600; letter-spacing: -0.025em;
+  margin-bottom: 16px; line-height: 1.05; color: #F2EDE3;
+}
+.lede {
+  font-size: 19px; color: #B0A89C; max-width: 640px; line-height: 1.5;
+}
+h2 {
+  font-size: 28px; font-weight: 600; letter-spacing: -0.015em;
+  margin-top: 96px; margin-bottom: 8px; color: #F2EDE3;
+}
+.section-note { color: #76665B; font-size: 14px; margin-bottom: 32px; max-width: 640px; }
+
+.hero {
+  margin: 64px 0 0; padding: 80px 0;
+  background: #161310; border-radius: 32px;
+  display: flex; justify-content: center;
+}
+.hero-icon { width: 256px; height: 256px; border-radius: 22%; overflow: hidden; }
+.hero-icon svg { width: 100%; height: 100%; display: block; }
+
+.size-rail {
+  display: flex; align-items: flex-end; gap: 18px;
+  padding: 40px 32px; border-radius: 24px; margin-bottom: 12px;
+  overflow-x: auto;
+}
+.size-rail.light { background: #EFE8D8; }
+.size-rail.dark { background: #161310; }
+.size-cell { display: flex; flex-direction: column; align-items: center; gap: 12px; flex-shrink: 0; }
+.size-cell .label {
+  font-size: 11px; letter-spacing: 0.04em;
+  font-family: 'SF Mono', Menlo, monospace;
+}
+.size-rail.light .label { color: #5A4F40; }
+.size-rail.dark .label { color: #76665B; }
+.tile { border-radius: 22%; overflow: hidden; }
+.tile svg { display: block; width: 100%; height: 100%; }
+
+.palette { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.swatch {
+  aspect-ratio: 1; border-radius: 16px; padding: 18px;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.swatch .hex {
+  font-family: 'SF Mono', Menlo, monospace; font-size: 11px;
+  opacity: 0.65; margin-top: 2px;
+}
+.swatch .name { font-size: 13px; font-weight: 500; }
+
+.rules { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rule { padding: 24px; border-radius: 20px; background: #161310; border: 1px solid #2A2620; }
+.rule h3 {
+  font-size: 11px; font-weight: 500; margin-bottom: 14px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+}
+.rule.do h3 { color: #34D17C; }
+.rule.dont h3 { color: #FF6B5C; }
+.rule ul { list-style: none; }
+.rule li {
+  font-size: 14px; color: #B0A89C; padding: 6px 0 6px 22px;
+  position: relative; line-height: 1.5;
+}
+.rule.do li::before { content: '+'; position: absolute; left: 0; color: #34D17C; font-weight: 500; }
+.rule.dont li::before { content: '−'; position: absolute; left: 0; color: #FF6B5C; font-weight: 500; }
+
+.launch {
+  background: #161310; border-radius: 24px;
+  padding: 64px; display: flex; align-items: center; justify-content: center;
+}
+.launch-icon { width: 200px; height: 200px; border-radius: 22%; overflow: hidden; }
+
+.dynamics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.dynamic { padding: 24px; border-radius: 20px; background: #161310; }
+.dynamic h3 { font-size: 14px; font-weight: 500; margin-bottom: 8px; color: #F2EDE3; }
+.dynamic p { font-size: 14px; color: #B0A89C; line-height: 1.5; }
+
+footer {
+  margin-top: 96px; padding-top: 40px; border-top: 1px solid #2A2620;
+  font-size: 12px; color: #76665B; font-family: 'SF Mono', Menlo, monospace;
+}
+
+@media (max-width: 720px) {
+  body { padding: 48px 24px; }
+  h1 { font-size: 40px; }
+  h2 { margin-top: 64px; }
+  .palette, .rules, .dynamics { grid-template-columns: 1fr; }
+  .palette { grid-template-columns: 1fr 1fr; }
+  .hero-icon { width: 200px; height: 200px; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="bv-master" viewBox="0 0 1024 1024">
+      <rect width="1024" height="1024" fill="#0A0A12"/>
+      <path d="M256 768L465.5 768L768 256L558.5 256Z" fill="#FF4936"/>
+      <rect x="279" y="489" width="466" height="47" fill="#0A0A12"/>
+    </symbol>
+    <symbol id="bv-small" viewBox="0 0 1024 1024">
+      <rect width="1024" height="1024" fill="#0A0A12"/>
+      <path d="M256 768L465.5 768L768 256L558.5 256Z" fill="#FF4936"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="page">
+
+  <div class="eyebrow">App icon · v1</div>
+  <h1>BikeVault — Apex</h1>
+  <p class="lede">A single forward-leaning velocity stripe, cut by a horizontal vault slot. Speed and security fused into one mark.</p>
+
+  <div class="hero">
+    <div class="hero-icon"><svg viewBox="0 0 1024 1024"><use href="#bv-master"/></svg></div>
+  </div>
+
+  <h2>Sizes on iOS</h2>
+  <p class="section-note">Master version (with vault slot) for icons rendered ≥ 60 px. Small version (slot dropped) for &lt; 60 px, where the slot would render under 1 px and read as noise.</p>
+
+  <div class="size-rail light">
+    <div class="size-cell"><div class="tile" style="width:180px;height:180px"><svg viewBox="0 0 1024 1024"><use href="#bv-master"/></svg></div><div class="label">180</div></div>
+    <div class="size-cell"><div class="tile" style="width:120px;height:120px"><svg viewBox="0 0 1024 1024"><use href="#bv-master"/></svg></div><div class="label">120</div></div>
+    <div class="size-cell"><div class="tile" style="width:87px;height:87px"><svg viewBox="0 0 1024 1024"><use href="#bv-master"/></svg></div><div class="label">87</div></div>
+    <div class="size-cell"><div class="tile" style="width:60px;height:60px"><svg viewBox="0 0 1024 1024"><use href="#bv-master"/></svg></div><div class="label">60</div></div>
+    <div class="size-cell"><div class="tile" style="width:40px;height:40px"><svg viewBox="0 0 1024 1024"><use href="#bv-small"/></svg></div><div class="label">40</div></div>
+    <div class="size-cell"><div class="tile" style="width:29px;height:29px"><svg viewBox="0 0 1024 1024"><use href="#bv-small"/></svg></div><div class="label">29</div></div>
+    <div class="size-cell"><div class="tile" style="width:20px;height:20px"><svg viewBox="0 0 1024 1024"><use href="#bv-small"/></svg></div><div class="label">20</div></div>
+  </div>
+
+  <div class="size-rail dark">
+    <div class="size-cell"><div class="tile" style="width:180px;height:180px"><svg viewBox="0 0 1024 1024"><use href="#bv-master"/></svg></div><div class="label">180</div></div>
+    <div class="size-cell"><div class="tile" style="width:120px;height:120px"><svg viewBox="0 0 1024 1024"><use href="#bv-master"/></svg></div><div class="label">120</div></div>
+    <div class="size-cell"><div class="tile" style="width:87px;height:87px"><svg viewBox="0 0 1024 1024"><use href="#bv-master"/></svg></div><div class="label">87</div></div>
+    <div class="size-cell"><div class="tile" style="width:60px;height:60px"><svg viewBox="0 0 1024 1024"><use href="#bv-master"/></svg></div><div class="label">60</div></div>
+    <div class="size-cell"><div class="tile" style="width:40px;height:40px"><svg viewBox="0 0 1024 1024"><use href="#bv-small"/></svg></div><div class="label">40</div></div>
+    <div class="size-cell"><div class="tile" style="width:29px;height:29px"><svg viewBox="0 0 1024 1024"><use href="#bv-small"/></svg></div><div class="label">29</div></div>
+    <div class="size-cell"><div class="tile" style="width:20px;height:20px"><svg viewBox="0 0 1024 1024"><use href="#bv-small"/></svg></div><div class="label">20</div></div>
+  </div>
+
+  <h2>Launch animation</h2>
+  <p class="section-note">Stripe wipes in left-to-right (~700 ms). Slot pops on last (~80 ms) as the "vault closes" beat. Loops every 2.4 s in this preview.</p>
+
+  <div class="launch">
+    <div class="launch-icon">
+      <svg viewBox="0 0 1024 1024">
+        <defs>
+          <clipPath id="reveal-clip">
+            <rect x="0" y="0" height="1024" width="0">
+              <animate attributeName="width"
+                values="0;1024;1024"
+                keyTimes="0;0.3;1"
+                dur="2.4s" repeatCount="indefinite"/>
+            </rect>
+          </clipPath>
+        </defs>
+        <rect width="1024" height="1024" fill="#0A0A12"/>
+        <g clip-path="url(#reveal-clip)">
+          <path d="M256 768L465.5 768L768 256L558.5 256Z" fill="#FF4936"/>
+        </g>
+        <rect x="279" y="489" width="466" height="47" fill="#0A0A12" opacity="0">
+          <animate attributeName="opacity"
+            values="0;0;1;1"
+            keyTimes="0;0.34;0.36;1"
+            dur="2.4s" repeatCount="indefinite"/>
+        </rect>
+      </svg>
+    </div>
+  </div>
+
+  <h2>Palette</h2>
+  <p class="section-note">Four colors. The stripe is always Signal red — never recolored.</p>
+  <div class="palette">
+    <div class="swatch" style="background:#0A0A12;color:#F2EDE3"><div class="name">Obsidian</div><div class="hex">#0A0A12</div></div>
+    <div class="swatch" style="background:#FF4936;color:#FFFFFF"><div class="name">Signal</div><div class="hex">#FF4936</div></div>
+    <div class="swatch" style="background:#161310;color:#F2EDE3"><div class="name">Graphite</div><div class="hex">#161310</div></div>
+    <div class="swatch" style="background:#F2EDE3;color:#0A0A12"><div class="name">Bone</div><div class="hex">#F2EDE3</div></div>
+  </div>
+
+  <h2>Rules</h2>
+  <div class="rules">
+    <div class="rule do">
+      <h3>Do</h3>
+      <ul>
+        <li>Keep ½-stripe-width clearspace on all sides</li>
+        <li>Use master at ≥ 60 px, small below</li>
+        <li>Pair with Bone or Graphite for surrounding UI</li>
+        <li>Render the stripe in solid Signal red only</li>
+      </ul>
+    </div>
+    <div class="rule dont">
+      <h3>Don't</h3>
+      <ul>
+        <li>Recolor the stripe</li>
+        <li>Rotate, skew, or mirror the mark</li>
+        <li>Add gradients, glows, or shadows</li>
+        <li>Place on a busy or photographic background</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Dynamic behavior</h2>
+  <p class="section-note">Three suggested motion moments where the mark earns its keep.</p>
+  <div class="dynamics">
+    <div class="dynamic">
+      <h3>App launch</h3>
+      <p>Stripe wipes in left-to-right (~700 ms). Slot pops in last (~80 ms) as the "vault closes" beat.</p>
+    </div>
+    <div class="dynamic">
+      <h3>Pull-to-refresh</h3>
+      <p>Stripe rotates 360° around the icon centroid while data loads. Slot widens slightly on completion.</p>
+    </div>
+    <div class="dynamic">
+      <h3>Workout active</h3>
+      <p>Slot pulses 4–6 px at the rider's cadence. The icon's only moving element becomes a heart-rate read.</p>
+    </div>
+  </div>
+
+  <footer>
+    BikeVault icon system · Apex direction · D · Cut · v1
+  </footer>
+
+</div>
+
+</body>
+</html>

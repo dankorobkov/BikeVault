@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import BikeIcon, { type BikeIconName } from './BikeIcon';
+import { useThemeColors } from '../theme/ThemeProvider';
+import type { ColorPalette } from '../constants/colors';
 
 type TabName = 'bikes' | 'garage' | 'settings';
 
@@ -10,14 +11,16 @@ interface Props {
   active: TabName;
 }
 
-const TABS: { name: TabName; label: string; icon: string; path: string }[] = [
-  { name: 'bikes', label: 'Bikes', icon: 'bicycle-outline', path: '/' },
-  { name: 'garage', label: 'Garage', icon: 'construct-outline', path: '/garage' },
-  { name: 'settings', label: 'Settings', icon: 'settings-outline', path: '/settings' },
+const TABS: { name: TabName; label: string; icon: BikeIconName; path: string }[] = [
+  { name: 'bikes', label: 'Bikes', icon: 'bike', path: '/' },
+  { name: 'garage', label: 'Garage', icon: 'garage', path: '/garage' },
+  { name: 'settings', label: 'Settings', icon: 'settings', path: '/settings' },
 ];
 
 export default function AppTabBar({ active }: Props) {
   const router = useRouter();
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [bottomInset, setBottomInset] = useState(0);
 
   useEffect(() => {
@@ -47,10 +50,12 @@ export default function AppTabBar({ active }: Props) {
             style={styles.tab}
             onPress={() => router.replace(tab.path as any)}
           >
-            <Ionicons
-              name={tab.icon as any}
+            <BikeIcon
+              name={tab.icon}
+              variant={isActive ? 'fill' : 'line'}
               size={24}
-              color={isActive ? Colors.accent : Colors.textTertiary}
+              color={isActive ? C.accent : C.textTertiary}
+              accent={C.accent}
             />
           </TouchableOpacity>
         );
@@ -59,18 +64,19 @@ export default function AppTabBar({ active }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    paddingTop: 10,
-  },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-  },
-});
+const makeStyles = (C: ColorPalette) =>
+  StyleSheet.create({
+    bar: {
+      flexDirection: 'row',
+      backgroundColor: C.surface,
+      borderTopWidth: 1,
+      borderTopColor: C.border,
+      paddingTop: 10,
+    },
+    tab: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 3,
+    },
+  });

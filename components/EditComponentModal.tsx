@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { dialog } from './AppDialog';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { useThemeColors } from '../theme/ThemeProvider';
+import type { ColorPalette } from '../constants/colors';
 import { COMPONENT_TYPES, BRAKE_SYSTEM_LABELS } from '../constants/componentTypes';
 import { formatNumber } from '../constants/units';
 import { ELECTRIC_CATEGORIES } from '../types';
@@ -34,6 +35,12 @@ interface Props {
   onRetire: (componentId: string) => Promise<void>;
   onMoveToStock: (componentId: string) => Promise<void>;
   onInstallOnBike: (componentId: string, bikeId: string, installDistance: number) => Promise<void>;
+  /**
+   * Permanently delete the component. Only surfaced for retired
+   * components — active and in-stock parts must be retired first so the
+   * user can't accidentally wipe a part that's still being tracked.
+   */
+  onDelete: (componentId: string) => Promise<void>;
 }
 
 export default function EditComponentModal({
@@ -45,10 +52,17 @@ export default function EditComponentModal({
   onRetire,
   onMoveToStock,
   onInstallOnBike,
+  onDelete,
 }: Props) {
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [notes, setNotes] = useState('');
+  // Component weight in kilograms (string for the input — empty
+  // means "not weighed", which is different from "0 kg"). Decimals
+  // accepted via decimal-pad keyboard.
+  const [weight, setWeight] = useState('');
   const [maxLifespan, setMaxLifespan] = useState('');
   const [attentionFreq, setAttentionFreq] = useState('');
   // Distance already ridden on this part. Internally this corresponds
@@ -80,6 +94,7 @@ export default function EditComponentModal({
       setName(component.name);
       setBrand(component.brand ?? '');
       setNotes(component.notes ?? '');
+      setWeight(typeof component.weight === 'number' ? String(component.weight) : '');
       setMaxLifespan(formatNumber(component.maxLifespan));
       setAttentionFreq(component.attentionFrequency ? formatNumber(component.attentionFrequency) : '');
       // Seed priorDistance from the current (bikeDistance - installDistance)
@@ -138,6 +153,17 @@ export default function EditComponentModal({
       const nextInstallDistance =
         selectedBikeId === null ? 0 : targetBikeKm - prior;
 
+      // Weight: empty input means "clear". `updateComponent` strips
+      // `undefined`, so setting it to `undefined` here leaves the
+      // existing value alone — which would lock users out of clearing
+      // a weight once set. Use the same null-sentinel trick as the
+      // chain-lube clear path, cast through unknown so the static
+      // `BikeComponent` type doesn't have to widen for a write-time
+      // sentinel.
+      const parsedWeight = weight ? parseNum(weight) : 0;
+      const weightUpdate: number | null =
+        parsedWeight > 0 ? parsedWeight : null;
+
       const updates: Partial<Omit<BikeComponent, 'id' | 'createdAt'>> = {
         name: name.trim(),
         brand: brand.trim() || undefined,
@@ -153,6 +179,15 @@ export default function EditComponentModal({
             : undefined,
         updatedAt: Date.now(),
       };
+      // Apply the weight write — `null` clears it server-side, a
+      // positive number sets it. Skipping the property entirely keeps
+      // the existing value (which is what we want when the input
+      // hasn't been touched and the field was already empty).
+      if (weightUpdate !== null) {
+        updates.weight = weightUpdate;
+      } else if (typeof component.weight === 'number') {
+        (updates as Record<string, unknown>).weight = null;
+      }
 
       // Chain-lube fields — only relevant for chains. Firestore rejects
       // plain `undefined`; `updateComponent` strips undefined keys, so
@@ -218,6 +253,27 @@ export default function EditComponentModal({
     onClose();
   };
 
+  /**
+   * Permanently delete a retired component. Two-step confirmation via
+   * the app dialog because there's no undo — once Firestore + the local
+   * store are cleared, the component is gone, including its install
+   * date, lifespan and any chain-lube history.
+   */
+  const handleDelete = async () => {
+    const ok = await dialog.confirm({
+      title: 'Delete Permanently',
+      message:
+        'Permanently delete "' +
+        component.name +
+        '"? This removes its full history and cannot be undone.',
+      confirmLabel: 'Delete',
+      tone: 'destructive',
+    });
+    if (!ok) return;
+    await onDelete(component.id);
+    onClose();
+  };
+
   return (
     <Modal
       visible={visible}
@@ -237,7 +293,7 @@ export default function EditComponentModal({
           <Text style={styles.title}>Edit Component</Text>
           <TouchableOpacity onPress={handleSave} disabled={!name.trim() || saving}>
             {saving ? (
-              <ActivityIndicator color={Colors.accent} />
+              <ActivityIndicator color={C.accent} />
             ) : (
               <Text style={[styles.saveBtn, !name.trim() && styles.saveBtnDisabled]}>Save</Text>
             )}
@@ -247,7 +303,7 @@ export default function EditComponentModal({
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {/* Category badge (read-only) */}
           <View style={styles.categoryBadge}>
-            <Ionicons name={typeInfo.icon as any} size={16} color={Colors.accent} />
+            <Ionicons name={typeInfo.icon as any} size={16} color={C.accent} />
             <Text style={styles.categoryBadgeText}>{typeInfo.label}</Text>
             {isRetired && (
               <View style={styles.retiredBadge}>
@@ -263,7 +319,7 @@ export default function EditComponentModal({
               <TextInput
                 style={styles.input}
                 placeholder="Component name *"
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={C.textTertiary}
                 value={name}
                 onChangeText={setName}
               />
@@ -271,10 +327,30 @@ export default function EditComponentModal({
               <TextInput
                 style={styles.input}
                 placeholder="Brand (optional)"
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={C.textTertiary}
                 value={brand}
                 onChangeText={setBrand}
               />
+              <View style={styles.divider} />
+              {/* Component weight in kilograms (decimals allowed).
+                  Clearing the field on Save removes the recorded
+                  weight (handled in handleSave). */}
+              <View style={styles.labeledRow}>
+                <View style={styles.labelCol}>
+                  <Text style={styles.fieldLabel}>Weight</Text>
+                  <Text style={styles.fieldSub}>Optional — feeds the bike's total</Text>
+                </View>
+                <TextInput
+                  style={styles.inlineInput}
+                  placeholder="—"
+                  placeholderTextColor={C.textTertiary}
+                  value={weight}
+                  onChangeText={setWeight}
+                  keyboardType="decimal-pad"
+                  textAlign="right"
+                />
+                <Text style={styles.unitTag}>kg</Text>
+              </View>
             </View>
           </View>
 
@@ -293,7 +369,7 @@ export default function EditComponentModal({
                     onChange={setInstallDate}
                     maxDate={Date.now()}
                     align="right"
-                    color={Colors.accent}
+                    color={C.accent}
                     fontWeight="500"
                   />
                 </View>
@@ -308,7 +384,7 @@ export default function EditComponentModal({
                   <TextInput
                     style={styles.inlineInput}
                     placeholder="0"
-                    placeholderTextColor={Colors.textTertiary}
+                    placeholderTextColor={C.textTertiary}
                     value={priorDistance}
                     onChangeText={setPriorDistance}
                     keyboardType="numeric"
@@ -325,7 +401,7 @@ export default function EditComponentModal({
                   <TextInput
                     style={styles.inlineInput}
                     placeholder={formatNumber(typeInfo.defaultLifespan)}
-                    placeholderTextColor={Colors.textTertiary}
+                    placeholderTextColor={C.textTertiary}
                     value={maxLifespan}
                     onChangeText={setMaxLifespan}
                     keyboardType="numeric"
@@ -342,7 +418,7 @@ export default function EditComponentModal({
                   <TextInput
                     style={styles.inlineInput}
                     placeholder="—"
-                    placeholderTextColor={Colors.textTertiary}
+                    placeholderTextColor={C.textTertiary}
                     value={attentionFreq}
                     onChangeText={setAttentionFreq}
                     keyboardType="numeric"
@@ -388,7 +464,7 @@ export default function EditComponentModal({
                         <Ionicons
                           name={meta.icon}
                           size={14}
-                          color={isSelected ? Colors.accent : Colors.textSecondary}
+                          color={isSelected ? C.accent : C.textSecondary}
                         />
                         <Text
                           style={[
@@ -422,7 +498,7 @@ export default function EditComponentModal({
                         onChange={setLastLubedAt}
                         maxDate={Date.now()}
                         align="right"
-                        color={Colors.accent}
+                        color={C.accent}
                         fontWeight="500"
                       />
                     </View>
@@ -440,7 +516,7 @@ export default function EditComponentModal({
                         placeholder={formatNumber(
                           CHAIN_LUBE_TYPES[lubeType].defaultIntervalKm
                         )}
-                        placeholderTextColor={Colors.textTertiary}
+                        placeholderTextColor={C.textTertiary}
                         value={lubeIntervalOverride}
                         onChangeText={setLubeIntervalOverride}
                         keyboardType="numeric"
@@ -458,7 +534,7 @@ export default function EditComponentModal({
                       setLastLubedAt(Date.now());
                     }}
                   >
-                    <Ionicons name="refresh-outline" size={16} color={Colors.accent} />
+                    <Ionicons name="refresh-outline" size={16} color={C.accent} />
                     <Text style={styles.relubeBtnText}>Log re-lube — set to today</Text>
                   </TouchableOpacity>
                 </>
@@ -480,14 +556,14 @@ export default function EditComponentModal({
                     <Ionicons
                       name="archive-outline"
                       size={16}
-                      color={selectedBikeId === null ? Colors.accent : Colors.textSecondary}
+                      color={selectedBikeId === null ? C.accent : C.textSecondary}
                     />
                   </View>
                   <Text style={[styles.bikeName, selectedBikeId === null && styles.bikeNameActive]}>
                     In Stock (Garage)
                   </Text>
                   {selectedBikeId === null && (
-                    <Ionicons name="checkmark-circle" size={18} color={Colors.accent} />
+                    <Ionicons name="checkmark-circle" size={18} color={C.accent} />
                   )}
                 </TouchableOpacity>
                 <View style={styles.divider} />
@@ -508,7 +584,7 @@ export default function EditComponentModal({
                         <Ionicons
                           name="bicycle-outline"
                           size={16}
-                          color={selectedBikeId === b.id ? Colors.accent : b.color}
+                          color={selectedBikeId === b.id ? C.accent : b.color}
                         />
                       </View>
                       <Text
@@ -518,7 +594,7 @@ export default function EditComponentModal({
                         {b.name}
                       </Text>
                       {selectedBikeId === b.id && (
-                        <Ionicons name="checkmark-circle" size={18} color={Colors.accent} />
+                        <Ionicons name="checkmark-circle" size={18} color={C.accent} />
                       )}
                     </TouchableOpacity>
                     <View style={styles.divider} />
@@ -531,7 +607,7 @@ export default function EditComponentModal({
           {/* Brake compatibility warning */}
           {brakeIncompatible && selectedBike && (
             <View style={styles.compatWarning}>
-              <Ionicons name="warning" size={16} color={Colors.warning} />
+              <Ionicons name="warning" size={16} color={C.warning} />
               <Text style={styles.compatWarningText}>
                 <Text style={{ fontWeight: '700' }}>{typeInfo.label}</Text> is designed for{' '}
                 {brakeFilter!.map((s) => BRAKE_SYSTEM_LABELS[s]).join(' or ')} brakes,
@@ -554,8 +630,8 @@ export default function EditComponentModal({
                 <Switch
                   value={isElectric}
                   onValueChange={setIsElectric}
-                  trackColor={{ true: Colors.accent, false: Colors.border }}
-                  thumbColor={Colors.white}
+                  trackColor={{ true: C.accent, false: C.border }}
+                  thumbColor={C.white}
                 />
               </View>
               {isElectric && (
@@ -563,7 +639,7 @@ export default function EditComponentModal({
                   <TextInput
                     style={styles.input}
                     placeholder="Days from full charge to empty"
-                    placeholderTextColor={Colors.textTertiary}
+                    placeholderTextColor={C.textTertiary}
                     value={chargeInterval}
                     onChangeText={setChargeInterval}
                     keyboardType="numeric"
@@ -579,7 +655,7 @@ export default function EditComponentModal({
             <TextInput
               style={[styles.input, styles.notesInput]}
               placeholder="Any notes (optional)"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={C.textTertiary}
               value={notes}
               onChangeText={setNotes}
               multiline
@@ -593,18 +669,40 @@ export default function EditComponentModal({
               <View style={styles.actionsGroup}>
                 {isActive && (
                   <TouchableOpacity style={styles.actionRow} onPress={handleMoveToStock}>
-                    <Ionicons name="archive-outline" size={18} color={Colors.accent} />
+                    <Ionicons name="archive-outline" size={18} color={C.accent} />
                     <Text style={styles.actionText}>Move to Stock</Text>
-                    <Ionicons name="chevron-forward" size={14} color={Colors.textTertiary} />
+                    <Ionicons name="chevron-forward" size={14} color={C.textTertiary} />
                   </TouchableOpacity>
                 )}
                 {isActive && <View style={styles.divider} />}
                 <TouchableOpacity style={styles.actionRow} onPress={handleRetire}>
-                  <Ionicons name="checkmark-done-outline" size={18} color={Colors.warning} />
-                  <Text style={[styles.actionText, { color: Colors.warning }]}>
+                  <Ionicons name="checkmark-done-outline" size={18} color={C.warning} />
+                  <Text style={[styles.actionText, { color: C.warning }]}>
                     Retire Component
                   </Text>
-                  <Ionicons name="chevron-forward" size={14} color={Colors.textTertiary} />
+                  <Ionicons name="chevron-forward" size={14} color={C.textTertiary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Danger zone — permanent deletion. Gated to retired
+              components so a still-tracked part can't be wiped by
+              accident. The retire flow is the documented off-ramp;
+              once retired, the user can clear the record entirely. */}
+          {isRetired && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>DANGER ZONE</Text>
+              <Text style={styles.hint}>
+                Permanently delete this retired component. Its history will be removed and this can't be undone.
+              </Text>
+              <View style={styles.actionsGroup}>
+                <TouchableOpacity style={styles.actionRow} onPress={handleDelete}>
+                  <Ionicons name="trash-outline" size={18} color={C.danger} />
+                  <Text style={[styles.actionText, { color: C.danger }]}>
+                    Delete Permanently
+                  </Text>
+                  <Ionicons name="chevron-forward" size={14} color={C.textTertiary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -615,8 +713,8 @@ export default function EditComponentModal({
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg },
+const makeStyles = (C: ColorPalette) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -624,40 +722,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: C.border,
   },
-  title: { fontSize: 17, fontWeight: '600', color: Colors.text },
-  cancelBtn: { fontSize: 16, color: Colors.textSecondary },
-  saveBtn: { fontSize: 16, fontWeight: '600', color: Colors.accent },
+  title: { fontSize: 17, fontWeight: '600', color: C.text },
+  cancelBtn: { fontSize: 16, color: C.textSecondary },
+  saveBtn: { fontSize: 16, fontWeight: '600', color: C.accent },
   saveBtnDisabled: { opacity: 0.4 },
   content: { padding: 20, gap: 20, paddingBottom: 48 },
   categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: Colors.accentDim,
+    backgroundColor: C.accentDim,
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 99,
   },
-  categoryBadgeText: { fontSize: 14, fontWeight: '600', color: Colors.accent },
+  categoryBadgeText: { fontSize: 14, fontWeight: '600', color: C.accent },
   retiredBadge: {
-    backgroundColor: Colors.border,
+    backgroundColor: C.border,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 99,
   },
-  retiredBadgeText: { fontSize: 11, color: Colors.textSecondary, fontWeight: '600' },
+  retiredBadgeText: { fontSize: 11, color: C.textSecondary, fontWeight: '600' },
   section: { gap: 8 },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: C.textSecondary,
     letterSpacing: 1,
   },
-  inputGroup: { backgroundColor: Colors.card, borderRadius: 14, overflow: 'hidden' },
-  input: { paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: Colors.text },
+  inputGroup: { backgroundColor: C.card, borderRadius: 14, overflow: 'hidden' },
+  input: { paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: C.text },
   labeledRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -666,24 +764,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   labelCol: { flex: 1 },
-  fieldLabel: { fontSize: 15, fontWeight: '500', color: Colors.text },
-  fieldSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
+  fieldLabel: { fontSize: 15, fontWeight: '500', color: C.text },
+  fieldSub: { fontSize: 12, color: C.textSecondary, marginTop: 1 },
   inlineInput: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.accent,
+    color: C.accent,
     minWidth: 60,
     textAlign: 'right',
   },
-  unitTag: { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
+  unitTag: { fontSize: 13, color: C.textSecondary, fontWeight: '500' },
   notesInput: {
     minHeight: 80,
     textAlignVertical: 'top',
-    backgroundColor: Colors.card,
+    backgroundColor: C.card,
     borderRadius: 14,
   },
-  divider: { height: 1, backgroundColor: Colors.border, marginLeft: 16 },
-  bikeList: { backgroundColor: Colors.card, borderRadius: 14, overflow: 'hidden' },
+  divider: { height: 1, backgroundColor: C.border, marginLeft: 16 },
+  bikeList: { backgroundColor: C.card, borderRadius: 14, overflow: 'hidden' },
   bikeRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -691,44 +789,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 13,
   },
-  bikeRowActive: { backgroundColor: Colors.accentDim },
+  bikeRowActive: { backgroundColor: C.accentDim },
   bikeIconBox: {
     width: 32,
     height: 32,
     borderRadius: 9,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bikeIconBoxActive: { backgroundColor: Colors.accentDim },
-  bikeName: { flex: 1, fontSize: 15, fontWeight: '500', color: Colors.text },
-  bikeNameActive: { color: Colors.accent },
+  bikeIconBoxActive: { backgroundColor: C.accentDim },
+  bikeName: { flex: 1, fontSize: 15, fontWeight: '500', color: C.text },
+  bikeNameActive: { color: C.accent },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.card,
+    backgroundColor: C.card,
     borderRadius: 14,
     padding: 14,
     gap: 12,
   },
-  switchLabel: { fontSize: 15, fontWeight: '500', color: Colors.text },
-  switchSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  switchLabel: { fontSize: 15, fontWeight: '500', color: C.text },
+  switchSub: { fontSize: 12, color: C.textSecondary, marginTop: 2 },
   compatWarning: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    backgroundColor: Colors.warningDim,
+    backgroundColor: C.warningDim,
     borderRadius: 12,
     padding: 12,
   },
   compatWarningText: {
     flex: 1,
     fontSize: 13,
-    color: Colors.warning,
+    color: C.warning,
     lineHeight: 19,
   },
-  actionsGroup: { backgroundColor: Colors.card, borderRadius: 14, overflow: 'hidden' },
+  actionsGroup: { backgroundColor: C.card, borderRadius: 14, overflow: 'hidden' },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -736,33 +834,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
-  actionText: { flex: 1, fontSize: 15, fontWeight: '500', color: Colors.text },
-  hint: { fontSize: 12, color: Colors.textTertiary, lineHeight: 17 },
+  actionText: { flex: 1, fontSize: 15, fontWeight: '500', color: C.text },
+  hint: { fontSize: 12, color: C.textTertiary, lineHeight: 17 },
   bubblesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   bubble: {
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 99,
-    backgroundColor: Colors.surface,
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: C.border,
   },
   bubbleActive: {
-    backgroundColor: Colors.accentDim,
-    borderColor: Colors.accent,
+    backgroundColor: C.accentDim,
+    borderColor: C.accent,
   },
-  bubbleText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '500' },
-  bubbleTextActive: { color: Colors.accent, fontWeight: '600' },
+  bubbleText: { fontSize: 14, color: C.textSecondary, fontWeight: '500' },
+  bubbleTextActive: { color: C.accent, fontWeight: '600' },
   lubeBubbleInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   relubeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.accentDim,
+    backgroundColor: C.accentDim,
     borderRadius: 12,
     paddingVertical: 12,
     marginTop: 4,
   },
-  relubeBtnText: { fontSize: 14, fontWeight: '600', color: Colors.accent },
+  relubeBtnText: { fontSize: 14, fontWeight: '600', color: C.accent },
 });

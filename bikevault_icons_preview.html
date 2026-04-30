@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BikeVault — Icon System</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #0A0A0F; min-height: 100vh; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+  color: #F2EDE3;
+  padding: 80px 48px 120px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.page { max-width: 980px; margin: 0 auto; }
+.eyebrow {
+  font-size: 11px; color: #FF4936; letter-spacing: 0.16em;
+  text-transform: uppercase; font-weight: 500; margin-bottom: 12px;
+}
+h1 {
+  font-size: 56px; font-weight: 600; letter-spacing: -0.025em;
+  margin-bottom: 16px; line-height: 1.05; color: #F2EDE3;
+}
+.lede {
+  font-size: 19px; color: #B0A89C; max-width: 640px; line-height: 1.5;
+}
+h2 {
+  font-size: 22px; font-weight: 600; letter-spacing: -0.01em;
+  margin-top: 80px; margin-bottom: 4px; color: #F2EDE3;
+}
+.section-note { color: #76665B; font-size: 13px; margin-bottom: 28px; }
+
+.tab-bar-wrap { margin: 56px 0 16px; }
+.tab-bar {
+  display: flex; justify-content: space-around;
+  padding: 14px 8px 10px;
+  background: #161310;
+  border-radius: 20px;
+  border: 1px solid #2A2620;
+}
+.tab {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  flex: 1; padding: 6px 0;
+}
+.tab svg { width: 26px; height: 26px; color: #76665B; }
+.tab.active svg { color: #F2EDE3; }
+.tab span { font-size: 10px; color: #76665B; letter-spacing: 0.02em; }
+.tab.active span { color: #F2EDE3; font-weight: 500; }
+
+.tabbar-caption { color: #76665B; font-size: 12px; margin-top: 12px; text-align: center; }
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+.icon-card {
+  background: #161310;
+  border-radius: 14px;
+  padding: 18px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.icon-states {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 6px 0 4px;
+}
+.icon-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.icon-state svg { width: 28px; height: 28px; color: #F2EDE3; display: block; }
+.state-label {
+  font-size: 8px;
+  color: #76665B;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.icon-name {
+  font-size: 11px;
+  color: #B0A89C;
+  text-align: center;
+  font-family: 'SF Mono', Menlo, monospace;
+}
+
+.light-strip {
+  background: #EFE8D8;
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 40px;
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.light-strip svg { width: 28px; height: 28px; color: #1F1A14; display: block; }
+
+footer {
+  margin-top: 96px; padding-top: 40px; border-top: 1px solid #2A2620;
+  font-size: 12px; color: #76665B; font-family: 'SF Mono', Menlo, monospace;
+}
+
+@media (max-width: 720px) {
+  body { padding: 48px 24px; }
+  h1 { font-size: 40px; }
+  h2 { margin-top: 56px; }
+  .icon-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+
+<symbol id="garage-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/>
+<rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>
+</g></symbol>
+<symbol id="garage-fill" viewBox="0 0 24 24">
+<rect x="4" y="4" width="7" height="7" rx="1.5" fill="currentColor"/>
+<rect x="13" y="4" width="7" height="7" rx="1.5" fill="#FF4936"/>
+<rect x="4" y="13" width="7" height="7" rx="1.5" fill="currentColor"/>
+<rect x="13" y="13" width="7" height="7" rx="1.5" fill="currentColor"/>
+</symbol>
+
+<symbol id="bike-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="6" cy="17.5" r="3.5"/><circle cx="18" cy="17.5" r="3.5"/>
+<circle cx="14.5" cy="5.5" r="1"/><path d="M12 17.5V14L9 11L13 8L15 11H17"/>
+</g></symbol>
+<symbol id="bike-fill" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="6" cy="17.5" r="3.5"/><circle cx="18" cy="17.5" r="3.5"/>
+<path d="M12 17.5V14L9 11L13 8L15 11H17"/></g>
+<circle cx="14.5" cy="5.5" r="1.6" fill="#FF4936"/>
+</symbol>
+
+<symbol id="parts-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M12 3 L20 7.5 L20 16.5 L12 21 L4 16.5 L4 7.5 Z"/>
+<path d="M4 7.5 L12 12 L20 7.5 M12 12 L12 21"/>
+</g></symbol>
+<symbol id="parts-fill" viewBox="0 0 24 24">
+<path d="M12 3 L20 7.5 L20 16.5 L12 21 L4 16.5 L4 7.5 Z" fill="currentColor"/>
+<path d="M4 7.5 L12 12 L20 7.5 M12 12 L12 21" fill="none" stroke="#161310" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="10" cy="15.5" r="1.5" fill="#FF4936"/>
+</symbol>
+
+<symbol id="wrench-line" viewBox="0 0 24 24">
+<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+</symbol>
+<symbol id="wrench-fill" viewBox="0 0 24 24">
+<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" fill="currentColor"/>
+</symbol>
+
+<symbol id="rides-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M3 19 L9 13 L13 17 L21 9"/><path d="M16 9 H21 V14"/>
+</g></symbol>
+<symbol id="rides-fill" viewBox="0 0 24 24">
+<path d="M3 19 L9 13 L13 17 L21 9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M16 9 H21 V14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="21" cy="9" r="2.5" fill="#FF4936"/>
+</symbol>
+
+<symbol id="profile-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="12" cy="8" r="3.5"/><path d="M5 20 a7 7 0 0 1 14 0"/>
+</g></symbol>
+<symbol id="profile-fill" viewBox="0 0 24 24">
+<circle cx="12" cy="8" r="3.5" fill="currentColor"/>
+<path d="M5 20 a7 7 0 0 1 14 0 V21 H5 Z" fill="currentColor"/>
+</symbol>
+
+<symbol id="add-line" viewBox="0 0 24 24">
+<path d="M12 5 V19 M5 12 H19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</symbol>
+<symbol id="add-fill" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9" fill="#FF4936"/>
+<path d="M12 8 V16 M8 12 H16" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+</symbol>
+
+<symbol id="search-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 L20 20"/>
+</g></symbol>
+<symbol id="search-fill" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 L20 20"/>
+</g>
+<circle cx="10.5" cy="10.5" r="3" fill="#FF4936"/>
+</symbol>
+
+<symbol id="filter-line" viewBox="0 0 24 24">
+<path d="M4 5 H20 L14 13 V20 L10 18 V13 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+</symbol>
+<symbol id="filter-fill" viewBox="0 0 24 24">
+<path d="M4 5 H20 L14 13 V20 L10 18 V13 Z" fill="currentColor"/>
+</symbol>
+
+<symbol id="sort-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M8 6 V19 M5 9 L8 6 L11 9"/>
+<path d="M16 18 V5 M13 15 L16 18 L19 15"/>
+</g></symbol>
+<symbol id="sort-fill" viewBox="0 0 24 24">
+<g fill="currentColor">
+<path d="M8 4 L4 9 H7 V20 H9 V9 H12 Z"/>
+<path d="M16 20 L20 15 H17 V4 H15 V15 H12 Z"/>
+</g></symbol>
+
+<symbol id="edit-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+<path d="M15 5 L19 9"/>
+</g></symbol>
+<symbol id="edit-fill" viewBox="0 0 24 24">
+<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" fill="currentColor"/>
+<path d="M15 5 L19 9" fill="none" stroke="#FF4936" stroke-width="1.6" stroke-linecap="round"/>
+</symbol>
+
+<symbol id="delete-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M3 6 H21"/><path d="M8 6 V4 a1 1 0 0 1 1 -1 H15 a1 1 0 0 1 1 1 V6"/>
+<path d="M5 6 V20 a2 2 0 0 0 2 2 H17 a2 2 0 0 0 2 -2 V6"/>
+<path d="M10 11 V17 M14 11 V17"/>
+</g></symbol>
+<symbol id="delete-fill" viewBox="0 0 24 24">
+<path d="M5 6 V20 a2 2 0 0 0 2 2 H17 a2 2 0 0 0 2 -2 V6 Z" fill="currentColor"/>
+<path d="M8 6 V4 a1 1 0 0 1 1 -1 H15 a1 1 0 0 1 1 1 V6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="3" y="5" width="18" height="2" rx="1" fill="currentColor"/>
+<g stroke="#FF4936" stroke-width="1.6" stroke-linecap="round" fill="none">
+<path d="M10 11 V17 M14 11 V17"/>
+</g></symbol>
+
+<symbol id="settings-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M3 6 H21 M3 12 H21 M3 18 H21"/>
+<circle cx="9" cy="6" r="2" fill="#161310"/>
+<circle cx="15" cy="12" r="2" fill="#161310"/>
+<circle cx="7" cy="18" r="2" fill="#161310"/>
+</g></symbol>
+<symbol id="settings-fill" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+<path d="M3 6 H21 M3 12 H21 M3 18 H21"/></g>
+<circle cx="9" cy="6" r="2.2" fill="currentColor"/>
+<circle cx="15" cy="12" r="2.2" fill="#FF4936"/>
+<circle cx="7" cy="18" r="2.2" fill="currentColor"/>
+</symbol>
+
+<symbol id="bell-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M6 8 a6 6 0 0 1 12 0 c0 7 3 9 3 9 H3 s3 -2 3 -9"/>
+<path d="M10.3 21 a2 2 0 0 0 3.4 0"/>
+</g></symbol>
+<symbol id="bell-fill" viewBox="0 0 24 24">
+<path d="M6 8 a6 6 0 0 1 12 0 c0 7 3 9 3 9 H3 s3 -2 3 -9 Z" fill="currentColor"/>
+<path d="M10.3 21 a2 2 0 0 0 3.4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<circle cx="18" cy="6" r="2.6" fill="#FF4936"/>
+</symbol>
+
+<symbol id="sync-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M21 12 A9 9 0 1 1 12 3"/><path d="M21 3 V8 H16"/>
+</g></symbol>
+<symbol id="sync-fill" viewBox="0 0 24 24">
+<path d="M21 12 A9 9 0 1 1 12 3" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M21 3 V8 H16" fill="none" stroke="#FF4936" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+</symbol>
+
+<symbol id="frame-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M9 8 L18 8 L11 18 Z"/><path d="M11 18 L4 18 M11 18 L20 18"/>
+</g></symbol>
+<symbol id="frame-fill" viewBox="0 0 24 24">
+<path d="M9 8 L18 8 L11 18 Z" fill="currentColor"/>
+<rect x="4" y="17" width="16" height="2" rx="1" fill="currentColor"/>
+</symbol>
+
+<symbol id="fork-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M12 3 V10 M12 10 L7 19 M12 10 L17 19"/>
+<path d="M9 3 H15"/>
+</g></symbol>
+<symbol id="fork-fill" viewBox="0 0 24 24">
+<path d="M9 2 H15 V4 H13 V10.5 L18 19.5 L16 21 L12 12 L8 21 L6 19.5 L11 10.5 V4 H9 Z" fill="currentColor"/>
+</symbol>
+
+<symbol id="wheel-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/>
+<path d="M12 3 V21 M3 12 H21"/>
+</g></symbol>
+<symbol id="wheel-fill" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9" fill="currentColor"/>
+<g stroke="#161310" stroke-width="1.5" fill="none" stroke-linecap="round">
+<path d="M12 4 V20 M4 12 H20"/></g>
+<circle cx="12" cy="12" r="2.2" fill="#FF4936"/>
+</symbol>
+
+<symbol id="drivetrain-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/>
+<path d="M12 5 V7 M19 12 H17 M12 19 V17 M5 12 H7 M16.95 7.05 L15.5 8.5 M16.95 16.95 L15.5 15.5 M7.05 16.95 L8.5 15.5 M7.05 7.05 L8.5 8.5"/>
+</g></symbol>
+<symbol id="drivetrain-fill" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="7.5" fill="currentColor"/>
+<circle cx="12" cy="12" r="2.5" fill="#161310"/>
+<circle cx="12" cy="12" r="1" fill="#FF4936"/>
+</symbol>
+
+<symbol id="brakes-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M5 5 a8 8 0 0 1 7 7"/><path d="M19 5 a8 8 0 0 0 -7 7"/>
+<path d="M5 5 L3 7 M19 5 L21 7"/>
+<circle cx="12" cy="14" r="2"/><path d="M12 16 V21"/>
+</g></symbol>
+<symbol id="brakes-fill" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+<path d="M5 5 a8 8 0 0 1 7 7"/><path d="M19 5 a8 8 0 0 0 -7 7"/>
+<path d="M5 5 L3 7 M19 5 L21 7"/>
+<path d="M12 16 V21"/></g>
+<circle cx="12" cy="14" r="2.5" fill="#FF4936"/>
+</symbol>
+
+<symbol id="cockpit-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M3 8 H21"/><path d="M3 8 L3 13 M21 8 L21 13"/>
+<path d="M12 8 V18"/><circle cx="12" cy="20" r="1.5"/>
+</g></symbol>
+<symbol id="cockpit-fill" viewBox="0 0 24 24">
+<g fill="currentColor">
+<rect x="2" y="6.75" width="20" height="2.5" rx="1.25"/>
+<rect x="1.75" y="6.75" width="2.5" height="7.5" rx="1.25"/>
+<rect x="19.75" y="6.75" width="2.5" height="7.5" rx="1.25"/>
+<rect x="11" y="9.25" width="2" height="9.5"/>
+</g>
+<circle cx="12" cy="20" r="2" fill="#FF4936"/>
+</symbol>
+
+<symbol id="saddle-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M3 11 Q3 7 8 7 L17 7 Q22 7 22 11 Q22 14 17 14 L8 14 Q3 14 3 11 Z"/>
+<path d="M12 14 V21"/>
+</g></symbol>
+<symbol id="saddle-fill" viewBox="0 0 24 24">
+<path d="M3 11 Q3 7 8 7 L17 7 Q22 7 22 11 Q22 14 17 14 L8 14 Q3 14 3 11 Z" fill="currentColor"/>
+<path d="M12 14 V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</symbol>
+
+<symbol id="chain-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+<ellipse cx="6" cy="12" rx="3" ry="4"/><ellipse cx="12" cy="12" rx="3" ry="4"/>
+<ellipse cx="18" cy="12" rx="3" ry="4"/>
+</g></symbol>
+<symbol id="chain-fill" viewBox="0 0 24 24">
+<ellipse cx="6" cy="12" rx="3" ry="4" fill="currentColor"/>
+<ellipse cx="6" cy="12" rx="1.2" ry="2" fill="#161310"/>
+<ellipse cx="12" cy="12" rx="3" ry="4" fill="#FF4936"/>
+<ellipse cx="12" cy="12" rx="1.2" ry="2" fill="#161310"/>
+<ellipse cx="18" cy="12" rx="3" ry="4" fill="currentColor"/>
+<ellipse cx="18" cy="12" rx="1.2" ry="2" fill="#161310"/>
+</symbol>
+
+<symbol id="cassette-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2">
+<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="3"/>
+</g></symbol>
+<symbol id="cassette-fill" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9" fill="currentColor"/>
+<circle cx="12" cy="12" r="6.5" fill="#161310"/>
+<circle cx="12" cy="12" r="5" fill="currentColor"/>
+<circle cx="12" cy="12" r="3.2" fill="#161310"/>
+<circle cx="12" cy="12" r="1.8" fill="#FF4936"/>
+</symbol>
+
+<symbol id="pedals-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+<rect x="4" y="9" width="16" height="6" rx="1.5"/>
+<circle cx="12" cy="12" r="1.5"/>
+<path d="M7 9 V15 M17 9 V15"/>
+</g></symbol>
+<symbol id="pedals-fill" viewBox="0 0 24 24">
+<rect x="4" y="9" width="16" height="6" rx="1.5" fill="currentColor"/>
+<circle cx="12" cy="12" r="1.8" fill="#FF4936"/>
+</symbol>
+
+<symbol id="due-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="12" cy="12" r="9"/><path d="M12 7 V12 L15 14"/>
+</g></symbol>
+<symbol id="due-fill" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9" fill="currentColor"/>
+<path d="M12 7 V12 L15 14" fill="none" stroke="#161310" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+</symbol>
+
+<symbol id="overdue-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M12 3 L22 20 H2 Z"/><path d="M12 10 V14"/>
+</g>
+<circle cx="12" cy="17" r="0.9" fill="currentColor"/>
+</symbol>
+<symbol id="overdue-fill" viewBox="0 0 24 24">
+<path d="M12 3 L22 20 H2 Z" fill="#FF4936"/>
+<g stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none">
+<path d="M12 10 V14"/></g>
+<circle cx="12" cy="17" r="0.9" fill="#FFFFFF"/>
+</symbol>
+
+<symbol id="complete-line" viewBox="0 0 24 24">
+<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="12" cy="12" r="9"/><path d="M7 12 L11 16 L17 9"/>
+</g></symbol>
+<symbol id="complete-fill" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9" fill="#FF4936"/>
+<path d="M7 12 L11 16 L17 9" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+</symbol>
+
+</defs>
+</svg>
+
+<div class="page">
+
+<div class="eyebrow">Icon system · v1</div>
+<h1>BikeVault — UI icons</h1>
+<p class="lede">Twenty-eight icons in two states. Bold-line outline (B) for inactive, geometric solid (C) for active. Signal red is the only chromatic note, reserved for the active state and the alert family.</p>
+
+<div class="tab-bar-wrap">
+<div class="tab-bar">
+<div class="tab active"><svg><use href="#garage-fill"/></svg><span>Garage</span></div>
+<div class="tab"><svg><use href="#bike-line"/></svg><span>Bikes</span></div>
+<div class="tab"><svg><use href="#parts-line"/></svg><span>Parts</span></div>
+<div class="tab"><svg><use href="#wrench-line"/></svg><span>Service</span></div>
+<div class="tab"><svg><use href="#profile-line"/></svg><span>Profile</span></div>
+</div>
+<div class="tabbar-caption">Tab bar mockup. Active tab uses fill + Signal accent; inactive tabs use line.</div>
+</div>
+
+<h2>Navigation</h2>
+<p class="section-note">The five tab-bar entries plus rides.</p>
+<div class="icon-grid">
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#garage-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#garage-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">garage</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#bike-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#bike-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">bike</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#parts-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#parts-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">parts</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#wrench-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#wrench-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">wrench</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#rides-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#rides-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">rides</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#profile-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#profile-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">profile</div></div>
+</div>
+
+<h2>Actions</h2>
+<p class="section-note">Inline controls and toolbar items.</p>
+<div class="icon-grid">
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#add-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#add-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">add</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#search-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#search-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">search</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#filter-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#filter-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">filter</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#sort-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#sort-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">sort</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#edit-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#edit-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">edit</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#delete-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#delete-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">delete</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#settings-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#settings-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">settings</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#bell-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#bell-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">bell</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#sync-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#sync-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">sync</div></div>
+</div>
+
+<h2>Components</h2>
+<p class="section-note">Bike-part icons used in detail views, parts inventory, and service records.</p>
+<div class="icon-grid">
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#frame-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#frame-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">frame</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#fork-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#fork-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">fork</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#wheel-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#wheel-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">wheel</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#drivetrain-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#drivetrain-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">drivetrain</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#brakes-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#brakes-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">brakes</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#cockpit-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#cockpit-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">cockpit</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#saddle-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#saddle-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">saddle</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#chain-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#chain-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">chain</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#cassette-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#cassette-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">cassette</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#pedals-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#pedals-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">pedals</div></div>
+</div>
+
+<h2>Service states</h2>
+<p class="section-note">Used on maintenance items, ride logs, and component records.</p>
+<div class="icon-grid">
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#due-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#due-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">due</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#overdue-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#overdue-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">overdue</div></div>
+<div class="icon-card"><div class="icon-states"><div class="icon-state"><svg><use href="#complete-line"/></svg><div class="state-label">LINE</div></div><div class="icon-state"><svg><use href="#complete-fill"/></svg><div class="state-label">FILL</div></div></div><div class="icon-name">complete</div></div>
+</div>
+
+<h2>On a light surface</h2>
+<p class="section-note">A spot check that the line variants hold on cream as well as graphite.</p>
+<div class="light-strip">
+<svg><use href="#garage-line"/></svg>
+<svg><use href="#bike-line"/></svg>
+<svg><use href="#parts-line"/></svg>
+<svg><use href="#wrench-line"/></svg>
+<svg><use href="#rides-line"/></svg>
+<svg><use href="#search-line"/></svg>
+<svg><use href="#filter-line"/></svg>
+<svg><use href="#bell-line"/></svg>
+<svg><use href="#frame-line"/></svg>
+<svg><use href="#wheel-line"/></svg>
+<svg><use href="#chain-line"/></svg>
+<svg><use href="#cassette-line"/></svg>
+</div>
+
+<footer>
+BikeVault icon system · 28 icons · line + fill · v1
+</footer>
+
+</div>
+
+</body>
+</html>

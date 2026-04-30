@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,9 @@ import {
   Animated,
   Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import BikeIcon from './BikeIcon';
+import { useThemeColors } from '../theme/ThemeProvider';
+import type { ColorPalette } from '../constants/colors';
 
 // `useNativeDriver` requires the RCTAnimation native module, which
 // doesn't exist on web. Setting it true there triggers a noisy
@@ -26,6 +27,8 @@ interface Props {
 }
 
 export default function SuccessBanner({ visible, title, subtitle, onHide, duration = 2200 }: Props) {
+  const C = useThemeColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(-20)).current;
 
@@ -53,7 +56,7 @@ export default function SuccessBanner({ visible, title, subtitle, onHide, durati
   return (
     <Animated.View style={[styles.banner, { opacity, transform: [{ translateY }] }]}>
       <View style={styles.iconBox}>
-        <Ionicons name="checkmark-circle" size={22} color={Colors.good} />
+        <BikeIcon name="complete" variant="fill" size={22} accent={C.good} />
       </View>
       <View>
         <Text style={styles.title}>{title}</Text>
@@ -63,35 +66,36 @@ export default function SuccessBanner({ visible, title, subtitle, onHide, durati
   );
 }
 
-const styles = StyleSheet.create({
-  banner: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    padding: 14,
-    zIndex: 999,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.good,
-  },
-  iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: Colors.goodDim ?? '#1a3a1a',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontSize: 15, fontWeight: '700', color: Colors.text },
-  sub: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
-});
+const makeStyles = (C: ColorPalette) =>
+  StyleSheet.create({
+    banner: {
+      position: 'absolute',
+      top: 60,
+      left: 20,
+      right: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: C.card,
+      borderRadius: 16,
+      padding: 14,
+      zIndex: 999,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 8,
+      borderLeftWidth: 3,
+      borderLeftColor: C.good,
+    },
+    iconBox: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: C.goodDim,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    title: { fontSize: 15, fontWeight: '700', color: C.text },
+    sub: { fontSize: 13, color: C.textSecondary, marginTop: 2 },
+  });

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BikeVault — Carbon × Signal · Theme preview</title>
+<style>
+  :root {
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  /* Carbon × Signal — DARK */
+  [data-theme="dark"] {
+    --bg: #0F0A0E;
+    --surface: #1B131A;
+    --card: #221920;
+    --border: #332530;
+    --accent: #FF4936;
+    --accent-dim: rgba(255, 73, 54, 0.16);
+    --on-accent: #FFFFFF;
+    --good: #34D17A;
+    --warning: #FFB700;
+    --critical: #FF7A2C;
+    --danger: #FF425A;
+    --good-dim: rgba(52, 209, 122, 0.15);
+    --warning-dim: rgba(255, 183, 0, 0.15);
+    --critical-dim: rgba(255, 122, 44, 0.15);
+    --danger-dim: rgba(255, 66, 90, 0.18);
+    --text: #FBF4F7;
+    --text-secondary: #978189;
+    --text-tertiary: #524248;
+  }
+  /* Carbon × Signal — LIGHT */
+  [data-theme="light"] {
+    --bg: #FFF7F8;
+    --surface: #FFFFFF;
+    --card: #FFFFFF;
+    --border: #F0DDE3;
+    --accent: #E03A28;
+    --accent-dim: rgba(224, 58, 40, 0.10);
+    --on-accent: #FFFFFF;
+    --good: #1FAB60;
+    --warning: #B58400;
+    --critical: #DC5F0E;
+    --danger: #DD1A3D;
+    --good-dim: rgba(31, 171, 96, 0.12);
+    --warning-dim: rgba(181, 132, 0, 0.14);
+    --critical-dim: rgba(220, 95, 14, 0.13);
+    --danger-dim: rgba(221, 26, 61, 0.13);
+    --text: #1A0A11;
+    --text-secondary: #6F505A;
+    --text-tertiary: #B49AA3;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    transition: background 0.25s, color 0.25s;
+  }
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 18px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+  .brand .mark { width: 28px; height: 28px; border-radius: 7px; overflow: hidden; }
+  .toggle { display: flex; background: color-mix(in srgb, var(--surface) 100%, transparent); border: 1px solid var(--border); border-radius: 11px; padding: 3px; }
+  .toggle button {
+    border: 0; background: transparent; color: var(--text-secondary);
+    padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer;
+  }
+  .toggle button.active {
+    background: var(--accent-dim); color: var(--accent);
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 30px 24px 80px; }
+  section { margin-bottom: 56px; }
+  h1 { font-size: 30px; font-weight: 800; margin: 0 0 6px; letter-spacing: -0.02em; }
+  h2 { font-size: 18px; font-weight: 700; margin: 0 0 14px; letter-spacing: -0.015em; }
+  .lede { color: var(--text-secondary); margin: 0 0 22px; line-height: 1.5; max-width: 600px; }
+  .eyebrow {
+    color: var(--accent); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px;
+  }
+
+  /* Swatches */
+  .swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .swatch {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px;
+  }
+  .swatch-chip { width: 100%; height: 50px; border-radius: 8px; margin-bottom: 8px; border: 1px solid color-mix(in srgb, var(--text) 8%, transparent); }
+  .swatch-name { font-size: 12px; font-weight: 600; }
+  .swatch-hex { font-family: var(--mono); font-size: 10px; color: var(--text-secondary); }
+
+  /* Icon grid */
+  .icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); gap: 10px; }
+  .icon-tile {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px 8px 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .icon-tile svg { width: 36px; height: 36px; color: var(--text); }
+  .icon-tile.fill svg { color: var(--text); }
+  .icon-tile .lbl { font-size: 10px; color: var(--text-secondary); }
+  .icon-states { display: flex; gap: 8px; align-items: center; }
+  .icon-states svg { width: 28px; height: 28px; color: var(--text); }
+
+  /* Mock cards */
+  .mock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+  .bike-card, .comp-card, .dialog-card, .banner-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+  }
+  .bike-card { padding: 0; }
+  .strip { height: 4px; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 60%, black)); }
+  .bike-body { padding: 16px; }
+  .bike-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+  .bike-name { font-size: 16px; font-weight: 700; margin: 0 0 2px; }
+  .bike-meta { color: var(--text-secondary); font-size: 12px; }
+  .bike-distance .num { font-size: 20px; font-weight: 800; color: var(--accent); }
+  .bike-distance .unit { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; }
+  .stats { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill { padding: 5px 9px; border-radius: 99px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+  .pill-good { background: var(--good-dim); color: var(--good); }
+  .pill-warn { background: var(--warning-dim); color: var(--warning); }
+  .pill-crit { background: var(--danger-dim); color: var(--danger); }
+  .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  .comp-card { padding: 14px; }
+  .comp-row { display: flex; align-items: center; gap: 12px; }
+  .comp-icon-box { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; background: var(--warning-dim); }
+  .comp-icon-box svg { width: 22px; height: 22px; color: var(--warning); }
+  .comp-info { flex: 1; min-width: 0; }
+  .comp-name { font-size: 14px; font-weight: 600; margin: 0 0 2px; }
+  .comp-sub { font-size: 11px; color: var(--text-secondary); }
+  .wear-track { margin-top: 10px; height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .wear-fill { height: 100%; width: 71%; background: var(--warning); }
+
+  .dialog-card { padding: 22px; text-align: center; max-width: 380px; margin: 0 auto; }
+  .dialog-icon { width: 56px; height: 56px; border-radius: 16px; background: var(--accent-dim); display: grid; place-items: center; margin: 0 auto 12px; }
+  .dialog-icon svg { width: 28px; height: 28px; color: var(--accent); }
+  .dialog-title { font-size: 18px; font-weight: 700; margin: 0 0 6px; }
+  .dialog-body { color: var(--text-secondary); font-size: 14px; line-height: 1.5; margin: 0 0 16px; }
+  .dialog-actions { display: flex; gap: 10px; }
+  .btn { flex: 1; border: 0; padding: 11px 14px; border-radius: 12px; font-weight: 600; font-size: 13px; cursor: pointer; font-family: var(--font); }
+  .btn-primary { background: var(--accent); color: var(--on-accent); }
+  .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+
+  .banner-card {
+    padding: 12px 14px; display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, var(--good-dim), color-mix(in srgb, var(--good) 6%, transparent));
+    border-color: color-mix(in srgb, var(--good) 25%, var(--border));
+  }
+  .banner-icon { width: 36px; height: 36px; border-radius: 10px; background: color-mix(in srgb, var(--good) 18%, transparent); display: grid; place-items: center; }
+  .banner-icon svg { width: 22px; height: 22px; color: var(--good); }
+
+  /* Theme toggle preview */
+  .theme-pick { display: flex; gap: 8px; padding: 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); max-width: 380px; }
+  .theme-pick button { flex: 1; padding: 9px 8px; border-radius: 9px; border: 0; background: transparent; font-weight: 600; font-size: 12px; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font); }
+  .theme-pick button.active { background: var(--accent-dim); color: var(--accent); }
+  .theme-pick svg { width: 14px; height: 14px; }
+
+  /* App icon preview */
+  .app-icon-row { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .app-icon { width: 144px; height: 144px; border-radius: 32px; overflow: hidden; box-shadow: 0 14px 36px rgba(0,0,0,0.18); }
+  .app-icon-meta { display: flex; flex-direction: column; gap: 2px; }
+  .app-icon-name { font-size: 14px; font-weight: 700; }
+  .app-icon-desc { font-size: 12px; color: var(--text-secondary); max-width: 360px; line-height: 1.4; }
+</style>
+</head>
+<body data-theme="dark">
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="brand">
+    <div class="mark">
+      <svg viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg">
+        <rect width="88" height="88" fill="#0A0A12"/>
+        <path d="M22 66L40 66 L 66 22 L 48 22 Z" fill="#FF4936"/>
+        <rect x="24" y="42" width="40" height="4" fill="#0A0A12"/>
+      </svg>
+    </div>
+    BikeVault — Carbon × Signal preview
+  </div>
+  <div style="flex:1"></div>
+  <div class="toggle" id="themeToggle">
+    <button data-theme="dark" class="active">Dark</button>
+    <button data-theme="light">Light</button>
+  </div>
+</div>
+
+<main>
+
+  <!-- Intro -->
+  <section>
+    <div class="eyebrow">Theme system v1</div>
+    <h1>Carbon palette × Apex Signal red</h1>
+    <p class="lede">
+      Wine-tinted graphite (dark) and warm bone (light), both anchored by the
+      same Signal-red accent that the app icon and the icon set are baked with.
+      Toggle <b>Dark</b> / <b>Light</b> above to see how the surfaces, status
+      pills, and icons retint together.
+    </p>
+  </section>
+
+  <!-- Palette -->
+  <section>
+    <div class="eyebrow">01 — Palette</div>
+    <h2>Surfaces · Status · Text</h2>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="swatch-chip" style="background: var(--bg)"></div><div class="swatch-name">Background</div><div class="swatch-hex" data-var="--bg"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background: var(--surface)"></div><div class="swatch-name">Surface</div><div class="swatch-hex" data-var="--surface"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background: var(--card)"></div><div class="swatch-name">Card</div><div class="swatch-hex" data-var="--card"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background: var(--accent)"></div><div class="swatch-name">Accent (Signal)</div><div class="swatch-hex" data-var="--accent"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background: var(--text)"></div><div class="swatch-name">Text</div><div class="swatch-hex" data-var="--text"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background: var(--good)"></div><div class="swatch-name">Good</div><div class="swatch-hex" data-var="--good"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background: var(--warning)"></div><div class="swatch-name">Warning</div><div class="swatch-hex" data-var="--warning"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background: var(--critical)"></div><div class="swatch-name">Critical</div><div class="swatch-hex" data-var="--critical"></div></div>
+      <div class="swatch"><div class="swatch-chip" style="background: var(--danger)"></div><div class="swatch-name">Danger</div><div class="swatch-hex" data-var="--danger"></div></div>
+    </div>
+  </section>
+
+  <!-- Icons -->
+  <section>
+    <div class="eyebrow">02 — Iconography</div>
+    <h2>Apex line / fill set · 28 icons</h2>
+    <p class="lede">All 28 icons retint with the active text color. The Signal accent
+    drops in on one focal element of the fill variant — saddle dot, hub,
+    middle chain link.</p>
+    <div class="icon-grid" id="iconGrid"></div>
+  </section>
+
+  <!-- Surfaces -->
+  <section>
+    <div class="eyebrow">03 — Surfaces</div>
+    <h2>BikeCard · ComponentCard · Dialog · Banner</h2>
+    <div class="mock-grid">
+
+      <div class="bike-card">
+        <div class="strip"></div>
+        <div class="bike-body">
+          <div class="bike-head">
+            <div>
+              <div class="bike-name">Tarmac SL7</div>
+              <div class="bike-meta">Road · Disc hydraulic</div>
+            </div>
+            <div class="bike-distance" style="text-align:right">
+              <div class="num">8,420</div>
+              <div class="unit">km</div>
+            </div>
+          </div>
+          <div class="stats">
+            <span class="pill pill-good"><span class="dot"></span>9 healthy</span>
+            <span class="pill pill-warn"><span class="dot"></span>2 monitor</span>
+            <span class="pill pill-crit"><span class="dot"></span>1 overdue</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="comp-card">
+        <div class="comp-row">
+          <div class="comp-icon-box" id="compIconHost"></div>
+          <div class="comp-info">
+            <div class="comp-name">Chain — KMC X11SL</div>
+            <div class="comp-sub">Installed 12 Mar · 2,140 km</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--warning)">71%</div>
+        </div>
+        <div class="wear-track"><div class="wear-fill"></div></div>
+      </div>
+
+      <div class="dialog-card">
+        <div class="dialog-icon" id="dialogIconHost"></div>
+        <div class="dialog-title">Replace front brake pads?</div>
+        <div class="dialog-body">They've covered 4,820 km — past the 4,500 km recommended limit.</div>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary">Not now</button>
+          <button class="btn btn-primary">Replace</button>
+        </div>
+      </div>
+
+      <div class="banner-card">
+        <div class="banner-icon" id="bannerIconHost"></div>
+        <div>
+          <div style="font-size: 14px; font-weight: 700;">Synced from Strava</div>
+          <div style="font-size: 12px; color: var(--text-secondary)">+62 km on Tarmac SL7 · 4 components updated</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Theme toggle -->
+  <section>
+    <div class="eyebrow">04 — Settings → Appearance</div>
+    <h2>Three-way Auto / Light / Dark control</h2>
+    <p class="lede">Lives in Settings as the first card. Auto follows the device's system
+    appearance — when you change the OS theme, the app retints automatically.
+    Light and Dark force the corresponding scheme. Persisted across launches.</p>
+    <div class="theme-pick">
+      <button class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12 A9 9 0 1 1 12 3"/>
+          <path d="M21 3 V8 H16" style="stroke: var(--accent)"/>
+        </svg>
+        Auto · Dark
+      </button>
+      <button>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M7 12 L11 16 L17 9"/>
+        </svg>
+        Light
+      </button>
+      <button>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+          <path d="M12 3 L20 7.5 L20 16.5 L12 21 L4 16.5 L4 7.5 Z"/>
+          <path d="M4 7.5 L12 12 L20 7.5 M12 12 L12 21"/>
+        </svg>
+        Dark
+      </button>
+    </div>
+  </section>
+
+  <!-- App icon -->
+  <section>
+    <div class="eyebrow">05 — App icon · Apex Cut</div>
+    <h2>Forward-leaning velocity stripe with vault slot</h2>
+    <div class="app-icon-row">
+      <div class="app-icon">
+        <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+          <rect width="1024" height="1024" fill="#0A0A12"/>
+          <path d="M256 768L465.5 768L768 256L558.5 256Z" fill="#FF4936"/>
+          <rect x="279" y="489" width="466" height="47" fill="#0A0A12"/>
+        </svg>
+      </div>
+      <div class="app-icon-meta">
+        <div class="app-icon-name">BikeVault — Apex Cut</div>
+        <div class="app-icon-desc">Two-color brand mark per the Apex spec: Obsidian field, Signal stripe
+        at slope -1.69. Slot drops below 60 px display sizes. Generated as
+        icon.png (1024), adaptive-icon.png (transparent foreground for Android),
+        favicon.png (192), splash.png (1284 × 2778).</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+const ICONS = {
+  garage: {
+    line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></g>',
+    fill: '<rect x="4" y="4" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="13" y="4" width="7" height="7" rx="1.5" fill="var(--accent)"/><rect x="4" y="13" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="currentColor"/>',
+  },
+  bike: {
+    line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="6" cy="17.5" r="3.5"/><circle cx="18" cy="17.5" r="3.5"/><circle cx="14.5" cy="5.5" r="1"/><path d="M12 17.5V14L9 11L13 8L15 11H17"/></g>',
+    fill: '<g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"><circle cx="6" cy="17.5" r="3.5"/><circle cx="18" cy="17.5" r="3.5"/><path d="M12 17.5V14L9 11L13 8L15 11H17"/></g><circle cx="14.5" cy="5.5" r="1.6" fill="var(--accent)"/>',
+  },
+  parts: {
+    line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 L20 7.5 L20 16.5 L12 21 L4 16.5 L4 7.5 Z"/><path d="M4 7.5 L12 12 L20 7.5 M12 12 L12 21"/></g>',
+    fill: '<path d="M12 3 L20 7.5 L20 16.5 L12 21 L4 16.5 L4 7.5 Z" fill="currentColor"/><path d="M4 7.5 L12 12 L20 7.5 M12 12 L12 21" fill="none" stroke="var(--bg)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="10" cy="15.5" r="1.5" fill="var(--accent)"/>',
+  },
+  wrench: { line: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>', fill: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" fill="currentColor"/>' },
+  rides: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 19 L9 13 L13 17 L21 9"/><path d="M16 9 H21 V14"/></g>', fill: '<path d="M3 19 L9 13 L13 17 L21 9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M16 9 H21 V14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="21" cy="9" r="2.5" fill="var(--accent)"/>' },
+  profile: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20 a7 7 0 0 1 14 0"/></g>', fill: '<circle cx="12" cy="8" r="3.5" fill="currentColor"/><path d="M5 20 a7 7 0 0 1 14 0 V21 H5 Z" fill="currentColor"/>' },
+  add: { line: '<path d="M12 5 V19 M5 12 H19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>', fill: '<circle cx="12" cy="12" r="9" fill="var(--accent)"/><path d="M12 8 V16 M8 12 H16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>' },
+  search: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 L20 20"/></g>', fill: '<g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 L20 20"/></g><circle cx="10.5" cy="10.5" r="3" fill="var(--accent)"/>' },
+  filter: { line: '<path d="M4 5 H20 L14 13 V20 L10 18 V13 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>', fill: '<path d="M4 5 H20 L14 13 V20 L10 18 V13 Z" fill="currentColor"/>' },
+  sort: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M8 6 V19 M5 9 L8 6 L11 9"/><path d="M16 18 V5 M13 15 L16 18 L19 15"/></g>', fill: '<g fill="currentColor"><path d="M8 4 L4 9 H7 V20 H9 V9 H12 Z"/><path d="M16 20 L20 15 H17 V4 H15 V15 H12 Z"/></g>' },
+  edit: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="M15 5 L19 9"/></g>', fill: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" fill="currentColor"/><path d="M15 5 L19 9" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round"/>' },
+  delete: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 6 H21"/><path d="M8 6 V4 a1 1 0 0 1 1 -1 H15 a1 1 0 0 1 1 1 V6"/><path d="M5 6 V20 a2 2 0 0 0 2 2 H17 a2 2 0 0 0 2 -2 V6"/><path d="M10 11 V17 M14 11 V17"/></g>', fill: '<path d="M5 6 V20 a2 2 0 0 0 2 2 H17 a2 2 0 0 0 2 -2 V6 Z" fill="currentColor"/><path d="M8 6 V4 a1 1 0 0 1 1 -1 H15 a1 1 0 0 1 1 1 V6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><rect x="3" y="5" width="18" height="2" rx="1" fill="currentColor"/><g stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" fill="none"><path d="M10 11 V17 M14 11 V17"/></g>' },
+  settings: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 6 H21 M3 12 H21 M3 18 H21"/><circle cx="9" cy="6" r="2" fill="var(--bg)"/><circle cx="15" cy="12" r="2" fill="var(--bg)"/><circle cx="7" cy="18" r="2" fill="var(--bg)"/></g>', fill: '<g stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 6 H21 M3 12 H21 M3 18 H21"/></g><circle cx="9" cy="6" r="2.2" fill="currentColor"/><circle cx="15" cy="12" r="2.2" fill="var(--accent)"/><circle cx="7" cy="18" r="2.2" fill="currentColor"/>' },
+  bell: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M6 8 a6 6 0 0 1 12 0 c0 7 3 9 3 9 H3 s3 -2 3 -9"/><path d="M10.3 21 a2 2 0 0 0 3.4 0"/></g>', fill: '<path d="M6 8 a6 6 0 0 1 12 0 c0 7 3 9 3 9 H3 s3 -2 3 -9 Z" fill="currentColor"/><path d="M10.3 21 a2 2 0 0 0 3.4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="6" r="2.6" fill="var(--accent)"/>' },
+  sync: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M21 12 A9 9 0 1 1 12 3"/><path d="M21 3 V8 H16"/></g>', fill: '<path d="M21 12 A9 9 0 1 1 12 3" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M21 3 V8 H16" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' },
+  frame: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M9 8 L18 8 L11 18 Z"/><path d="M11 18 L4 18 M11 18 L20 18"/></g>', fill: '<path d="M9 8 L18 8 L11 18 Z" fill="currentColor"/><rect x="4" y="17" width="16" height="2" rx="1" fill="currentColor"/>' },
+  fork: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 V10 M12 10 L7 19 M12 10 L17 19"/><path d="M9 3 H15"/></g>', fill: '<path d="M9 2 H15 V4 H13 V10.5 L18 19.5 L16 21 L12 12 L8 21 L6 19.5 L11 10.5 V4 H9 Z" fill="currentColor"/>' },
+  wheel: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 3 V21 M3 12 H21"/></g>', fill: '<circle cx="12" cy="12" r="9" fill="currentColor"/><g stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.95"><path d="M12 4 V20 M4 12 H20"/></g><circle cx="12" cy="12" r="2.2" fill="var(--accent)"/>' },
+  drivetrain: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 5 V7 M19 12 H17 M12 19 V17 M5 12 H7 M16.95 7.05 L15.5 8.5 M16.95 16.95 L15.5 15.5 M7.05 16.95 L8.5 15.5 M7.05 7.05 L8.5 8.5"/></g>', fill: '<circle cx="12" cy="12" r="7.5" fill="currentColor"/><circle cx="12" cy="12" r="2.5" fill="var(--bg)"/><circle cx="12" cy="12" r="1" fill="var(--accent)"/>' },
+  brakes: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M5 5 a8 8 0 0 1 7 7"/><path d="M19 5 a8 8 0 0 0 -7 7"/><path d="M5 5 L3 7 M19 5 L21 7"/><circle cx="12" cy="14" r="2"/><path d="M12 16 V21"/></g>', fill: '<g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"><path d="M5 5 a8 8 0 0 1 7 7"/><path d="M19 5 a8 8 0 0 0 -7 7"/><path d="M5 5 L3 7 M19 5 L21 7"/><path d="M12 16 V21"/></g><circle cx="12" cy="14" r="2.5" fill="var(--accent)"/>' },
+  cockpit: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 8 H21"/><path d="M3 8 L3 13 M21 8 L21 13"/><path d="M12 8 V18"/><circle cx="12" cy="20" r="1.5"/></g>', fill: '<g fill="currentColor"><rect x="2" y="6.75" width="20" height="2.5" rx="1.25"/><rect x="1.75" y="6.75" width="2.5" height="7.5" rx="1.25"/><rect x="19.75" y="6.75" width="2.5" height="7.5" rx="1.25"/><rect x="11" y="9.25" width="2" height="9.5"/></g><circle cx="12" cy="20" r="2" fill="var(--accent)"/>' },
+  saddle: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 11 Q3 7 8 7 L17 7 Q22 7 22 11 Q22 14 17 14 L8 14 Q3 14 3 11 Z"/><path d="M12 14 V21"/></g>', fill: '<path d="M3 11 Q3 7 8 7 L17 7 Q22 7 22 11 Q22 14 17 14 L8 14 Q3 14 3 11 Z" fill="currentColor"/><path d="M12 14 V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
+  chain: { line: '<g stroke="currentColor" fill="none" stroke-width="2" stroke-linejoin="round"><ellipse cx="6" cy="12" rx="3" ry="4"/><ellipse cx="12" cy="12" rx="3" ry="4"/><ellipse cx="18" cy="12" rx="3" ry="4"/></g>', fill: '<ellipse cx="6" cy="12" rx="3" ry="4" fill="currentColor"/><ellipse cx="6" cy="12" rx="1.2" ry="2" fill="var(--bg)"/><ellipse cx="12" cy="12" rx="3" ry="4" fill="var(--accent)"/><ellipse cx="12" cy="12" rx="1.2" ry="2" fill="var(--bg)"/><ellipse cx="18" cy="12" rx="3" ry="4" fill="currentColor"/><ellipse cx="18" cy="12" rx="1.2" ry="2" fill="var(--bg)"/>' },
+  cassette: { line: '<g stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="3"/></g>', fill: '<circle cx="12" cy="12" r="9" fill="currentColor"/><circle cx="12" cy="12" r="6.5" fill="var(--bg)"/><circle cx="12" cy="12" r="5" fill="currentColor"/><circle cx="12" cy="12" r="3.2" fill="var(--bg)"/><circle cx="12" cy="12" r="1.8" fill="var(--accent)"/>' },
+  pedals: { line: '<g stroke="currentColor" fill="none" stroke-width="2" stroke-linejoin="round"><rect x="4" y="9" width="16" height="6" rx="1.5"/><circle cx="12" cy="12" r="1.5"/><path d="M7 9 V15 M17 9 V15"/></g>', fill: '<rect x="4" y="9" width="16" height="6" rx="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="var(--accent)"/>' },
+  due: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7 V12 L15 14"/></g>', fill: '<circle cx="12" cy="12" r="9" fill="currentColor"/><path d="M12 7 V12 L15 14" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' },
+  overdue: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 L22 20 H2 Z"/><path d="M12 10 V14"/><circle cx="12" cy="17" r="0.6" fill="currentColor" stroke="none"/></g>', fill: '<path d="M12 3 L22 20 H2 Z" fill="var(--accent)"/><g stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"><path d="M12 10 V14"/></g><circle cx="12" cy="17" r="0.9" fill="#fff"/>' },
+  complete: { line: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M7 12 L11 16 L17 9"/></g>', fill: '<circle cx="12" cy="12" r="9" fill="var(--accent)"/><path d="M7 12 L11 16 L17 9" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' },
+};
+
+function svg(content) {
+  return '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' + content + '</svg>';
+}
+
+const ICON_LIST = ['garage','bike','parts','wrench','rides','profile','add','search','filter','sort','edit','delete','settings','bell','sync','frame','fork','wheel','drivetrain','brakes','cockpit','saddle','chain','cassette','pedals','due','overdue','complete'];
+
+const grid = document.getElementById('iconGrid');
+ICON_LIST.forEach((name) => {
+  const tile = document.createElement('div');
+  tile.className = 'icon-tile';
+  tile.innerHTML = '<div class="icon-states">' + svg(ICONS[name].line) + svg(ICONS[name].fill) + '</div>'
+                 + '<div class="lbl">' + name + '</div>';
+  grid.appendChild(tile);
+});
+
+// Drop the chain icon into the component card slot, overdue into dialog, complete into banner
+document.getElementById('compIconHost').innerHTML = svg(ICONS.chain.fill);
+document.getElementById('dialogIconHost').innerHTML = svg(ICONS.overdue.fill);
+document.getElementById('bannerIconHost').innerHTML = svg(ICONS.complete.fill);
+
+// Theme toggle
+document.getElementById('themeToggle').addEventListener('click', (e) => {
+  const t = e.target.dataset.theme;
+  if (!t) return;
+  document.body.dataset.theme = t;
+  document.querySelectorAll('#themeToggle button').forEach(b => b.classList.toggle('active', b.dataset.theme === t));
+  refreshHexes();
+});
+
+function refreshHexes() {
+  const cs = getComputedStyle(document.body);
+  document.querySelectorAll('[data-var]').forEach(el => {
+    el.textContent = cs.getPropertyValue(el.dataset.var).trim().toUpperCase();
+  });
+}
+refreshHexes();
+</script>
+</body>
+</html>

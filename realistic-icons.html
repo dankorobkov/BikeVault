@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BikeVault — Realistic Icons</title>
+<style>
+  :root {
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  /* ───────── Velocity palette · DARK ───────── */
+  [data-theme="dark"] {
+    --bg: #0B0F0A;
+    --surface: #131A11;
+    --card: #1B2317;
+    --card-2: #222D1D;
+    --border: #2A3424;
+    --accent: #C5FF3C;
+    --accent-deep: #8FCC00;
+    --accent-dim: rgba(197,255,60,0.16);
+    --on-accent: #0E1408;
+    --text: #F5F7F3;
+    --text-secondary: #8C9587;
+    --text-tertiary: #4D5447;
+
+    /* Component metal palette (3-tone shading) */
+    --m-light:  #DCE1D2;
+    --m-mid:    #9AA48E;
+    --m-dark:   #5C6655;
+    --m-line:   #0E1408;       /* outline */
+    --m-shadow: rgba(0,0,0,0.55);
+
+    /* Rubber for tires */
+    --rub-light: #2C2F26;
+    --rub-mid:   #1A1D14;
+    --rub-tread: #4A523F;
+
+    /* Frame paint accent */
+    --paint:     var(--accent);
+    --paint-2:   var(--accent-deep);
+  }
+  /* ───────── Velocity palette · LIGHT ───────── */
+  [data-theme="light"] {
+    --bg: #F6F8F1;
+    --surface: #FFFFFF;
+    --card: #FFFFFF;
+    --card-2: #F1F4EA;
+    --border: #E1E6D3;
+    --accent: #6BC400;
+    --accent-deep: #4D9100;
+    --accent-dim: rgba(107,196,0,0.13);
+    --on-accent: #FFFFFF;
+    --text: #10160A;
+    --text-secondary: #5C6151;
+    --text-tertiary: #A6AC97;
+
+    --m-light:  #DDE4D2;
+    --m-mid:    #A4AC95;
+    --m-dark:   #5C6655;
+    --m-line:   #1A1F12;
+    --m-shadow: rgba(28,40,12,0.18);
+
+    --rub-light: #4F574A;
+    --rub-mid:   #383E32;
+    --rub-tread: #2A2E25;
+
+    --paint:     var(--accent);
+    --paint-2:   var(--accent-deep);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 1200px; margin: 0 auto;
+    padding: 14px 28px;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+  .brand-logo {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--accent); display: grid; place-items: center;
+    color: var(--on-accent); font-weight: 900; font-size: 14px;
+  }
+  .pill {
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--accent-dim); color: var(--accent);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .toggle-group {
+    display: flex; background: var(--card-2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 4px; gap: 2px;
+  }
+  .toggle-group button {
+    border: none; background: transparent; color: var(--text-secondary);
+    padding: 7px 14px; border-radius: 8px;
+    font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .toggle-group button.active {
+    background: var(--surface); color: var(--text);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 40px 28px 100px; }
+
+  h1 { font-size: 38px; font-weight: 800; letter-spacing: -0.025em; margin: 0 0 10px; }
+  .lede { color: var(--text-secondary); font-size: 15px; line-height: 1.55; max-width: 720px; margin: 0 0 50px; }
+
+  .eyebrow { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin: 0; }
+  .section-head {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 22px;
+  }
+  section { margin-bottom: 64px; }
+
+  /* ── Icon grid ── */
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+  }
+  .icon-tile {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 22px 14px 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    box-shadow: 0 6px 18px var(--m-shadow);
+  }
+  .icon-tile svg { width: 96px; height: 96px; }
+  .icon-tile .label { font-size: 12.5px; color: var(--text-secondary); font-weight: 600; }
+
+  /* ── In-context component-card preview ── */
+  .ctx-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 14px;
+  }
+  .comp-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 14px 16px;
+    box-shadow: 0 6px 18px var(--m-shadow);
+  }
+  .comp-row { display: flex; align-items: center; gap: 14px; }
+  .comp-icon {
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .comp-icon svg { width: 44px; height: 44px; }
+  .comp-info { flex: 1; min-width: 0; }
+  .comp-name { font-size: 15px; font-weight: 700; margin: 0 0 2px; }
+  .comp-sub { color: var(--text-secondary); font-size: 12.5px; }
+  .comp-pct { font-family: var(--mono); font-size: 14px; font-weight: 700; }
+  .wear-track {
+    margin-top: 12px; height: 8px;
+    background: var(--card-2);
+    border-radius: 999px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .wear-fill { height: 100%; border-radius: 999px; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 60px; padding: 28px;
+    text-align: center; color: var(--text-tertiary); font-size: 12px;
+  }
+</style>
+</head>
+
+<body data-theme="dark">
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-logo">B</div>
+      Realistic Icons · Velocity
+      <span class="pill">v3</span>
+    </div>
+    <div style="flex:1"></div>
+    <div class="toggle-group" id="theme-toggle">
+      <button data-theme="dark" class="active">Dark</button>
+      <button data-theme="light">Light</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <h1>This time, recognizable.</h1>
+  <p class="lede">
+    Each icon is a side or three-quarter illustration of the actual component — chain plates with
+    pin rollers, a cassette with visible teeth, a wheel with rim and spokes, a brake rotor with
+    vented slots. Style is "service-menu illustration": clean fills, subtle 3-tone shading,
+    soft shadow underneath. They should read at a glance even without the label.
+  </p>
+
+  <section>
+    <div class="section-head">
+      <span class="eyebrow">01 — The set</span>
+      <h2>Recognise without reading</h2>
+    </div>
+    <div class="icon-grid" id="icon-grid"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <span class="eyebrow">02 — In context</span>
+      <h2>Beside the labels they belong with</h2>
+    </div>
+    <div class="ctx-grid" id="ctx-grid"></div>
+  </section>
+
+  <footer>
+    BikeVault realistic icons · April 2026 · approve and I'll commit the full set across all 40+ component types.
+  </footer>
+</main>
+
+<script>
+/* ───────────────────────────────────────────────────────────────
+   Helpers
+   ─────────────────────────────────────────────────────────────── */
+function gearTeeth(cx, cy, rOuter, rInner, teeth) {
+  const pts = [];
+  for (let i = 0; i < teeth * 2; i++) {
+    const r = i % 2 === 0 ? rOuter : rInner;
+    const a = (i / (teeth * 2)) * Math.PI * 2 - Math.PI / 2;
+    pts.push(`${(cx + Math.cos(a) * r).toFixed(2)},${(cy + Math.sin(a) * r).toFixed(2)}`);
+  }
+  return pts.join(' ');
+}
+
+function spokes(cx, cy, rInner, rOuter, count) {
+  const lines = [];
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * Math.PI * 2 - Math.PI / 2;
+    const x1 = cx + Math.cos(a) * rInner;
+    const y1 = cy + Math.sin(a) * rInner;
+    const x2 = cx + Math.cos(a) * rOuter;
+    const y2 = cy + Math.sin(a) * rOuter;
+    lines.push(`<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"/>`);
+  }
+  return lines.join('');
+}
+
+/* Drop shadow filter shared by all icons */
+const SHADOW = `
+  <filter id="ds" x="-20%" y="-20%" width="140%" height="140%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="1.6"/>
+    <feOffset dy="2.5"/>
+    <feComponentTransfer><feFuncA type="linear" slope="0.45"/></feComponentTransfer>
+    <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+`;
+
+/* ───────────────────────────────────────────────────────────────
+   ICONS — each is an SVG string, all 120×120
+   ─────────────────────────────────────────────────────────────── */
+const ICONS = {
+
+  /* CHAIN — clean side view: alternating zigzag links connected by pin rollers.
+     Each link is a horizontal capsule plate; outer plates sit slightly higher,
+     inner plates slightly lower, suggesting the alternating outer/inner pattern. */
+  chain: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        ${SHADOW}
+        <linearGradient id="ch-plate-out" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="var(--m-light)"/>
+          <stop offset="1" stop-color="var(--m-mid)"/>
+        </linearGradient>
+        <linearGradient id="ch-plate-in" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="var(--m-mid)"/>
+          <stop offset="1" stop-color="var(--m-dark)"/>
+        </linearGradient>
+      </defs>
+      <g filter="url(#ds)" stroke="var(--m-line)" stroke-width="1.5">
+        <!-- 5 chain plates, alternating outer (raised) and inner (lowered) -->
+        <rect x="2"  y="50" width="32" height="14" rx="7" fill="url(#ch-plate-out)"/>
+        <rect x="22" y="58" width="32" height="14" rx="7" fill="url(#ch-plate-in)"/>
+        <rect x="42" y="50" width="32" height="14" rx="7" fill="url(#ch-plate-out)"/>
+        <rect x="62" y="58" width="32" height="14" rx="7" fill="url(#ch-plate-in)"/>
+        <rect x="82" y="50" width="32" height="14" rx="7" fill="url(#ch-plate-out)"/>
+      </g>
+      <!-- pin rollers at every plate junction -->
+      <g stroke="var(--m-line)" stroke-width="1.2">
+        <circle cx="28" cy="60" r="3.5" fill="var(--m-dark)"/>
+        <circle cx="48" cy="60" r="3.5" fill="var(--m-dark)"/>
+        <circle cx="68" cy="60" r="3.5" fill="var(--m-dark)"/>
+        <circle cx="88" cy="60" r="3.5" fill="var(--m-dark)"/>
+      </g>
+      <!-- pin highlight dots (suggests metal sheen on each pin) -->
+      <g fill="var(--m-light)" opacity="0.7">
+        <circle cx="27" cy="59" r="1"/>
+        <circle cx="47" cy="59" r="1"/>
+        <circle cx="67" cy="59" r="1"/>
+        <circle cx="87" cy="59" r="1"/>
+      </g>
+      <!-- accent oil dot on middle plate -->
+      <circle cx="58" cy="64" r="2.2" fill="var(--accent)"/>
+    </svg>`,
+
+  /* CASSETTE — front view of stacked cogs with visible teeth */
+  cassette: (() => {
+    const tiers = [
+      { r: 52, ri: 47, t: 28, fill: 'var(--m-light)' },
+      { r: 41, ri: 36, t: 22, fill: 'var(--m-mid)'  },
+      { r: 30, ri: 26, t: 18, fill: 'var(--m-light)'},
+      { r: 19, ri: 16, t: 14, fill: 'var(--m-mid)'  },
+    ];
+    const layers = tiers.map(tt =>
+      `<polygon points="${gearTeeth(60, 60, tt.r, tt.ri, tt.t)}" fill="${tt.fill}" stroke="var(--m-line)" stroke-width="1.2"/>`
+    ).join('');
+    return `
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>${SHADOW}</defs>
+        <g filter="url(#ds)">
+          ${layers}
+          <circle cx="60" cy="60" r="8" fill="var(--card)" stroke="var(--m-line)" stroke-width="1.2"/>
+          <!-- spline detail on center hole -->
+          <g fill="var(--m-dark)">
+            <rect x="59" y="52" width="2" height="3"/>
+            <rect x="59" y="65" width="2" height="3"/>
+            <rect x="52" y="59" width="3" height="2"/>
+            <rect x="65" y="59" width="3" height="2"/>
+          </g>
+          <!-- accent center -->
+          <circle cx="60" cy="60" r="2.5" fill="var(--accent)"/>
+        </g>
+      </svg>`;
+  })(),
+
+  /* WHEEL/TIRE — round tire with rim, spokes, hub */
+  tire: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>${SHADOW}</defs>
+      <g filter="url(#ds)">
+        <!-- tire (rubber outer) -->
+        <circle cx="60" cy="60" r="54" fill="var(--rub-mid)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <circle cx="60" cy="60" r="44" fill="var(--rub-light)"/>
+        <!-- tread blocks (small radial chevrons on the outermost ring) -->
+        <g stroke="var(--rub-tread)" stroke-width="2.5" stroke-linecap="round">
+          ${spokes(60, 60, 47, 53, 24)}
+        </g>
+        <!-- rim -->
+        <circle cx="60" cy="60" r="44" fill="none" stroke="var(--m-light)" stroke-width="2"/>
+        <circle cx="60" cy="60" r="40" fill="var(--card)" stroke="var(--m-line)" stroke-width="1.2"/>
+        <!-- spokes -->
+        <g stroke="var(--m-light)" stroke-width="1.4" stroke-linecap="round" opacity="0.9">
+          ${spokes(60, 60, 8, 40, 12)}
+        </g>
+        <!-- hub -->
+        <circle cx="60" cy="60" r="9" fill="var(--m-mid)" stroke="var(--m-line)" stroke-width="1.2"/>
+        <circle cx="60" cy="60" r="3" fill="var(--accent)"/>
+      </g>
+    </svg>`,
+
+  /* BRAKE ROTOR — disc with vented slots and bolt holes */
+  rotor: (() => {
+    // Generate 6 elongated "S-curve" cutout slots radially
+    const slots = [];
+    for (let i = 0; i < 6; i++) {
+      const a = i * 60;
+      slots.push(`
+        <g transform="rotate(${a} 60 60)">
+          <path d="M 60 22 Q 66 30 64 38 Q 62 44 58 44 Q 54 44 56 38 Q 58 30 60 22 Z"
+                fill="var(--card-2)" stroke="var(--m-line)" stroke-width="1"/>
+        </g>`);
+    }
+    const bolts = [];
+    for (let i = 0; i < 6; i++) {
+      const a = i * 60 * Math.PI / 180;
+      const x = 60 + Math.cos(a) * 14;
+      const y = 60 + Math.sin(a) * 14;
+      bolts.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.2" fill="var(--m-dark)" stroke="var(--m-line)" stroke-width="0.8"/>`);
+    }
+    return `
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>${SHADOW}</defs>
+        <g filter="url(#ds)">
+          <!-- main rotor disc -->
+          <circle cx="60" cy="60" r="50" fill="var(--m-light)" stroke="var(--m-line)" stroke-width="1.5"/>
+          <!-- inner braking band (slightly darker) -->
+          <circle cx="60" cy="60" r="44" fill="none" stroke="var(--m-mid)" stroke-width="1.2"/>
+          <circle cx="60" cy="60" r="26" fill="none" stroke="var(--m-mid)" stroke-width="1.2"/>
+          ${slots.join('')}
+          <!-- inner spider hub -->
+          <circle cx="60" cy="60" r="20" fill="var(--m-light)" stroke="var(--m-line)" stroke-width="1.2"/>
+          ${bolts.join('')}
+          <circle cx="60" cy="60" r="6" fill="var(--card)" stroke="var(--m-line)" stroke-width="1"/>
+          <circle cx="60" cy="60" r="2.5" fill="var(--accent)"/>
+        </g>
+      </svg>`;
+  })(),
+
+  /* COMBINATION WRENCH — open end + box end */
+  wrench: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        ${SHADOW}
+        <linearGradient id="wr-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="var(--m-light)"/>
+          <stop offset="1" stop-color="var(--m-mid)"/>
+        </linearGradient>
+      </defs>
+      <g filter="url(#ds)" transform="rotate(-30 60 60)">
+        <!-- handle -->
+        <rect x="52" y="22" width="16" height="76" rx="4" fill="url(#wr-fill)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <!-- box-end ring -->
+        <circle cx="60" cy="22" r="16" fill="url(#wr-fill)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <polygon points="${gearTeeth(60, 22, 9, 9, 6)}" fill="var(--card)" stroke="var(--m-line)" stroke-width="1"/>
+        <!-- open-end jaw -->
+        <path d="M 46 96
+                 L 46 108
+                 L 52 116
+                 L 68 116
+                 L 74 108
+                 L 74 96
+                 L 70 96
+                 L 70 104
+                 L 66 108
+                 L 54 108
+                 L 50 104
+                 L 50 96 Z"
+              fill="url(#wr-fill)" stroke="var(--m-line)" stroke-width="1.5"/>
+      </g>
+    </svg>`,
+
+  /* SADDLE — side view of a road saddle */
+  saddle: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        ${SHADOW}
+        <linearGradient id="sd-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="var(--m-light)"/>
+          <stop offset="1" stop-color="var(--m-mid)"/>
+        </linearGradient>
+      </defs>
+      <g filter="url(#ds)">
+        <!-- saddle body silhouette: pointed nose, rounded back -->
+        <path d="M 16 56
+                 Q 40 46 68 50
+                 Q 92 52 102 64
+                 Q 92 70 68 68
+                 Q 50 68 36 70
+                 Q 22 70 16 64
+                 Z"
+              fill="url(#sd-fill)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <!-- side seam highlight -->
+        <path d="M 22 60 Q 50 56 96 62"
+              stroke="var(--accent)" stroke-width="1.5" fill="none" opacity="0.85"/>
+        <!-- rails -->
+        <g stroke="var(--m-dark)" stroke-width="2" stroke-linecap="round">
+          <path d="M 32 72 Q 60 80 88 72" fill="none"/>
+          <line x1="44" y1="72" x2="44" y2="86"/>
+          <line x1="76" y1="72" x2="76" y2="86"/>
+        </g>
+        <!-- seat post clamp -->
+        <rect x="54" y="82" width="12" height="10" rx="2" fill="var(--m-mid)" stroke="var(--m-line)" stroke-width="1.2"/>
+        <rect x="58" y="90" width="4" height="14" fill="var(--m-mid)" stroke="var(--m-line)" stroke-width="1"/>
+      </g>
+    </svg>`,
+
+  /* HANDLEBAR — front-3/4 view of a drop bar */
+  handlebar: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>${SHADOW}</defs>
+      <g filter="url(#ds)" fill="none" stroke="var(--m-mid)" stroke-width="9" stroke-linecap="round">
+        <!-- top bar -->
+        <path d="M 22 44 H 98"/>
+        <!-- left drop -->
+        <path d="M 22 44 Q 12 56 18 72 Q 22 84 30 88"/>
+        <!-- right drop -->
+        <path d="M 98 44 Q 108 56 102 72 Q 98 84 90 88"/>
+      </g>
+      <g fill="none" stroke="var(--m-light)" stroke-width="2" stroke-linecap="round" opacity="0.7">
+        <path d="M 22 44 H 98"/>
+        <path d="M 22 44 Q 12 56 18 72 Q 22 84 30 88"/>
+        <path d="M 98 44 Q 108 56 102 72 Q 98 84 90 88"/>
+      </g>
+      <!-- bar tape ends (accent grips) -->
+      <g fill="var(--accent)" stroke="var(--m-line)" stroke-width="1.2">
+        <rect x="24" y="84" width="14" height="8" rx="2"/>
+        <rect x="82" y="84" width="14" height="8" rx="2"/>
+      </g>
+      <!-- stem clamp -->
+      <rect x="54" y="38" width="12" height="14" rx="2" fill="var(--m-dark)" stroke="var(--m-line)" stroke-width="1.2"/>
+    </svg>`,
+
+  /* PEDAL — flat platform pedal in 3/4 view */
+  pedal: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        ${SHADOW}
+        <linearGradient id="pd-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="var(--m-light)"/>
+          <stop offset="1" stop-color="var(--m-dark)"/>
+        </linearGradient>
+      </defs>
+      <g filter="url(#ds)">
+        <!-- platform top -->
+        <path d="M 18 56 L 92 44 L 102 60 L 28 72 Z" fill="url(#pd-fill)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <!-- platform side (depth) -->
+        <path d="M 28 72 L 102 60 L 102 70 L 28 82 Z" fill="var(--m-dark)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <!-- traction pins -->
+        <g fill="var(--accent)" stroke="var(--m-line)" stroke-width="0.8">
+          <circle cx="32" cy="60" r="2.4"/>
+          <circle cx="48" cy="58" r="2.4"/>
+          <circle cx="64" cy="55" r="2.4"/>
+          <circle cx="80" cy="52" r="2.4"/>
+          <circle cx="40" cy="70" r="2.4"/>
+          <circle cx="56" cy="67" r="2.4"/>
+          <circle cx="72" cy="64" r="2.4"/>
+          <circle cx="88" cy="61" r="2.4"/>
+        </g>
+        <!-- spindle (axle) -->
+        <rect x="92" y="56" width="22" height="6" rx="2" fill="var(--m-mid)" stroke="var(--m-line)" stroke-width="1.2"/>
+      </g>
+    </svg>`,
+
+  /* HUB — side view with two spoke flanges */
+  hub: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        ${SHADOW}
+        <linearGradient id="hb-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="var(--m-light)"/>
+          <stop offset="1" stop-color="var(--m-mid)"/>
+        </linearGradient>
+      </defs>
+      <g filter="url(#ds)">
+        <!-- axle -->
+        <rect x="6" y="56" width="108" height="8" rx="2" fill="var(--m-dark)" stroke="var(--m-line)" stroke-width="1.2"/>
+        <!-- left flange -->
+        <ellipse cx="36" cy="60" rx="5" ry="22" fill="url(#hb-fill)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <!-- right flange -->
+        <ellipse cx="84" cy="60" rx="5" ry="22" fill="url(#hb-fill)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <!-- main hub body -->
+        <rect x="36" y="50" width="48" height="20" rx="3" fill="url(#hb-fill)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <!-- spoke holes on flanges -->
+        <g fill="var(--m-line)">
+          <circle cx="36" cy="44" r="1.6"/>
+          <circle cx="36" cy="60" r="1.6"/>
+          <circle cx="36" cy="76" r="1.6"/>
+          <circle cx="84" cy="44" r="1.6"/>
+          <circle cx="84" cy="60" r="1.6"/>
+          <circle cx="84" cy="76" r="1.6"/>
+        </g>
+        <!-- accent stripe on body -->
+        <rect x="36" y="58" width="48" height="3" fill="var(--accent)"/>
+      </g>
+    </svg>`,
+
+  /* DERAILLEUR — rear derailleur side profile with two jockey wheels */
+  derailleur: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        ${SHADOW}
+        <linearGradient id="de-fill" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="var(--m-light)"/>
+          <stop offset="1" stop-color="var(--m-mid)"/>
+        </linearGradient>
+      </defs>
+      <g filter="url(#ds)">
+        <!-- mounting bolt -->
+        <circle cx="40" cy="20" r="6" fill="var(--m-dark)" stroke="var(--m-line)" stroke-width="1.2"/>
+        <!-- parallelogram body -->
+        <path d="M 36 22 L 60 38 L 56 70 L 32 56 Z"
+              fill="url(#de-fill)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <path d="M 56 70 L 56 82 L 78 88 L 78 76 Z"
+              fill="url(#de-fill)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <!-- cage holding pulleys -->
+        <path d="M 56 76 Q 50 90 64 100 Q 78 110 92 96 Q 96 92 88 88 L 78 88 Z"
+              fill="url(#de-fill)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <!-- upper jockey wheel -->
+        <circle cx="62" cy="86" r="9" fill="var(--m-light)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <polygon points="${gearTeeth(62, 86, 9, 7, 12)}" fill="var(--m-light)" stroke="var(--m-line)" stroke-width="1"/>
+        <circle cx="62" cy="86" r="2.5" fill="var(--accent)"/>
+        <!-- lower jockey wheel -->
+        <circle cx="86" cy="98" r="9" fill="var(--m-light)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <polygon points="${gearTeeth(86, 98, 9, 7, 12)}" fill="var(--m-light)" stroke="var(--m-line)" stroke-width="1"/>
+        <circle cx="86" cy="98" r="2.5" fill="var(--accent)"/>
+      </g>
+    </svg>`,
+
+  /* FRAME — side profile of a complete diamond bike frame */
+  frame: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        ${SHADOW}
+        <linearGradient id="fr-paint" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="var(--paint)"/>
+          <stop offset="1" stop-color="var(--paint-2)"/>
+        </linearGradient>
+      </defs>
+      <g filter="url(#ds)" stroke="var(--m-line)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <!-- top tube -->
+        <line x1="36" y1="50" x2="78" y2="42" stroke="url(#fr-paint)" stroke-width="9"/>
+        <line x1="36" y1="50" x2="78" y2="42"/>
+        <!-- down tube -->
+        <line x1="36" y1="50" x2="60" y2="84" stroke="url(#fr-paint)" stroke-width="9"/>
+        <line x1="36" y1="50" x2="60" y2="84"/>
+        <!-- seat tube -->
+        <line x1="60" y1="84" x2="72" y2="42" stroke="url(#fr-paint)" stroke-width="9"/>
+        <line x1="60" y1="84" x2="72" y2="42"/>
+        <!-- chainstay -->
+        <line x1="60" y1="84" x2="98" y2="84" stroke="url(#fr-paint)" stroke-width="7"/>
+        <line x1="60" y1="84" x2="98" y2="84"/>
+        <!-- seatstay -->
+        <line x1="72" y1="42" x2="98" y2="84" stroke="url(#fr-paint)" stroke-width="7"/>
+        <line x1="72" y1="42" x2="98" y2="84"/>
+        <!-- fork -->
+        <line x1="36" y1="50" x2="22" y2="84" stroke="url(#fr-paint)" stroke-width="7"/>
+        <line x1="36" y1="50" x2="22" y2="84"/>
+      </g>
+      <!-- head tube + bottom bracket + dropouts as small filled circles -->
+      <g fill="var(--m-dark)" stroke="var(--m-line)" stroke-width="1.5">
+        <circle cx="36" cy="50" r="4"/>
+        <circle cx="60" cy="84" r="4.5"/>
+        <circle cx="98" cy="84" r="3.5"/>
+        <circle cx="22" cy="84" r="3.5"/>
+      </g>
+      <!-- saddle dot at the top of seat tube -->
+      <ellipse cx="72" cy="42" rx="9" ry="2.6" fill="var(--m-mid)" stroke="var(--m-line)" stroke-width="1"/>
+    </svg>`,
+
+  /* BRAKE PADS — pair of pads facing each other */
+  pads: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>${SHADOW}</defs>
+      <g filter="url(#ds)">
+        <!-- left pad backing -->
+        <rect x="18" y="40" width="20" height="40" rx="4" fill="var(--m-mid)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <rect x="32" y="44" width="14" height="32" rx="3" fill="var(--rub-tread)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <!-- right pad backing -->
+        <rect x="82" y="40" width="20" height="40" rx="4" fill="var(--m-mid)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <rect x="74" y="44" width="14" height="32" rx="3" fill="var(--rub-tread)" stroke="var(--m-line)" stroke-width="1.5"/>
+        <!-- accent wear indicator stripe on pad faces -->
+        <rect x="34" y="58" width="10" height="3" fill="var(--accent)"/>
+        <rect x="76" y="58" width="10" height="3" fill="var(--accent)"/>
+        <!-- mounting tabs -->
+        <rect x="22" y="32" width="12" height="8" rx="2" fill="var(--m-mid)" stroke="var(--m-line)" stroke-width="1.2"/>
+        <rect x="86" y="32" width="12" height="8" rx="2" fill="var(--m-mid)" stroke="var(--m-line)" stroke-width="1.2"/>
+        <circle cx="28" cy="36" r="1.6" fill="var(--m-line)"/>
+        <circle cx="92" cy="36" r="1.6" fill="var(--m-line)"/>
+      </g>
+    </svg>`,
+
+  /* BIKE — full bicycle silhouette (used for "bike" entity) */
+  bike: `
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>${SHADOW}</defs>
+      <g filter="url(#ds)">
+        <!-- two wheels -->
+        <circle cx="28" cy="78" r="20" fill="none" stroke="var(--m-line)" stroke-width="3"/>
+        <circle cx="28" cy="78" r="20" fill="none" stroke="var(--m-mid)" stroke-width="2" opacity="0.6"/>
+        <circle cx="92" cy="78" r="20" fill="none" stroke="var(--m-line)" stroke-width="3"/>
+        <circle cx="92" cy="78" r="20" fill="none" stroke="var(--m-mid)" stroke-width="2" opacity="0.6"/>
+        <!-- spokes (sparse) -->
+        <g stroke="var(--m-mid)" stroke-width="1" opacity="0.7">
+          ${spokes(28, 78, 2, 18, 6)}
+          ${spokes(92, 78, 2, 18, 6)}
+        </g>
+        <!-- frame -->
+        <g stroke="var(--paint)" stroke-width="5" stroke-linecap="round" fill="none">
+          <line x1="34" y1="56" x2="76" y2="50"/>     <!-- top tube -->
+          <line x1="34" y1="56" x2="60" y2="78"/>     <!-- down tube -->
+          <line x1="60" y1="78" x2="70" y2="50"/>     <!-- seat tube -->
+          <line x1="60" y1="78" x2="92" y2="78"/>     <!-- chainstay -->
+          <line x1="70" y1="50" x2="92" y2="78"/>     <!-- seatstay -->
+          <line x1="34" y1="56" x2="28" y2="78"/>     <!-- fork -->
+        </g>
+        <!-- handlebar -->
+        <line x1="32" y1="48" x2="40" y2="48" stroke="var(--m-light)" stroke-width="3" stroke-linecap="round"/>
+        <line x1="34" y1="48" x2="34" y2="56" stroke="var(--m-light)" stroke-width="3" stroke-linecap="round"/>
+        <!-- saddle -->
+        <ellipse cx="70" cy="48" rx="8" ry="2.5" fill="var(--m-light)" stroke="var(--m-line)" stroke-width="1"/>
+        <!-- crank -->
+        <circle cx="60" cy="78" r="4" fill="var(--m-mid)" stroke="var(--m-line)" stroke-width="1.2"/>
+        <circle cx="60" cy="78" r="1.6" fill="var(--accent)"/>
+      </g>
+    </svg>`,
+};
+
+/* ───────────────────────────────────────────────────────────────
+   Render
+   ─────────────────────────────────────────────────────────────── */
+const ICON_LIST = [
+  ['chain', 'Chain'],
+  ['cassette', 'Cassette'],
+  ['tire', 'Wheel / Tire'],
+  ['rotor', 'Brake rotor'],
+  ['pads', 'Brake pads'],
+  ['derailleur', 'Derailleur'],
+  ['hub', 'Hub'],
+  ['saddle', 'Saddle'],
+  ['handlebar', 'Handlebar'],
+  ['pedal', 'Pedal'],
+  ['frame', 'Frame'],
+  ['wrench', 'Service'],
+  ['bike', 'Bike'],
+];
+
+const grid = document.getElementById('icon-grid');
+ICON_LIST.forEach(([key, label]) => {
+  const tile = document.createElement('div');
+  tile.className = 'icon-tile';
+  tile.innerHTML = ICONS[key] + `<div class="label">${label}</div>`;
+  grid.appendChild(tile);
+});
+
+/* In-context component cards */
+const CTX = [
+  { icon: 'chain',      name: 'Chain — KMC X11SL',         sub: 'Installed 12 Mar · 2,140 km',  pct: 71, color: 'var(--monitor, #F7C948)' },
+  { icon: 'cassette',   name: 'Cassette — Ultegra R8000',  sub: 'Installed 8 Jan · 1,920 km',   pct: 22, color: '#34D17A' },
+  { icon: 'pads',       name: 'Front brake pads',          sub: 'Installed 30 Sep · 4,820 km',  pct: 102, color: '#FF425A' },
+  { icon: 'tire',       name: 'Front tyre — GP5000',       sub: 'Installed 4 Mar · 1,140 km',   pct: 28, color: '#34D17A' },
+  { icon: 'derailleur', name: 'Rear derailleur — XT M8100', sub: 'Installed 1 Apr · 240 km',    pct: 4,  color: '#34D17A' },
+  { icon: 'rotor',      name: 'Front rotor — RT-MT800',     sub: 'Installed 12 Aug · 8,200 km', pct: 88, color: '#FF8A33' },
+];
+
+const ctxHost = document.getElementById('ctx-grid');
+CTX.forEach(c => {
+  const card = document.createElement('div');
+  card.className = 'comp-card';
+  card.innerHTML = `
+    <div class="comp-row">
+      <div class="comp-icon">${ICONS[c.icon]}</div>
+      <div class="comp-info">
+        <div class="comp-name">${c.name}</div>
+        <div class="comp-sub">${c.sub}</div>
+      </div>
+      <div class="comp-pct" style="color:${c.color}">${c.pct}%</div>
+    </div>
+    <div class="wear-track">
+      <div class="wear-fill" style="width:${Math.min(c.pct,100)}%; background:${c.color};"></div>
+    </div>`;
+  ctxHost.appendChild(card);
+});
+
+/* Theme toggle */
+document.getElementById('theme-toggle').addEventListener('click', e => {
+  const t = e.target.dataset.theme;
+  if (!t) return;
+  document.body.dataset.theme = t;
+  document.querySelectorAll('#theme-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === t);
+  });
+});
+</script>
+</body>
+</html>
