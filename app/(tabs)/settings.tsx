@@ -376,36 +376,6 @@ export default function SettingsScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
 
-        {/* Appearance — theme picker. 'Auto' follows the device's
-            system appearance; 'Light' / 'Dark' force a scheme. The
-            choice is persisted across launches. */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>APPEARANCE</Text>
-          <View style={styles.card}>
-            <View style={styles.themeRow}>
-              <View style={styles.rowLeft}>
-                <View style={styles.themeIconBox}>
-                  <BikeIcon
-                    name="parts"
-                    variant="fill"
-                    size={20}
-                    color={C.accent}
-                    accent={C.accent}
-                    hole={C.card}
-                  />
-                </View>
-                <View style={styles.rowTextCol}>
-                  <Text style={styles.rowTitle}>Theme</Text>
-                  <Text style={styles.rowSub}>
-                    Auto follows your device. Light and Dark force a scheme.
-                  </Text>
-                </View>
-              </View>
-            </View>
-            <ThemeToggle />
-          </View>
-        </View>
-
         {/* Account section */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>ACCOUNT</Text>
@@ -543,6 +513,38 @@ export default function SettingsScreen() {
             </View>
           </View>
         )}
+
+        {/* Appearance — theme picker. 'Auto' follows the device's
+            system appearance; 'Light' / 'Dark' force a scheme. The
+            choice is persisted across launches. Sits below Account
+            and Strava because those are the most-touched settings;
+            theme is set-and-forget. */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>APPEARANCE</Text>
+          <View style={styles.card}>
+            <View style={styles.themeRow}>
+              <View style={styles.rowLeft}>
+                <View style={styles.themeIconBox}>
+                  <BikeIcon
+                    name="parts"
+                    variant="fill"
+                    size={20}
+                    color={C.accent}
+                    accent={C.accent}
+                    hole={C.card}
+                  />
+                </View>
+                <View style={styles.rowTextCol}>
+                  <Text style={styles.rowTitle}>Theme</Text>
+                  <Text style={styles.rowSub}>
+                    Auto follows your device. Light and Dark force a scheme.
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <ThemeToggle />
+          </View>
+        </View>
 
         {/* Notifications section */}
         <View style={styles.section}>
