@@ -3,7 +3,6 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { useFonts } from 'expo-font';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { useAppStore } from '../store/useAppStore';
@@ -61,19 +60,27 @@ function AuthGate() {
  * inside to re-create its memoised StyleSheet against the new palette.
  * Without this, components that were already mounted before the
  * switch would keep their old, dark-baked styles.
+ *
+ * The Stack is gated on `hydrated` so the navigator only mounts
+ * once — after AsyncStorage has reported the persisted theme. Without
+ * this gate, the navigator would mount with the default theme on first
+ * paint and then remount via the `key={resolved}` pattern when
+ * hydration flipped the resolved value. That double mount is the most
+ * expensive thing the boot path can do, since every screen's
+ * `makeStyles(C)` and BikeIcon SVG tree gets rebuilt twice.
  */
 function ThemedLayout() {
-  const { resolved } = useTheme();
+  const { resolved, hydrated } = useTheme();
   const C = useThemeColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const { isLoading } = useAppStore();
-  const [fontsLoaded, fontError] = useFonts({
-    Ionicons: require('../assets/fonts/Ionicons.ttf'),
-  });
 
-  // Allow the app to proceed if fonts errored — icons degrade gracefully
-  // rather than the user being stuck on the splash screen forever.
-  if (isLoading || (!fontsLoaded && !fontError)) {
+  // Hold the splash until auth has resolved AND the theme has hydrated
+  // from AsyncStorage. The Ionicons font that this gate used to wait on
+  // was removed when the icon system migrated to the Apex (BikeIcon)
+  // SVG set — nothing in the app renders Ionicons glyphs anymore, so
+  // blocking on `useFonts` was pure latency for zero benefit.
+  if (isLoading || !hydrated) {
     return (
       <View style={styles.splash}>
         <StatusBar style={resolved === 'dark' ? 'light' : 'dark'} />
