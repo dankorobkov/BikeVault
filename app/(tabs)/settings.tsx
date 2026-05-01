@@ -394,7 +394,7 @@ export default function SettingsScreen() {
                     hole={C.card}
                   />
                 </View>
-                <View>
+                <View style={styles.rowTextCol}>
                   <Text style={styles.rowTitle}>Theme</Text>
                   <Text style={styles.rowSub}>
                     Auto follows your device. Light and Dark force a scheme.
@@ -552,7 +552,7 @@ export default function SettingsScreen() {
             <View style={styles.switchRow}>
               <View style={styles.rowLeft}>
                 <Ionicons name="notifications-outline" size={20} color={C.accent} />
-                <View>
+                <View style={styles.rowTextCol}>
                   <Text style={styles.rowTitle}>Enable Notifications</Text>
                   <Text style={styles.rowSub}>Reminders for wear, maintenance & batteries</Text>
                 </View>
@@ -628,7 +628,7 @@ export default function SettingsScreen() {
                 <View style={styles.switchRow}>
                   <View style={styles.rowLeft}>
                     <Ionicons name="water-outline" size={20} color={C.textSecondary} />
-                    <View>
+                    <View style={styles.rowTextCol}>
                       <Text style={styles.rowTitle}>Chain Lube Reminder</Text>
                       <Text style={styles.rowSub}>When a chain passes its re-lube interval</Text>
                     </View>
@@ -645,7 +645,7 @@ export default function SettingsScreen() {
                 <View style={styles.switchRow}>
                   <View style={styles.rowLeft}>
                     <Ionicons name="warning-outline" size={20} color={C.textSecondary} />
-                    <View>
+                    <View style={styles.rowTextCol}>
                       <Text style={styles.rowTitle}>Wear & Service Alerts</Text>
                       <Text style={styles.rowSub}>
                         Nearing end of life, overdue replacement, service intervals
@@ -934,6 +934,11 @@ const makeStyles = (C: ColorPalette) => StyleSheet.create({
     gap: 12,
   },
   rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  // Title + subtitle column inside a row. Needs `flex: 1` so the
+  // subtitle wraps within the available row width instead of overflowing
+  // off the screen — affects rows where the subtitle is long enough to
+  // exceed the device width (Theme, Wear & Service Alerts, etc.).
+  rowTextCol: { flex: 1 },
   rowTitle: { fontSize: 15, fontWeight: '500', color: C.text },
   rowSub: { fontSize: 12, color: C.textSecondary, marginTop: 2 },
 

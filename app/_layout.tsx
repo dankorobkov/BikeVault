@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { useAppStore } from '../store/useAppStore';
@@ -74,13 +75,19 @@ function ThemedLayout() {
   const C = useThemeColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const { isLoading } = useAppStore();
+  // Ionicons is still used by every screen built before the Apex icon
+  // set (settings, bike detail, every modal), so the font has to load
+  // before we drop the splash — without it those glyphs render as
+  // empty PUA boxes. fontError is captured so a missing/blocked asset
+  // can't freeze the splash forever; icons just degrade gracefully.
+  const [fontsLoaded, fontError] = useFonts({
+    Ionicons: require('../assets/fonts/Ionicons.ttf'),
+  });
 
-  // Hold the splash until auth has resolved AND the theme has hydrated
-  // from AsyncStorage. The Ionicons font that this gate used to wait on
-  // was removed when the icon system migrated to the Apex (BikeIcon)
-  // SVG set — nothing in the app renders Ionicons glyphs anymore, so
-  // blocking on `useFonts` was pure latency for zero benefit.
-  if (isLoading || !hydrated) {
+  // Hold the splash until: (1) auth resolves, (2) the theme hydrates
+  // from AsyncStorage so the Stack mounts only once with the correct
+  // palette, and (3) the Ionicons font finishes loading (or errors).
+  if (isLoading || !hydrated || (!fontsLoaded && !fontError)) {
     return (
       <View style={styles.splash}>
         <StatusBar style={resolved === 'dark' ? 'light' : 'dark'} />

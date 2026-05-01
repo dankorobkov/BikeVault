@@ -136,20 +136,50 @@ export async function refreshStravaToken(
   userId: string,
   tokens: StravaTokens
 ): Promise<StravaTokens> {
-  const res = await fetch(STRAVA_CONFIG.tokenEndpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      client_id: STRAVA_CONFIG.clientId,
-      client_secret: STRAVA_CONFIG.clientSecret,
-      grant_type: 'refresh_token',
-      refresh_token: tokens.refreshToken,
-    }),
-  });
+  // Token refresh is the gateway for every other Strava call — if it
+  // dies on a transient network blip, the entire sync flow fails before
+  // it even starts. Use the same retry-with-backoff wrapper as
+  // stravaGet so a single Safari "Load failed" doesn't bubble out as
+  // "Sync failed: Load failed".
+  //
+  // Body format is `application/x-www-form-urlencoded` (Strava's
+  // documented format), not JSON. Critically, form-encoded is a
+  // CORS-simple Content-Type, which means the browser sends the POST
+  // directly. JSON forces a preflight OPTIONS round-trip that iOS
+  // Safari drops with "Load failed" on weak / low-power connections —
+  // exactly the symptom this whole change is fixing.
+  let res: Response;
+  try {
+    res = await fetchWithRetry(
+      STRAVA_CONFIG.tokenEndpoint,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: STRAVA_CONFIG.clientId,
+          client_secret: STRAVA_CONFIG.clientSecret,
+          grant_type: 'refresh_token',
+          refresh_token: tokens.refreshToken,
+        }).toString(),
+      },
+      describeCall('POST', '/oauth/token', { grant_type: 'refresh_token' })
+    );
+  } catch (e) {
+    // fetchWithRetry already converts a 4xx into an Error with HTTP
+    // context. The OAuth endpoint specifically returns 4xx for revoked
+    // refresh tokens — translate those into StravaAuthError so callers
+    // clear the stored tokens. Network/5xx errors stay as plain Errors.
+    if (e instanceof StravaAuthError) throw e;
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/HTTP 4\d\d/.test(msg)) {
+      throw new StravaAuthError('Strava refresh token is no longer valid');
+    }
+    throw e;
+  }
   const data = await res.json();
-  // Strava returns 4xx + an errors array when the refresh token is
-  // invalid (typically because the user revoked the app on strava.com).
-  if (!res.ok || !data.access_token) {
+  // Belt-and-braces: even on a 200 the body might omit access_token if
+  // Strava's API contract changed. Treat that as auth failure too.
+  if (!data.access_token) {
     throw new StravaAuthError(
       data?.message ?? 'Strava refresh token is no longer valid'
     );
@@ -181,16 +211,23 @@ export async function exchangeCodeForTokens(
   userId: string,
   code: string
 ): Promise<StravaTokens> {
-  const res = await fetch(STRAVA_CONFIG.tokenEndpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      client_id: STRAVA_CONFIG.clientId,
-      client_secret: STRAVA_CONFIG.clientSecret,
-      code,
-      grant_type: 'authorization_code',
-    }),
-  });
+  // Same form-encoded + retry treatment as refreshStravaToken — this
+  // endpoint hits the same iOS Safari preflight issue when the OAuth
+  // callback POSTs the auth code back to Strava.
+  const res = await fetchWithRetry(
+    STRAVA_CONFIG.tokenEndpoint,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: STRAVA_CONFIG.clientId,
+        client_secret: STRAVA_CONFIG.clientSecret,
+        code,
+        grant_type: 'authorization_code',
+      }).toString(),
+    },
+    describeCall('POST', '/oauth/token', { grant_type: 'authorization_code' })
+  );
   const data = await res.json();
   if (data.errors || !data.access_token) {
     throw new Error(data.message ?? 'Token exchange failed');
@@ -209,6 +246,125 @@ export async function exchangeCodeForTokens(
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
 
+/**
+ * How many times to attempt a single Strava API call before giving up.
+ * Each retry waits `backoffMs(attempt)` (with jitter) — roughly 0.5s,
+ * 1s, 2s, 4s. Total worst-case wall time per call: ~7.5s.
+ *
+ * Why we need retries at all: Safari (and to a lesser extent iOS
+ * WebView) drops `fetch()` connections under load with the bare error
+ * message "Load failed". With Firestore long-polling running in
+ * parallel, a 20+ page activity backfill is almost guaranteed to hit
+ * one such drop, which would kill the whole migration before retries.
+ */
+const MAX_ATTEMPTS = 4;
+
+function backoffMs(attempt: number): number {
+  // 500ms · 2^attempt with ±20% jitter so concurrent calls don't all
+  // wake up at the same instant after a shared upstream blip.
+  const base = 500 * Math.pow(2, attempt);
+  const jitter = base * (Math.random() * 0.4 - 0.2);
+  return Math.round(base + jitter);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Format a call for error messages: "GET /athlete/activities (page=7, per_page=100)". */
+function describeCall(method: string, endpoint: string, params?: Record<string, string>): string {
+  if (!params) return `${method} ${endpoint}`;
+  const qs = Object.entries(params)
+    .map(([k, v]) => `${k}=${v}`)
+    .join(', ');
+  return `${method} ${endpoint} (${qs})`;
+}
+
+/**
+ * Run a fetch with retry-on-transient-failure.
+ *
+ * Retries on:
+ *   - Network errors (`fetch` throwing — covers Safari "Load failed",
+ *     DNS, TLS, dropped connections)
+ *   - HTTP 429 (rate limited — honors Retry-After header if present)
+ *   - HTTP 5xx (transient server errors)
+ *
+ * Does NOT retry on:
+ *   - HTTP 401 — surfaces as `StravaAuthError` so callers can clear
+ *     the stored tokens instead of treating it like a network blip
+ *   - Other HTTP 4xx — these are deterministic client errors, retrying
+ *     won't help. Re-thrown with the call signature for context
+ *
+ * On exhaustion, throws an Error whose message includes the endpoint,
+ * params, attempt count, and the underlying failure — far more useful
+ * than the bare browser "Load failed" the old wrapper surfaced.
+ */
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  describe: string
+): Promise<Response> {
+  let lastDetail = '';
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(url, init);
+    } catch (e) {
+      // Network-level failure — retry until budget runs out.
+      lastDetail = e instanceof Error ? e.message : String(e);
+      if (attempt + 1 >= MAX_ATTEMPTS) {
+        throw new Error(
+          `Strava ${describe} failed after ${MAX_ATTEMPTS} attempts (${lastDetail})`
+        );
+      }
+      await sleep(backoffMs(attempt));
+      continue;
+    }
+
+    // 401 = token revoked. Don't retry.
+    if (res.status === 401) {
+      throw new StravaAuthError();
+    }
+
+    // 429 = rate limited. Respect Retry-After if Strava sent one,
+    // otherwise fall back to exponential backoff. Capped at 30s so a
+    // mis-configured upstream can't park us forever.
+    if (res.status === 429) {
+      lastDetail = 'rate limited (429)';
+      if (attempt + 1 >= MAX_ATTEMPTS) {
+        throw new Error(`Strava ${describe} ${lastDetail}`);
+      }
+      const retryAfterSec = Number(res.headers.get('retry-after'));
+      const wait =
+        Number.isFinite(retryAfterSec) && retryAfterSec > 0
+          ? Math.min(retryAfterSec * 1000, 30_000)
+          : backoffMs(attempt);
+      await sleep(wait);
+      continue;
+    }
+
+    // 5xx = transient server error.
+    if (res.status >= 500 && res.status < 600) {
+      lastDetail = `HTTP ${res.status}`;
+      if (attempt + 1 >= MAX_ATTEMPTS) {
+        throw new Error(`Strava ${describe} ${lastDetail}`);
+      }
+      await sleep(backoffMs(attempt));
+      continue;
+    }
+
+    // Other 4xx = client error, surface with context (don't retry).
+    if (!res.ok) {
+      throw new Error(`Strava ${describe} → HTTP ${res.status}`);
+    }
+
+    return res;
+  }
+  // Unreachable — every path inside the loop either returns or throws,
+  // but TypeScript can't see that.
+  throw new Error(`Strava ${describe} retry budget exhausted (${lastDetail})`);
+}
+
 async function stravaGet<T>(
   endpoint: string,
   accessToken: string,
@@ -218,17 +374,11 @@ async function stravaGet<T>(
   if (params) {
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   }
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  // 401 means the token was revoked on Strava's side (user hit "Revoke
-  // Access" in strava.com settings). Surface as a distinct error so the
-  // caller can clear stored tokens instead of treating it like a network
-  // blip.
-  if (res.status === 401) {
-    throw new StravaAuthError();
-  }
-  if (!res.ok) throw new Error(`Strava API ${res.status}: ${endpoint}`);
+  const res = await fetchWithRetry(
+    url.toString(),
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    describeCall('GET', endpoint, params)
+  );
   return res.json() as Promise<T>;
 }
 
