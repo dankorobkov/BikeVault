@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Switch,
   Platform,
+  Linking,
 } from 'react-native';
 import { dialog } from '../../components/AppDialog';
 import { useTopInset } from '../../hooks/useTopInset';
@@ -344,6 +345,31 @@ export default function SettingsScreen() {
       dialog.alert({ title: 'Delete failed', message: msg, tone: 'destructive' });
     } finally {
       setDeleting(false);
+    }
+  };
+
+  // Open an external URL (mailto:, https://, tg:, etc.). Wrapped so we can
+  // surface a friendly dialog if the device has no handler for the scheme
+  // (e.g. no mail client configured) instead of silently no-op'ing.
+  const openExternal = async (url: string, friendlyName: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) {
+        dialog.alert({
+          title: 'Cannot open ' + friendlyName,
+          message: 'No app on this device can handle this link. You can copy it manually: ' + url,
+          tone: 'warning',
+        });
+        return;
+      }
+      await Linking.openURL(url);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      dialog.alert({
+        title: 'Could not open link',
+        message: msg,
+        tone: 'destructive',
+      });
     }
   };
 
@@ -815,7 +841,7 @@ export default function SettingsScreen() {
                 <Ionicons name="bicycle-outline" size={20} color={C.accent} />
                 <Text style={styles.rowTitle}>BikeVault</Text>
               </View>
-              <Text style={styles.rowSub}>v0.2</Text>
+              <Text style={styles.rowSub}>Version 0.5</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.row}>
@@ -828,6 +854,81 @@ export default function SettingsScreen() {
           <Text style={styles.hint}>
             Wear is based on the distance ridden since a component was installed. Connect Strava to sync automatically, or add rides manually.
           </Text>
+        </View>
+
+        {/* Developer — credits + contact links. Sits below About so the
+            version + "how wear is calculated" rows stay together as core
+            product info, and the developer block reads as a separate
+            "from the maker" footer. */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>DEVELOPER</Text>
+          <View style={styles.card}>
+            <View style={styles.devBlurbRow}>
+              <View style={styles.devIconBox}>
+                <Ionicons name="code-slash-outline" size={20} color={C.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>Daniel Korobkov</Text>
+                <Text style={styles.rowSub}>
+                  BikeVault was developed in 2026 for fellow cyclists. Got a
+                  bug, idea, or just want to say hi? Drop me a note below.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => openExternal('mailto:dankorobkov@gmail.com', 'mail')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.rowLeft}>
+                <Ionicons name="mail-outline" size={20} color={C.accent} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle}>Email</Text>
+                  <Text style={styles.rowSub}>dankorobkov@gmail.com</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={C.textTertiary} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => openExternal('https://t.me/danielkorobkov', 'Telegram')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.rowLeft}>
+                <Ionicons name="paper-plane-outline" size={20} color={C.accent} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle}>Telegram</Text>
+                  <Text style={styles.rowSub}>t.me/danielkorobkov</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={C.textTertiary} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() =>
+                openExternal('https://www.strava.com/athletes/6877963', 'Strava')
+              }
+              activeOpacity={0.7}
+            >
+              <View style={styles.rowLeft}>
+                <Ionicons name="fitness-outline" size={20} color={C.accent} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle}>Strava</Text>
+                  <Text style={styles.rowSub}>Follow my rides</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={C.textTertiary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Danger zone — delete account (only for signed-in users) */}
@@ -1015,6 +1116,22 @@ const makeStyles = (C: ColorPalette) => StyleSheet.create({
   chipText: { fontSize: 13, fontWeight: '500', color: C.textSecondary },
   chipTextActive: { color: C.accent },
   chipTextDisabled: { color: C.textTertiary },
+
+  // Developer section
+  devBlurbRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 16,
+    gap: 12,
+  },
+  devIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: C.accentDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   // Appearance section
   themeRow: {
