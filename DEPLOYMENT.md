@@ -13,7 +13,7 @@ Replace `bikevault-627f4.web.app` with your actual hosting domain (custom domain
 
 Both bundles get built and deployed together to a **single Firebase Hosting site**:
 - Prod bundle lives at `dist/` (root).
-- Test bundle lives at `dist/test/`, built with `--base-url /test` so its asset URLs resolve correctly under the subpath.
+- Test bundle lives at `dist/test/`, built with `EXPO_BASE_URL=/test` so its asset URLs resolve correctly under the subpath.
 - `firebase.json` rewrites `/test/**` to `/test/index.html` (test SPA), everything else to `/index.html` (prod SPA).
 
 The `EXPO_PUBLIC_APP_ENV` variable is read at build time in `app/_layout.tsx`:
@@ -40,7 +40,7 @@ Or via GitHub PR (preferred — easier to roll back). Pushing to `production` tr
 
 ```bash
 npm run build:prod    # builds dist/ with EXPO_PUBLIC_APP_ENV=prod
-npm run build:test    # builds dist/test/ with EXPO_PUBLIC_APP_ENV=test, --base-url /test
+npm run build:test    # builds dist/test/ with EXPO_PUBLIC_APP_ENV=test, EXPO_BASE_URL=/test
 npm run build:all     # both, in the right order
 npm run deploy        # firebase deploy --only hosting (no rebuild)
 npm run deploy:all    # build:all then deploy

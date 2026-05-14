@@ -55,7 +55,7 @@ jobs:
         working-directory: test-src
         run: |
           echo "${{ secrets.DOTENV }}" > .env
-          EXPO_PUBLIC_APP_ENV=test npx expo export -p web --output-dir ../dist/test --base-url /test
+          EXPO_PUBLIC_APP_ENV=test EXPO_BASE_URL=/test npx expo export -p web --output-dir ../dist/test
 
       - name: Stage firebase.json at workspace root
         run: cp prod-src/firebase.json firebase.json
