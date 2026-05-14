@@ -1,0 +1,69 @@
+# Builds both apps fresh from their respective branches and deploys
+# them together to the single Firebase Hosting site. A push to either
+# `test` or `production` triggers a redeploy; whichever side wasn't
+# pushed is rebuilt from its branch tip unchanged.
+#
+# Required GitHub Secrets:
+#   - FIREBASE_SERVICE_ACCOUNT_BIKEVAULT  (JSON key for a service account
+#     with Firebase Hosting deploy permission)
+#   - DOTENV                              (full contents of .env, used at
+#     build time so EXPO_PUBLIC_FIREBASE_* etc. get baked into the bundle)
+
+name: Deploy BikeVault
+
+on:
+  push:
+    branches: [test, production]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: production
+          path: prod-src
+
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+        with:
+          ref: test
+          path: test-src
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install prod deps
+        working-directory: prod-src
+        run: npm ci
+
+      - name: Build prod bundle
+        working-directory: prod-src
+        run: |
+          echo "${{ secrets.DOTENV }}" > .env
+          EXPO_PUBLIC_APP_ENV=prod npx expo export -p web --output-dir ../dist
+
+      - name: Install test deps
+        working-directory: test-src
+        run: npm ci
+
+      - name: Build test bundle
+        working-directory: test-src
+        run: |
+          echo "${{ secrets.DOTENV }}" > .env
+          EXPO_PUBLIC_APP_ENV=test npx expo export -p web --output-dir ../dist/test --base-url /test
+
+      - name: Stage firebase.json at workspace root
+        run: cp prod-src/firebase.json firebase.json
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BIKEVAULT }}
+          channelId: live
+          projectId: bikevault-627f4

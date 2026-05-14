@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -10,7 +10,7 @@ import { useAppStore } from '../store/useAppStore';
 import { fetchBikes } from '../services/bikesService';
 import { fetchAllComponents } from '../services/componentsService';
 import { loadStravaTokens, validateStravaTokens } from '../services/stravaService';
-import { getUserProfile } from '../services/userService';
+import { createUserProfile, getUserProfile } from '../services/userService';
 import { scanAndNotify } from '../services/notifications';
 import type { ColorPalette } from '../constants/colors';
 import { DEMO_BIKES, DEMO_COMPONENTS } from '../constants/demoData';
@@ -20,10 +20,30 @@ import { ThemeProvider, useTheme, useThemeColors } from '../theme/ThemeProvider'
 
 SplashScreen.preventAutoHideAsync();
 
+// Single source of truth for the test-vs-prod switch. Baked at build time by
+// EAS / `expo export`; missing value defaults to `test` to keep the invite
+// gate on for safety.
+const IS_PROD = process.env.EXPO_PUBLIC_APP_ENV === 'prod';
+
 function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
-  const { userId, isAnonymous, hasProfile, profileChecked, isLoading } = useAppStore();
+  const {
+    userId,
+    isAnonymous,
+    hasProfile,
+    profileChecked,
+    isLoading,
+    userDisplayName,
+    userEmail,
+    userPhotoUrl,
+    setHasProfile,
+  } = useAppStore();
+
+  // Guards the prod auto-create so this effect doesn't fire it twice while
+  // the Firestore write is in flight (the effect re-runs on every store
+  // change, and we don't want N duplicate `setDoc` round-trips).
+  const autoCreateInFlight = useRef(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -38,6 +58,27 @@ function AuthGate() {
 
     // Signed in — but Google users must have a profile to proceed.
     if (!isAnonymous && profileChecked && !hasProfile) {
+      if (IS_PROD) {
+        // Prod: no invite-code gate. Auto-create the profile with a sentinel
+        // signupCode so `getUserProfile` recognises it as a real profile.
+        // `setDoc` uses `merge:true`, so retries are safe.
+        if (!autoCreateInFlight.current) {
+          autoCreateInFlight.current = true;
+          createUserProfile(userId, {
+            email: userEmail,
+            displayName: userDisplayName,
+            photoUrl: userPhotoUrl,
+            signupCode: 'PROD-AUTO',
+          })
+            .then(() => setHasProfile(true))
+            .catch((e) => {
+              console.error('Auto profile creation failed:', e);
+              autoCreateInFlight.current = false; // allow a retry
+            });
+        }
+        return;
+      }
+      // Test: keep the existing invite-code gate.
       // Cast: the typed-routes generator re-runs on `expo start` and will
       // learn about /invite-code then. Cast keeps TS happy in the meantime.
       if (!onInvite) router.replace('/invite-code' as never);
@@ -48,7 +89,18 @@ function AuthGate() {
     if (onLogin || onInvite) {
       router.replace('/(tabs)');
     }
-  }, [userId, isAnonymous, hasProfile, profileChecked, isLoading, segments]);
+  }, [
+    userId,
+    isAnonymous,
+    hasProfile,
+    profileChecked,
+    isLoading,
+    segments,
+    userEmail,
+    userDisplayName,
+    userPhotoUrl,
+    setHasProfile,
+  ]);
 
   return null;
 }
