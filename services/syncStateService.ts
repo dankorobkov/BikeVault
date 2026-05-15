@@ -64,8 +64,21 @@ import { db } from '../config/firebase';
  *       attribution logs (`[DIAG-277]` prefix) on every run. Bumping
  *       to 6 guarantees one more migration pass after the next deploy
  *       so the diagnostic actually fires. No behaviour change vs v5.
+ *   7 — fix the v6-diagnosed leak: untagged old rides being claimed by
+ *       brand-new bikes via the defaultActivity fallback. A user's
+ *       2026 bike was attributing six untagged 2015 "Morning Ride"
+ *       activities (~101 km) on top of its 4 real gear-tagged rides
+ *       (~176 km), reading as 277 km instead of ~177 km. Resolver now
+ *       requires `activity.start_date >= bike.createdAt -
+ *       GRACE` for the defaultActivity fallback, with a small grace
+ *       window for clock drift. Bikes with no recorded `createdAt`
+ *       keep the old "any time" behaviour so legacy bikes don't
+ *       silently lose data. Bumping to 7 forces one more migration
+ *       pass so every affected bike's `totalDistance` and active
+ *       components' `installDistance` rebase under the date-bounded
+ *       rule.
  */
-export const CURRENT_SCHEMA_VERSION = 6;
+export const CURRENT_SCHEMA_VERSION = 7;
 
 export interface SyncState {
   /** Unix seconds of the most recent activity we've already imported. */

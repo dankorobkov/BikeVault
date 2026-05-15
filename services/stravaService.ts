@@ -31,6 +31,18 @@ export function isCyclingActivity(activity: StravaActivity): boolean {
 }
 
 /**
+ * Activity timestamps and bike `createdAt` values can drift by minutes
+ * across devices (NTP skew, Strava upload lag, Firestore serverTimestamp
+ * vs client clock). When the defaultActivity fallback compares an
+ * activity's `start_date` against `bike.createdAt`, we don't want a
+ * 30-second wobble to flip whether a ride counts. A small grace window
+ * (3 days) keeps the rule lenient enough that rides from a few days
+ * before BikeVault setup still attribute to the bike you literally
+ * just added, while still excluding decade-old history.
+ */
+const DEFAULT_ACTIVITY_GRACE_MS = 3 * 24 * 60 * 60 * 1000;
+
+/**
  * Attribute a Strava activity to one of the user's bikes.
  *
  * Resolution rules:
@@ -44,13 +56,21 @@ export function isCyclingActivity(activity: StravaActivity): boolean {
  *          would falsely inflate whichever BikeVault bike happens to
  *          own the activity's sport_type — see the 27,973 km bug.
  *   2. Otherwise (untagged ride): fall back to the bike whose
- *      `defaultActivity` matches the activity's `sport_type`. The app
- *      enforces uniqueness of `defaultActivity` per user, so this match
- *      is deterministic.
+ *      `defaultActivity` matches the activity's `sport_type`, but ONLY
+ *      if the ride happened on or after that bike was added to
+ *      BikeVault (within a small grace window for clock drift).
+ *      Rationale: a brand-new bike record shouldn't claim rides from
+ *      years before it physically existed. Old untagged history from
+ *      before any BikeVault bike was set up stays unattributed; users
+ *      who want that history reflected can enter it manually via the
+ *      bike's "Current distance" field when adding the bike. See the
+ *      277 km report: a freshly-imported Scott Chameleon was claiming
+ *      six untagged 2015 "Morning Ride" activities (~101 km) on top of
+ *      its real 4 gear-tagged rides.
  *
  * Returns `null` when the activity is not cycling, when the ride is
  * gear-tagged to a Strava bike not imported into BikeVault, or when no
- * bike owns the activity's sport_type.
+ * bike owns the activity's sport_type within the activity's window.
  */
 export function resolveBikeForActivity(
   activity: StravaActivity,
@@ -67,7 +87,15 @@ export function resolveBikeForActivity(
   }
 
   const activityType = activity.type as StravaActivityType;
-  const typeMatch = bikes.find((b) => b.defaultActivity === activityType);
+  const activityStartMs = new Date(activity.start_date).getTime();
+  const typeMatch = bikes.find((b) => {
+    if (b.defaultActivity !== activityType) return false;
+    // A bike with no recorded `createdAt` (very old data) gets the
+    // benefit of the doubt — fall back to "any time" rather than
+    // silently dropping the attribution.
+    if (typeof b.createdAt !== 'number') return true;
+    return activityStartMs >= b.createdAt - DEFAULT_ACTIVITY_GRACE_MS;
+  });
   return typeMatch ?? null;
 }
 
