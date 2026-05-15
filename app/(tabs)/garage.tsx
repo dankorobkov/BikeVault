@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useTopInset } from '../../hooks/useTopInset';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,7 @@ import {
   correctBackdatedInstall,
   applyBikeTotalSnapshot,
 } from '../../services/backdateCorrection';
+import { useSync } from '../../hooks/useSync';
 import { Analytics } from '../../services/analytics';
 import { useThemeColors } from '../../theme/ThemeProvider';
 import type { ColorPalette } from '../../constants/colors';
@@ -67,6 +69,26 @@ export default function GarageScreen() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [successName, setSuccessName] = useState('');
   const [editingComponent, setEditingComponent] = useState<BikeComponent | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const { syncStrava } = useSync();
+
+  /** Pull-to-refresh — same behaviour as the Bikes tab: trigger a
+   *  Strava sync when connected, otherwise just flash the spinner so
+   *  the gesture feels acknowledged. */
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      if (stravaTokens) {
+        await syncStrava();
+      } else {
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    } catch {
+      /* Errors are surfaced from the Settings sync button instead. */
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const getBike = (bikeId: string | null) =>
     bikeId ? bikes.find((b) => b.id === bikeId) : undefined;
@@ -386,7 +408,16 @@ export default function GarageScreen() {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={C.accent}
+          />
+        }
+      >
         {sorted.length === 0 ? (
           isDataLoading ? (
             // Data is still fetching in the background — show a spinner instead

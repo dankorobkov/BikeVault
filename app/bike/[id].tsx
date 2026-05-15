@@ -8,6 +8,7 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { dialog } from '../../components/AppDialog';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -40,6 +41,7 @@ import EditComponentModal from '../../components/EditComponentModal';
 import EmptyState from '../../components/EmptyState';
 import SuccessBanner from '../../components/SuccessBanner';
 import AppTabBar from '../../components/AppTabBar';
+import { useSync } from '../../hooks/useSync';
 import { useTopInset } from '../../hooks/useTopInset';
 import {
   isIndoorBike,
@@ -85,6 +87,8 @@ export default function BikeDetailScreen() {
   const [successName, setSuccessName] = useState('');
   const [activities, setActivities] = useState<StravaActivity[]>([]);
   const [loadingRides, setLoadingRides] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const { syncStrava } = useSync();
 
   // Add Ride modal
   const [showAddRide, setShowAddRide] = useState(false);
@@ -469,6 +473,25 @@ export default function BikeDetailScreen() {
     return h > 0 ? h + 'h ' + m + 'm' : m + 'm';
   };
 
+  /** Pull-to-refresh — same behaviour as the Bikes and Garage tabs:
+   *  trigger a Strava sync when connected, otherwise just flash the
+   *  spinner so the gesture feels acknowledged. Sync errors are
+   *  surfaced via the Settings tab's sync button, not here. */
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      if (stravaTokens) {
+        await syncStrava();
+      } else {
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    } catch {
+      /* swallow — surfaced from Settings */
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
@@ -480,7 +503,17 @@ export default function BikeDetailScreen() {
         onHide={() => setShowSuccess(false)}
       />
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={C.accent}
+          />
+        }
+      >
         {/* Back button */}
         <TouchableOpacity
           style={[styles.backBtn, { paddingTop: topInset }]}
