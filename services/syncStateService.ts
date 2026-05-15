@@ -42,8 +42,22 @@ import { db } from '../config/firebase';
  *       attributes against the full bike list (matching the migration
  *       to the kilometre); bumping to 4 forces one clean rebase to
  *       wash out any polluted values from the bad path.
+ *   5 — fix mis-attribution for users whose Strava account has bikes
+ *       not imported into BikeVault. `resolveBikeForActivity` used to
+ *       fall through to defaultActivity matching whenever an activity's
+ *       `gear_id` didn't match any BikeVault bike — sweeping every ride
+ *       on a non-imported Strava bike onto whichever BikeVault bike
+ *       owned the matching sport_type. Symptom: a freshly-imported
+ *       200 km bike reading as ~28 000 km the moment a back-dated
+ *       component was added, because the snapshot path then walked the
+ *       whole Strava history and persisted the inflated total. Resolver
+ *       now returns `null` for gear-tagged rides whose gear isn't in
+ *       BikeVault; bumping to 5 forces one clean rebase so every
+ *       affected bike's `totalDistance` and every active component's
+ *       `installDistance` get recomputed from history under the new
+ *       rules.
  */
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 5;
 
 export interface SyncState {
   /** Unix seconds of the most recent activity we've already imported. */

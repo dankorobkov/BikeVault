@@ -33,16 +33,24 @@ export function isCyclingActivity(activity: StravaActivity): boolean {
 /**
  * Attribute a Strava activity to one of the user's bikes.
  *
- * Two-step resolution:
- *   1. If the activity carries a `gear_id` that matches a bike's
- *      `stravaId`, we trust that match — user explicitly tagged it on
- *      Strava.
- *   2. Otherwise, fall back to the bike whose `defaultActivity` matches
- *      the activity's `sport_type`. The app enforces uniqueness of
- *      `defaultActivity` per user, so this match is deterministic.
+ * Resolution rules:
+ *   1. If the activity carries a `gear_id`:
+ *        - If it matches a BikeVault bike's `stravaId`, attribute the
+ *          ride to that bike — the user explicitly tagged it on Strava.
+ *        - If it does NOT match any BikeVault bike, return `null`. The
+ *          ride is already pinned to a specific Strava bike that the
+ *          user simply hasn't imported here, so it isn't ours to claim.
+ *          Falling through to defaultActivity matching in this case
+ *          would falsely inflate whichever BikeVault bike happens to
+ *          own the activity's sport_type — see the 27,973 km bug.
+ *   2. Otherwise (untagged ride): fall back to the bike whose
+ *      `defaultActivity` matches the activity's `sport_type`. The app
+ *      enforces uniqueness of `defaultActivity` per user, so this match
+ *      is deterministic.
  *
- * Returns `null` when the activity is not cycling, or when no bike owns
- * the activity's sport_type and no gear match is found.
+ * Returns `null` when the activity is not cycling, when the ride is
+ * gear-tagged to a Strava bike not imported into BikeVault, or when no
+ * bike owns the activity's sport_type.
  */
 export function resolveBikeForActivity(
   activity: StravaActivity,
@@ -52,7 +60,10 @@ export function resolveBikeForActivity(
 
   if (activity.gear_id) {
     const gearMatch = bikes.find((b) => b.stravaId === activity.gear_id);
-    if (gearMatch) return gearMatch;
+    // Gear-tagged rides belong to exactly one bike. If that bike isn't
+    // in BikeVault, the ride isn't ours — don't fall through to the
+    // defaultActivity rule, which would mis-attribute it.
+    return gearMatch ?? null;
   }
 
   const activityType = activity.type as StravaActivityType;
