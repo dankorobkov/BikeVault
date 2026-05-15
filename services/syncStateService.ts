@@ -56,8 +56,16 @@ import { db } from '../config/firebase';
  *       affected bike's `totalDistance` and every active component's
  *       `installDistance` get recomputed from history under the new
  *       rules.
+ *   6 — diagnostic-only bump. The v5 release closed the big mis-
+ *       attribution but a follow-up report showed a 4-ride / 177 km
+ *       bike still rendering as 277 km. To get ground truth on what
+ *       activities Strava is returning and where the extra ~100 km is
+ *       coming from, the migration path in this build emits per-bike
+ *       attribution logs (`[DIAG-277]` prefix) on every run. Bumping
+ *       to 6 guarantees one more migration pass after the next deploy
+ *       so the diagnostic actually fires. No behaviour change vs v5.
  */
-export const CURRENT_SCHEMA_VERSION = 5;
+export const CURRENT_SCHEMA_VERSION = 6;
 
 export interface SyncState {
   /** Unix seconds of the most recent activity we've already imported. */

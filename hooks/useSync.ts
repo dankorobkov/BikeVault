@@ -197,17 +197,62 @@ async function runMigration(args: {
 
   const activities = await fetchAllCyclingActivities(accessToken);
 
+  // [DIAG-277] Temporary attribution log: prints how many cycling
+  // activities came back from Strava, which BikeVault bike each one
+  // got attributed to, and the breakdown per bike. Helps pin down
+  // unexpected totals (see the 277 km report). Safe to remove once
+  // the data discrepancy is understood.
+  console.log('[DIAG-277] fetched cycling activities:', activities.length);
+  console.log(
+    '[DIAG-277] bikes in store:',
+    bikes.map((b) => ({
+      id: b.id,
+      name: b.name,
+      stravaId: b.stravaId ?? null,
+      defaultActivity: b.defaultActivity ?? null,
+      currentTotal: b.totalDistance,
+    }))
+  );
+
   // Group activities per attributed bike id (id → activities sorted asc).
   const activitiesByBike = new Map<string, StravaActivity[]>();
+  // [DIAG-277] Also track unattributed activities so we can see what
+  // gear_ids / types are in the wild but not landing on any bike.
+  const unattributed: StravaActivity[] = [];
   for (const a of activities) {
     const bike = resolveBikeForActivity(a, bikes);
-    if (!bike) continue;
+    if (!bike) {
+      unattributed.push(a);
+      continue;
+    }
     const list = activitiesByBike.get(bike.id) ?? [];
     list.push(a);
     activitiesByBike.set(bike.id, list);
   }
   for (const list of activitiesByBike.values()) {
     list.sort((a, b) => activityStartMs(a) - activityStartMs(b));
+  }
+
+  // [DIAG-277] Per-bike attribution dump.
+  for (const bike of bikes) {
+    const list = activitiesByBike.get(bike.id) ?? [];
+    const sumKm = list.reduce((s, a) => s + activityDistanceKm(a), 0);
+    console.log(
+      `[DIAG-277] bike ${bike.name} (${bike.id}) — ${list.length} activities, sum=${sumKm.toFixed(2)} km`
+    );
+    for (const a of list) {
+      console.log(
+        `[DIAG-277]   • id=${a.id} type=${a.type} gear_id=${a.gear_id ?? 'null'} dist=${(a.distance / 1000).toFixed(2)} km start=${a.start_date} name=${JSON.stringify(a.name)}`
+      );
+    }
+  }
+  console.log(
+    `[DIAG-277] unattributed cycling activities: ${unattributed.length}`
+  );
+  for (const a of unattributed.slice(0, 20)) {
+    console.log(
+      `[DIAG-277]   ~ id=${a.id} type=${a.type} gear_id=${a.gear_id ?? 'null'} dist=${(a.distance / 1000).toFixed(2)} km start=${a.start_date}`
+    );
   }
 
   const now = Date.now();
