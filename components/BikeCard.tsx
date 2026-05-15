@@ -33,12 +33,22 @@ export default function BikeCard({ bike, components, onPress }: Props) {
   );
 
   const wornComponents = activeComponents.filter((c) => {
-    const pct = calcWearPercent(bike.totalDistance, c.installDistance, c.maxLifespan);
+    const pct = calcWearPercent(
+      bike.totalDistance,
+      c.installDistance,
+      c.maxLifespan,
+      c.priorWear ?? 0
+    );
     return pct >= 80;
   });
 
   const criticalCount = activeComponents.filter((c) => {
-    const pct = calcWearPercent(bike.totalDistance, c.installDistance, c.maxLifespan);
+    const pct = calcWearPercent(
+      bike.totalDistance,
+      c.installDistance,
+      c.maxLifespan,
+      c.priorWear ?? 0
+    );
     return pct >= 100;
   }).length;
 

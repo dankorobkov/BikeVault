@@ -84,7 +84,12 @@ export default function GarageScreen() {
       if (c.status !== 'active') return false;
       const bike = getBike(c.bikeId);
       if (!bike) return false;
-      const pct = calcWearPercent(bike.totalDistance, c.installDistance, c.maxLifespan);
+      const pct = calcWearPercent(
+        bike.totalDistance,
+        c.installDistance,
+        c.maxLifespan,
+        c.priorWear ?? 0
+      );
       return pct >= 60;
     }
     // 'all': active + in-stock
@@ -107,8 +112,12 @@ export default function GarageScreen() {
       const nameCmp = nameA.localeCompare(nameB);
       if (nameCmp !== 0) return nameCmp;
     }
-    const pctA = bikeA ? calcWearPercent(bikeA.totalDistance, a.installDistance, a.maxLifespan) : 0;
-    const pctB = bikeB ? calcWearPercent(bikeB.totalDistance, b.installDistance, b.maxLifespan) : 0;
+    const pctA = bikeA
+      ? calcWearPercent(bikeA.totalDistance, a.installDistance, a.maxLifespan, a.priorWear ?? 0)
+      : 0;
+    const pctB = bikeB
+      ? calcWearPercent(bikeB.totalDistance, b.installDistance, b.maxLifespan, b.priorWear ?? 0)
+      : 0;
     return pctB - pctA;
   });
 
@@ -116,7 +125,14 @@ export default function GarageScreen() {
     if (c.status !== 'active') return false;
     const bike = getBike(c.bikeId);
     if (!bike) return false;
-    return calcWearPercent(bike.totalDistance, c.installDistance, c.maxLifespan) >= 60;
+    return (
+      calcWearPercent(
+        bike.totalDistance,
+        c.installDistance,
+        c.maxLifespan,
+        c.priorWear ?? 0
+      ) >= 60
+    );
   }).length;
 
   const inStockCount = components.filter((c) => c.status === 'in-stock').length;
@@ -178,8 +194,6 @@ export default function GarageScreen() {
         bike: targetBike,
         allBikes: bikes,
         stravaTokens,
-        rawInstallDistance: updates.installDistance!,
-        staleBikeTotal: targetBike.totalDistance ?? 0,
         installDate: updates.installDate!,
       });
       if (correction.ok) {

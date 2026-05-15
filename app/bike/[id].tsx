@@ -162,20 +162,16 @@ export default function BikeDetailScreen() {
    * Run the shared back-date correction against this bike. We pass the
    * full `bikes` array down so attribution matches the migration
    * (gear-tagged rides go to their real owner, no falling-through to
-   * defaultActivity on the wrong bike).
+   * defaultActivity on the wrong bike). priorWear is preserved by the
+   * caller as its own field, so it isn't part of this call.
    */
-  const runBackdateCorrection = async (
-    rawInstallDistance: number,
-    installDate: number
-  ) => {
+  const runBackdateCorrection = async (installDate: number) => {
     if (!userId) return { ok: false as const };
     return correctBackdatedInstall({
       userId,
       bike,
       allBikes: bikes,
       stravaTokens,
-      rawInstallDistance,
-      staleBikeTotal: bike?.totalDistance ?? 0,
       installDate,
     });
   };
@@ -186,6 +182,7 @@ export default function BikeDetailScreen() {
     brand: string;
     installDate: number;
     installDistance: number;
+    priorWear?: number;
     maxLifespan: number;
     attentionFrequency?: number;
     notes: string;
@@ -198,14 +195,11 @@ export default function BikeDetailScreen() {
     weight?: number;
   }) => {
     if (!userId) return;
-    // When installDate is back-dated, derive install + total from the
-    // full activity history so "Already ridden" matches the km ridden
-    // since the part went on. Falls back to the modal's value when
-    // Strava can't be queried.
-    const correction = await runBackdateCorrection(
-      data.installDistance,
-      data.installDate
-    );
+    // When installDate is back-dated, derive the install anchor from
+    // the full activity history so "km on this bike since install"
+    // matches reality. Falls back to the modal's value when Strava
+    // can't be queried. priorWear is forwarded separately, untouched.
+    const correction = await runBackdateCorrection(data.installDate);
     const correctedInstallDistance = correction.ok
       ? correction.installDistance
       : data.installDistance;
@@ -224,6 +218,11 @@ export default function BikeDetailScreen() {
       brand: data.brand || undefined,
       installDate: data.installDate,
       installDistance: correctedInstallDistance,
+      // priorWear is independent of installDistance — forward the
+      // user's input untouched. The back-date snapshot only adjusts
+      // the install anchor (when the bike's odometer was at that
+      // date), not the part's pre-BikeVault history.
+      priorWear: data.priorWear,
       maxLifespan: data.maxLifespan,
       attentionFrequency: data.attentionFrequency,
       status: 'active',
@@ -252,6 +251,7 @@ export default function BikeDetailScreen() {
     brand: string;
     installDate: number;
     installDistance: number;
+    priorWear?: number;
     maxLifespan: number;
     attentionFrequency?: number;
     notes: string;
@@ -313,10 +313,7 @@ export default function BikeDetailScreen() {
       updates.installDate !== undefined &&
       (updates.bikeId === undefined || updates.bikeId === id);
     if (stayingOnThisBike) {
-      const correction = await runBackdateCorrection(
-        updates.installDistance!,
-        updates.installDate!
-      );
+      const correction = await runBackdateCorrection(updates.installDate!);
       if (correction.ok && bike) {
         await applyBikeTotalSnapshot({
           userId,

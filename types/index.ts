@@ -281,6 +281,19 @@ export interface BikeComponent {
   brand?: string;
   installDate: number; // timestamp ms
   installDistance: number; // bike's total km when installed (0 if in stock)
+  /**
+   * Kilometres this component had already been ridden BEFORE it was
+   * tracked in BikeVault — e.g. a used cassette bought with 3 000 km
+   * on it, or a part migrated over from another bike. Stored as its
+   * own column (rather than implicit in `installDistance =
+   * bike.totalDistance − prior`) so migrations that rebase
+   * `installDistance` from the activity timeline can't silently
+   * destroy it. Optional — missing means 0.
+   *
+   * Displayed wear math:
+   *   ridden = max(0, bike.totalDistance − installDistance) + priorWear
+   */
+  priorWear?: number;
   maxLifespan: number; // km
   attentionFrequency?: number; // km between maintenance events (e.g. chain lube)
   status: ComponentStatus; // 'active' | 'in-stock' | 'retired'
@@ -362,21 +375,43 @@ export function getWearLevel(percent: number): WearLevel {
   return 'good';
 }
 
+/**
+ * How many km this component has been ridden in total. Combines wear
+ * accrued on the current bike since install with any `priorWear` carried
+ * forward from before BikeVault tracked the part.
+ *
+ * Why the `max(0, ...)` floor on the bike-side term: `installDistance`
+ * can legitimately exceed `bike.totalDistance` for in-stock parts (no
+ * install yet) or moments right after a bike-total recompute. Without
+ * the floor, those cases would subtract a negative back into the
+ * formula. We want them to read as "0 km on this bike", not "negative
+ * km offsetting priorWear".
+ */
+export function calcRiddenKm(
+  bikeDistance: number,
+  installDistance: number,
+  priorWear: number = 0
+): number {
+  return Math.max(0, bikeDistance - installDistance) + Math.max(0, priorWear);
+}
+
 export function calcWearPercent(
   bikeDistance: number,
   installDistance: number,
-  maxLifespan: number
+  maxLifespan: number,
+  priorWear: number = 0
 ): number {
-  const ridden = Math.max(0, bikeDistance - installDistance);
+  const ridden = calcRiddenKm(bikeDistance, installDistance, priorWear);
   return Math.min(Math.round((ridden / maxLifespan) * 100), 120);
 }
 
 export function calcRemainingKm(
   bikeDistance: number,
   installDistance: number,
-  maxLifespan: number
+  maxLifespan: number,
+  priorWear: number = 0
 ): number {
-  const ridden = Math.max(0, bikeDistance - installDistance);
+  const ridden = calcRiddenKm(bikeDistance, installDistance, priorWear);
   return Math.max(0, maxLifespan - ridden);
 }
 

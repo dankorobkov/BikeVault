@@ -40,6 +40,12 @@ interface Props {
     brand: string;
     installDate: number;
     installDistance: number;
+    /**
+     * Prior km from before BikeVault tracked this part. Stored on the
+     * component as its own field; the caller forwards it untouched.
+     * 0 / undefined / missing all mean "no prior wear".
+     */
+    priorWear?: number;
     maxLifespan: number;
     attentionFrequency?: number;
     notes: string;
@@ -140,19 +146,21 @@ export default function AddComponentModal({
     if (!name.trim()) return;
     setSaving(true);
     try {
-      // Convert "km already ridden on this part" → install-time odometer
-      // reading. Negative results (a used part with more wear than the
-      // bike has total km, e.g. migrated from another bike) are fine —
-      // calcWearPercent clamps ridden with Math.max(0, ...) on the
-      // other side, and the stored value is just an arithmetic anchor.
-      const prior = parseNum(priorDistance);
-      const installDistance = inStockMode ? 0 : bikeDistance - prior;
+      // installDistance is the bike's odometer reading at install time
+      // (the anchor we measure "km on this bike since install" from).
+      // priorWear is the pre-BikeVault history; it's its own field now,
+      // so the two are independent rather than encoded as a single
+      // installDistance = bike − prior delta (which previous migrations
+      // could silently destroy).
+      const prior = Math.max(0, parseNum(priorDistance));
+      const installDistance = inStockMode ? 0 : bikeDistance;
       await onAdd({
         name: name.trim(),
         category,
         brand: brand.trim(),
         installDate,
         installDistance,
+        priorWear: prior > 0 ? prior : undefined,
         maxLifespan: parseNum(maxLifespan) || typeInfo.defaultLifespan,
         attentionFrequency: attentionFreq ? parseNum(attentionFreq) : undefined,
         notes: notes.trim(),

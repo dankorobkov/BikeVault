@@ -62,10 +62,20 @@ export default function ComponentCard({
   const isRetired = component.status === 'retired';
 
   const percent = isActive
-    ? calcWearPercent(bikeDistance, component.installDistance, component.maxLifespan)
+    ? calcWearPercent(
+        bikeDistance,
+        component.installDistance,
+        component.maxLifespan,
+        component.priorWear ?? 0
+      )
     : 0;
   const remaining = isActive
-    ? calcRemainingKm(bikeDistance, component.installDistance, component.maxLifespan)
+    ? calcRemainingKm(
+        bikeDistance,
+        component.installDistance,
+        component.maxLifespan,
+        component.priorWear ?? 0
+      )
     : 0;
   const level = getWearLevel(percent);
 

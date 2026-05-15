@@ -77,8 +77,23 @@ import { db } from '../config/firebase';
  *       pass so every affected bike's `totalDistance` and active
  *       components' `installDistance` rebase under the date-bounded
  *       rule.
+ *   8 — close the priorWear data-loss class. Before this version,
+ *       "Already ridden = P km" was encoded implicitly as
+ *       `installDistance = bike.totalDistance − P`. Every migration
+ *       that rebased installDistance from the activity timeline (v2
+ *       onward) silently destroyed P. priorWear is now its own column;
+ *       migrations rebase installDistance freely but never touch
+ *       priorWear after it's been set. The v8 pass also attempts a
+ *       one-time recovery for pre-existing components using
+ *       `priorWear = max(0, oldRidden − newRidesSinceInstall)`. The
+ *       formula is exact when the old "ridden" value was still
+ *       correct in storage, and under-recovers (drops to 0) when an
+ *       earlier buggy migration had already wiped the implicit
+ *       prior. Components recovering to 0 may need manual re-entry
+ *       via Edit Component; no future migration can lose the value
+ *       again.
  */
-export const CURRENT_SCHEMA_VERSION = 7;
+export const CURRENT_SCHEMA_VERSION = 8;
 
 export interface SyncState {
   /** Unix seconds of the most recent activity we've already imported. */

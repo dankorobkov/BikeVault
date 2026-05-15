@@ -156,7 +156,12 @@ function scanComponentForBike(
 
   // ── Wear (critical / overdue) ──────────────────────────────────────────
   if (prefs.componentWear) {
-    const ridden = Math.max(0, bike.totalDistance - component.installDistance);
+    // Same formula as types/calcRiddenKm — kept local to avoid pulling
+    // a UI helper into the notification scheduler. priorWear is treated
+    // as 0 when missing, matching the renderer.
+    const ridden =
+      Math.max(0, bike.totalDistance - component.installDistance) +
+      Math.max(0, component.priorWear ?? 0);
     const wearPct = (ridden / component.maxLifespan) * 100;
     if (wearPct >= 100) {
       fire(
