@@ -19,6 +19,29 @@
         "source": "**",
         "destination": "/index.html"
       }
+    ],
+    "headers": [
+      {
+        "//": "HTML entry points must NEVER cache. They reference the JS bundle by a hashed filename; if the HTML is cached the browser keeps loading an old bundle hash even after a redeploy. This is what was making the latest test deploys appear to do nothing on mobile.",
+        "source": "**/*.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "//": "Hashed static assets (Expo emits filenames like entry-<32-char-hash>.js for every build) are safe to cache forever — any code change rotates the filename, so a cached old version can never be served against new HTML.",
+        "source": "/_expo/static/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      },
+      {
+        "//": "Manifest, icons, fonts — change rarely but should pick up within a day when they do.",
+        "source": "**/*.@(json|ico|png|jpg|jpeg|svg|webp|woff|woff2)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=86400" }
+        ]
+      }
     ]
   }
 }
