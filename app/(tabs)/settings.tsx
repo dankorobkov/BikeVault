@@ -510,7 +510,12 @@ export default function SettingsScreen() {
                   <TouchableOpacity style={styles.row} onPress={handleSync} disabled={isSyncing}>
                     <View style={styles.rowLeft}>
                       <Ionicons name="sync-outline" size={20} color={C.accent} />
-                      <View>
+                      {/* `rowTextCol` (flex: 1) is required so the
+                          "Last synced …" subtitle wraps within the
+                          row width instead of bleeding under the
+                          trailing chevron — long form is e.g.
+                          "Last synced 2 hours ago · 13 May 2026, 19:47". */}
+                      <View style={styles.rowTextCol}>
                         <Text style={styles.rowTitle}>Sync Activities</Text>
                         <Text style={styles.rowSub}>
                           {lastSyncAt
