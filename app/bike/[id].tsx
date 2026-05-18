@@ -2,14 +2,13 @@ import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   TextInput,
   Modal,
   ActivityIndicator,
-  RefreshControl,
 } from 'react-native';
+import RefreshableScrollView from '../../components/RefreshableScrollView';
 import { dialog } from '../../components/AppDialog';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -503,16 +502,12 @@ export default function BikeDetailScreen() {
         onHide={() => setShowSuccess(false)}
       />
 
-      <ScrollView
+      <RefreshableScrollView
         style={{ flex: 1 }}
         contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={C.accent}
-          />
-        }
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor={C.accent}
       >
         {/* Back button */}
         <TouchableOpacity
@@ -751,7 +746,7 @@ export default function BikeDetailScreen() {
             ))
           )}
         </View>
-      </ScrollView>
+      </RefreshableScrollView>
 
       <AppTabBar active="bikes" />
 

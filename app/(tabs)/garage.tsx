@@ -7,8 +7,8 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  RefreshControl,
 } from 'react-native';
+import RefreshableScrollView from '../../components/RefreshableScrollView';
 import { useTopInset } from '../../hooks/useTopInset';
 import { Ionicons } from '@expo/vector-icons';
 import BikeIcon from '../../components/BikeIcon';
@@ -408,15 +408,11 @@ export default function GarageScreen() {
         </View>
       )}
 
-      <ScrollView
+      <RefreshableScrollView
         contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={C.accent}
-          />
-        }
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor={C.accent}
       >
         {sorted.length === 0 ? (
           isDataLoading ? (
@@ -485,7 +481,7 @@ export default function GarageScreen() {
             );
           })
         )}
-      </ScrollView>
+      </RefreshableScrollView>
 
       <AddComponentModal
         visible={showAddStock}

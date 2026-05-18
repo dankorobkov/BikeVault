@@ -2,12 +2,11 @@ import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
-  RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import RefreshableScrollView from '../../components/RefreshableScrollView';
 import { useTopInset } from '../../hooks/useTopInset';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../../store/useAppStore';
@@ -138,15 +137,11 @@ export default function BikesScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <RefreshableScrollView
         contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={C.accent}
-          />
-        }
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor={C.accent}
       >
         {bikes.length === 0 ? (
           isDataLoading ? (
@@ -172,7 +167,7 @@ export default function BikesScreen() {
             />
           ))
         )}
-      </ScrollView>
+      </RefreshableScrollView>
 
       <AddBikeModal
         visible={showAdd}
