@@ -341,42 +341,69 @@ export default function AddComponentModal({
                 <View style={styles.inputDivider} />
                 {!inStockMode && (
                   <>
-                    <View style={styles.inputWithUnit}>
+                    {/* Switched from full-width placeholder-as-description
+                        to a labelled row: typing into a numeric field used
+                        to swallow the description (placeholder hides as
+                        soon as input is non-empty), leaving users without
+                        context for what they're entering. The label stays
+                        visible on the left, number right-aligns. */}
+                    <View style={styles.labeledRow}>
+                      <View style={styles.labelCol}>
+                        <Text style={styles.fieldLabel}>Already ridden</Text>
+                        <Text style={styles.fieldSub}>
+                          Leave blank if brand new
+                        </Text>
+                      </View>
                       <TextInput
-                        style={[styles.input, { flex: 1 }]}
-                        placeholder="Already ridden on this part — leave blank if brand new"
+                        style={styles.inlineInput}
+                        placeholder="0"
                         placeholderTextColor={C.textTertiary}
                         value={priorDistance}
                         onChangeText={setPriorDistance}
                         keyboardType="numeric"
+                        textAlign="right"
                       />
-                      <Text style={styles.unitLabel}>{unit}</Text>
+                      <Text style={styles.unitTag}>{unit}</Text>
                     </View>
                     <View style={styles.inputDivider} />
                   </>
                 )}
-                <View style={styles.inputWithUnit}>
+                <View style={styles.labeledRow}>
+                  <View style={styles.labelCol}>
+                    <Text style={styles.fieldLabel}>Max lifespan</Text>
+                    <Text style={styles.fieldSub}>
+                      Default {formatNumber(typeInfo.defaultLifespan)} {unit}
+                    </Text>
+                  </View>
                   <TextInput
-                    style={[styles.input, { flex: 1 }]}
-                    placeholder={'Max lifespan — default: ' + formatNumber(typeInfo.defaultLifespan)}
+                    style={styles.inlineInput}
+                    placeholder={formatNumber(typeInfo.defaultLifespan)}
                     placeholderTextColor={C.textTertiary}
                     value={maxLifespan}
                     onChangeText={setMaxLifespan}
                     keyboardType="numeric"
+                    textAlign="right"
                   />
-                  <Text style={styles.unitLabel}>{unit}</Text>
+                  <Text style={styles.unitTag}>{unit}</Text>
                 </View>
                 <View style={styles.inputDivider} />
-                <View style={styles.inputWithUnit}>
+                <View style={styles.labeledRow}>
+                  <View style={styles.labelCol}>
+                    <Text style={styles.fieldLabel}>Service every</Text>
+                    <Text style={styles.fieldSub}>
+                      Maintenance reminder interval
+                    </Text>
+                  </View>
                   <TextInput
-                    style={[styles.input, { flex: 1 }]}
-                    placeholder="Service reminder every — e.g. 300"
+                    style={styles.inlineInput}
+                    placeholder="—"
                     placeholderTextColor={C.textTertiary}
                     value={attentionFreq}
                     onChangeText={setAttentionFreq}
                     keyboardType="numeric"
+                    textAlign="right"
                   />
-                  <Text style={styles.unitLabel}>{unit}</Text>
+                  <Text style={styles.unitTag}>{unit}</Text>
                 </View>
               </View>
               {attentionFreq ? (
@@ -590,6 +617,17 @@ const makeStyles = (C: ColorPalette) => StyleSheet.create({
   labelCol: { flex: 1 },
   fieldLabel: { fontSize: 15, fontWeight: '500', color: C.text },
   fieldSub: { fontSize: 12, color: C.textSecondary, marginTop: 1 },
+  // Right-aligned numeric input used inside `labeledRow`. The label stays
+  // visible on the left while the user types — fixes the bug where typing
+  // into a numeric field swallowed the placeholder-encoded description.
+  inlineInput: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: C.accent,
+    minWidth: 60,
+    textAlign: 'right',
+  },
+  unitTag: { fontSize: 13, color: C.textSecondary, fontWeight: '500' },
   input: { paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: C.text },
   unitLabel: {
     fontSize: 14,
