@@ -42,8 +42,58 @@ import { db } from '../config/firebase';
  *       attributes against the full bike list (matching the migration
  *       to the kilometre); bumping to 4 forces one clean rebase to
  *       wash out any polluted values from the bad path.
+ *   5 — fix mis-attribution for users whose Strava account has bikes
+ *       not imported into BikeVault. `resolveBikeForActivity` used to
+ *       fall through to defaultActivity matching whenever an activity's
+ *       `gear_id` didn't match any BikeVault bike — sweeping every ride
+ *       on a non-imported Strava bike onto whichever BikeVault bike
+ *       owned the matching sport_type. Symptom: a freshly-imported
+ *       200 km bike reading as ~28 000 km the moment a back-dated
+ *       component was added, because the snapshot path then walked the
+ *       whole Strava history and persisted the inflated total. Resolver
+ *       now returns `null` for gear-tagged rides whose gear isn't in
+ *       BikeVault; bumping to 5 forces one clean rebase so every
+ *       affected bike's `totalDistance` and every active component's
+ *       `installDistance` get recomputed from history under the new
+ *       rules.
+ *   6 — diagnostic-only bump. The v5 release closed the big mis-
+ *       attribution but a follow-up report showed a 4-ride / 177 km
+ *       bike still rendering as 277 km. To get ground truth on what
+ *       activities Strava is returning and where the extra ~100 km is
+ *       coming from, the migration path in this build emits per-bike
+ *       attribution logs (`[DIAG-277]` prefix) on every run. Bumping
+ *       to 6 guarantees one more migration pass after the next deploy
+ *       so the diagnostic actually fires. No behaviour change vs v5.
+ *   7 — fix the v6-diagnosed leak: untagged old rides being claimed by
+ *       brand-new bikes via the defaultActivity fallback. A user's
+ *       2026 bike was attributing six untagged 2015 "Morning Ride"
+ *       activities (~101 km) on top of its 4 real gear-tagged rides
+ *       (~176 km), reading as 277 km instead of ~177 km. Resolver now
+ *       requires `activity.start_date >= bike.createdAt -
+ *       GRACE` for the defaultActivity fallback, with a small grace
+ *       window for clock drift. Bikes with no recorded `createdAt`
+ *       keep the old "any time" behaviour so legacy bikes don't
+ *       silently lose data. Bumping to 7 forces one more migration
+ *       pass so every affected bike's `totalDistance` and active
+ *       components' `installDistance` rebase under the date-bounded
+ *       rule.
+ *   8 — close the priorWear data-loss class. Before this version,
+ *       "Already ridden = P km" was encoded implicitly as
+ *       `installDistance = bike.totalDistance − P`. Every migration
+ *       that rebased installDistance from the activity timeline (v2
+ *       onward) silently destroyed P. priorWear is now its own column;
+ *       migrations rebase installDistance freely but never touch
+ *       priorWear after it's been set. The v8 pass also attempts a
+ *       one-time recovery for pre-existing components using
+ *       `priorWear = max(0, oldRidden − newRidesSinceInstall)`. The
+ *       formula is exact when the old "ridden" value was still
+ *       correct in storage, and under-recovers (drops to 0) when an
+ *       earlier buggy migration had already wiped the implicit
+ *       prior. Components recovering to 0 may need manual re-entry
+ *       via Edit Component; no future migration can lose the value
+ *       again.
  */
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 8;
 
 export interface SyncState {
   /** Unix seconds of the most recent activity we've already imported. */

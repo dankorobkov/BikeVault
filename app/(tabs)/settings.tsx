@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
   Image,
   ActivityIndicator,
@@ -11,6 +10,7 @@ import {
   Platform,
   Linking,
 } from 'react-native';
+import RefreshableScrollView from '../../components/RefreshableScrollView';
 import { dialog } from '../../components/AppDialog';
 import { useTopInset } from '../../hooks/useTopInset';
 import * as AuthSession from 'expo-auth-session';
@@ -96,6 +96,33 @@ export default function SettingsScreen() {
   const [notifPermission, setNotifPermission] = useState<
     'granted' | 'denied' | 'default' | 'unsupported'
   >(getNotificationPermission());
+  const [refreshing, setRefreshing] = useState(false);
+
+  /**
+   * Pull-to-refresh handler for Settings. Same intent as the explicit
+   * "Sync now" button just below — re-pull from Strava so the last-sync
+   * timestamp and connection state on this page reflect reality. When
+   * Strava isn't connected there's nothing to fetch, so we just flash
+   * the spinner for ~500 ms so the gesture feels acknowledged.
+   *
+   * Errors are silent here on purpose: the Sync button surface owns
+   * the explicit error dialog. Pull-to-refresh should never throw an
+   * alert at the user when they didn't ask for one.
+   */
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      if (stravaTokens) {
+        await syncStrava();
+      } else {
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    } catch {
+      /* surfaced via the Sync button */
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleToggleNotifications = async (v: boolean) => {
     setNotificationPrefs({ enabled: v });
@@ -400,7 +427,12 @@ export default function SettingsScreen() {
         <Text style={styles.title}>Settings</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <RefreshableScrollView
+        contentContainerStyle={styles.content}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor={C.accent}
+      >
 
         {/* Account section */}
         <View style={styles.section}>
@@ -478,7 +510,12 @@ export default function SettingsScreen() {
                   <TouchableOpacity style={styles.row} onPress={handleSync} disabled={isSyncing}>
                     <View style={styles.rowLeft}>
                       <Ionicons name="sync-outline" size={20} color={C.accent} />
-                      <View>
+                      {/* `rowTextCol` (flex: 1) is required so the
+                          "Last synced …" subtitle wraps within the
+                          row width instead of bleeding under the
+                          trailing chevron — long form is e.g.
+                          "Last synced 2 hours ago · 13 May 2026, 19:47". */}
+                      <View style={styles.rowTextCol}>
                         <Text style={styles.rowTitle}>Sync Activities</Text>
                         <Text style={styles.rowSub}>
                           {lastSyncAt
@@ -964,7 +1001,7 @@ export default function SettingsScreen() {
             </Text>
           </View>
         )}
-      </ScrollView>
+      </RefreshableScrollView>
     </View>
   );
 }

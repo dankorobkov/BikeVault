@@ -65,10 +65,11 @@ export default function EditComponentModal({
   const [weight, setWeight] = useState('');
   const [maxLifespan, setMaxLifespan] = useState('');
   const [attentionFreq, setAttentionFreq] = useState('');
-  // Distance already ridden on this part. Internally this corresponds
-  // to (bikeDistance - installDistance). Reframing as "prior distance"
-  // matches how riders think about used parts and avoids the footgun
-  // of entering the bike's odometer when they meant the part's wear.
+  // Distance the part has been ridden BEFORE BikeVault tracked it.
+  // Stored on the component as its own field (`priorWear`); the modal
+  // surfaces it as a plain number. Pre-v8 documents without that field
+  // get a one-shot seed below from (bikeDistance − installDistance) so
+  // the legacy implicit encoding still presents sensibly.
   const [priorDistance, setPriorDistance] = useState('');
   const [isElectric, setIsElectric] = useState(false);
   const [chargeInterval, setChargeInterval] = useState('');
@@ -97,13 +98,20 @@ export default function EditComponentModal({
       setWeight(typeof component.weight === 'number' ? String(component.weight) : '');
       setMaxLifespan(formatNumber(component.maxLifespan));
       setAttentionFreq(component.attentionFrequency ? formatNumber(component.attentionFrequency) : '');
-      // Seed priorDistance from the current (bikeDistance - installDistance)
-      // so the user sees "X km already ridden" rather than a raw odometer.
-      // For in-stock / retired parts with no current bike, fall back to 0.
-      const currentBike = bikes.find((b) => b.id === component.bikeId);
-      const bikeKm = currentBike?.totalDistance ?? 0;
-      const prior = Math.max(0, bikeKm - component.installDistance);
-      setPriorDistance(prior > 0 ? formatNumber(prior) : '');
+      // Seed priorDistance from the explicit priorWear field when set
+      // (v8+ docs). For legacy components without it, fall back to the
+      // old implicit encoding (bikeDistance − installDistance) so users
+      // editing pre-v8 parts before the migration has run still see a
+      // sensible number. In-stock / retired parts with no current bike
+      // just show empty.
+      if (typeof component.priorWear === 'number' && component.priorWear > 0) {
+        setPriorDistance(formatNumber(component.priorWear));
+      } else {
+        const currentBike = bikes.find((b) => b.id === component.bikeId);
+        const bikeKm = currentBike?.totalDistance ?? 0;
+        const legacyPrior = Math.max(0, bikeKm - component.installDistance);
+        setPriorDistance(legacyPrior > 0 ? formatNumber(legacyPrior) : '');
+      }
       setIsElectric(component.isElectric ?? false);
       setChargeInterval(component.chargeIntervalDays ? String(component.chargeIntervalDays) : '');
       setSelectedBikeId(component.bikeId);
@@ -144,14 +152,14 @@ export default function EditComponentModal({
     if (!name.trim()) return;
     setSaving(true);
     try {
-      // Convert priorDistance → installDistance relative to whatever bike
-      // the component is (now) assigned to. If it's going to stock we
-      // just zero it out — stock parts have no install anchor.
-      const prior = parseNum(priorDistance);
+      // installDistance is the bike's odometer at install time (the
+      // anchor for "km on this bike since install"). priorWear is a
+      // separate, independent number that's preserved across every
+      // migration. Stock parts have no install anchor.
+      const prior = Math.max(0, parseNum(priorDistance));
       const targetBike = bikes.find((b) => b.id === selectedBikeId);
       const targetBikeKm = targetBike?.totalDistance ?? 0;
-      const nextInstallDistance =
-        selectedBikeId === null ? 0 : targetBikeKm - prior;
+      const nextInstallDistance = selectedBikeId === null ? 0 : targetBikeKm;
 
       // Weight: empty input means "clear". `updateComponent` strips
       // `undefined`, so setting it to `undefined` here leaves the
@@ -179,6 +187,16 @@ export default function EditComponentModal({
             : undefined,
         updatedAt: Date.now(),
       };
+      // priorWear is a first-class column now. Writing > 0 sets it;
+      // writing the null sentinel clears it (same trick used for
+      // weight/lubeType further down). Skipping the property leaves
+      // the existing value untouched, which matters when nothing in
+      // the prior-distance input has changed.
+      if (prior > 0) {
+        updates.priorWear = prior;
+      } else if (typeof component.priorWear === 'number' && component.priorWear > 0) {
+        (updates as Record<string, unknown>).priorWear = null;
+      }
       // Apply the weight write — `null` clears it server-side, a
       // positive number sets it. Skipping the property entirely keeps
       // the existing value (which is what we want when the input

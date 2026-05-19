@@ -40,6 +40,10 @@ function fromFirestore(d: { id: string; data: () => Record<string, unknown> }): 
         ? data.installDate.toMillis()
         : (data.installDate as number) ?? Date.now(),
     installDistance: (data.installDistance as number) ?? 0,
+    // Pre-v8 component docs don't have this column — treat missing as
+    // "no prior wear" so legacy reads still produce sensible totals.
+    // The v8 migration backfills a recovered value where possible.
+    priorWear: (data.priorWear as number) ?? undefined,
     maxLifespan: (data.maxLifespan as number) ?? 5000,
     attentionFrequency: (data.attentionFrequency as number) ?? undefined,
     status: (data.status as ComponentStatus) ?? 'active',
@@ -112,6 +116,14 @@ export async function addComponent(
   if (component.brand) data.brand = component.brand;
   if (component.notes) data.notes = component.notes;
   if (component.attentionFrequency) data.attentionFrequency = component.attentionFrequency;
+  // Persist priorWear when the user entered a non-zero value. Zero is
+  // the default semantic ("no prior wear"), and writing it explicitly
+  // would waste a field on every doc — readers already coalesce
+  // missing -> 0. Negative values are rejected at the caller (modals
+  // clamp parseNum >= 0) but we guard here too for safety.
+  if (typeof component.priorWear === 'number' && component.priorWear > 0) {
+    data.priorWear = component.priorWear;
+  }
   if (component.lastCharged) data.lastCharged = component.lastCharged;
   if (component.chargeIntervalDays) data.chargeIntervalDays = component.chargeIntervalDays;
   if (component.lubeType) data.lubeType = component.lubeType;

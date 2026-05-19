@@ -40,6 +40,12 @@ interface Props {
     brand: string;
     installDate: number;
     installDistance: number;
+    /**
+     * Prior km from before BikeVault tracked this part. Stored on the
+     * component as its own field; the caller forwards it untouched.
+     * 0 / undefined / missing all mean "no prior wear".
+     */
+    priorWear?: number;
     maxLifespan: number;
     attentionFrequency?: number;
     notes: string;
@@ -140,19 +146,21 @@ export default function AddComponentModal({
     if (!name.trim()) return;
     setSaving(true);
     try {
-      // Convert "km already ridden on this part" → install-time odometer
-      // reading. Negative results (a used part with more wear than the
-      // bike has total km, e.g. migrated from another bike) are fine —
-      // calcWearPercent clamps ridden with Math.max(0, ...) on the
-      // other side, and the stored value is just an arithmetic anchor.
-      const prior = parseNum(priorDistance);
-      const installDistance = inStockMode ? 0 : bikeDistance - prior;
+      // installDistance is the bike's odometer reading at install time
+      // (the anchor we measure "km on this bike since install" from).
+      // priorWear is the pre-BikeVault history; it's its own field now,
+      // so the two are independent rather than encoded as a single
+      // installDistance = bike − prior delta (which previous migrations
+      // could silently destroy).
+      const prior = Math.max(0, parseNum(priorDistance));
+      const installDistance = inStockMode ? 0 : bikeDistance;
       await onAdd({
         name: name.trim(),
         category,
         brand: brand.trim(),
         installDate,
         installDistance,
+        priorWear: prior > 0 ? prior : undefined,
         maxLifespan: parseNum(maxLifespan) || typeInfo.defaultLifespan,
         attentionFrequency: attentionFreq ? parseNum(attentionFreq) : undefined,
         notes: notes.trim(),
@@ -333,42 +341,69 @@ export default function AddComponentModal({
                 <View style={styles.inputDivider} />
                 {!inStockMode && (
                   <>
-                    <View style={styles.inputWithUnit}>
+                    {/* Switched from full-width placeholder-as-description
+                        to a labelled row: typing into a numeric field used
+                        to swallow the description (placeholder hides as
+                        soon as input is non-empty), leaving users without
+                        context for what they're entering. The label stays
+                        visible on the left, number right-aligns. */}
+                    <View style={styles.labeledRow}>
+                      <View style={styles.labelCol}>
+                        <Text style={styles.fieldLabel}>Already ridden</Text>
+                        <Text style={styles.fieldSub}>
+                          Leave blank if brand new
+                        </Text>
+                      </View>
                       <TextInput
-                        style={[styles.input, { flex: 1 }]}
-                        placeholder="Already ridden on this part — leave blank if brand new"
+                        style={styles.inlineInput}
+                        placeholder="0"
                         placeholderTextColor={C.textTertiary}
                         value={priorDistance}
                         onChangeText={setPriorDistance}
                         keyboardType="numeric"
+                        textAlign="right"
                       />
-                      <Text style={styles.unitLabel}>{unit}</Text>
+                      <Text style={styles.unitTag}>{unit}</Text>
                     </View>
                     <View style={styles.inputDivider} />
                   </>
                 )}
-                <View style={styles.inputWithUnit}>
+                <View style={styles.labeledRow}>
+                  <View style={styles.labelCol}>
+                    <Text style={styles.fieldLabel}>Max lifespan</Text>
+                    <Text style={styles.fieldSub}>
+                      Default {formatNumber(typeInfo.defaultLifespan)} {unit}
+                    </Text>
+                  </View>
                   <TextInput
-                    style={[styles.input, { flex: 1 }]}
-                    placeholder={'Max lifespan — default: ' + formatNumber(typeInfo.defaultLifespan)}
+                    style={styles.inlineInput}
+                    placeholder={formatNumber(typeInfo.defaultLifespan)}
                     placeholderTextColor={C.textTertiary}
                     value={maxLifespan}
                     onChangeText={setMaxLifespan}
                     keyboardType="numeric"
+                    textAlign="right"
                   />
-                  <Text style={styles.unitLabel}>{unit}</Text>
+                  <Text style={styles.unitTag}>{unit}</Text>
                 </View>
                 <View style={styles.inputDivider} />
-                <View style={styles.inputWithUnit}>
+                <View style={styles.labeledRow}>
+                  <View style={styles.labelCol}>
+                    <Text style={styles.fieldLabel}>Service every</Text>
+                    <Text style={styles.fieldSub}>
+                      Maintenance reminder interval
+                    </Text>
+                  </View>
                   <TextInput
-                    style={[styles.input, { flex: 1 }]}
-                    placeholder="Service reminder every — e.g. 300"
+                    style={styles.inlineInput}
+                    placeholder="—"
                     placeholderTextColor={C.textTertiary}
                     value={attentionFreq}
                     onChangeText={setAttentionFreq}
                     keyboardType="numeric"
+                    textAlign="right"
                   />
-                  <Text style={styles.unitLabel}>{unit}</Text>
+                  <Text style={styles.unitTag}>{unit}</Text>
                 </View>
               </View>
               {attentionFreq ? (
@@ -582,6 +617,17 @@ const makeStyles = (C: ColorPalette) => StyleSheet.create({
   labelCol: { flex: 1 },
   fieldLabel: { fontSize: 15, fontWeight: '500', color: C.text },
   fieldSub: { fontSize: 12, color: C.textSecondary, marginTop: 1 },
+  // Right-aligned numeric input used inside `labeledRow`. The label stays
+  // visible on the left while the user types — fixes the bug where typing
+  // into a numeric field swallowed the placeholder-encoded description.
+  inlineInput: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: C.accent,
+    minWidth: 60,
+    textAlign: 'right',
+  },
+  unitTag: { fontSize: 13, color: C.textSecondary, fontWeight: '500' },
   input: { paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: C.text },
   unitLabel: {
     fontSize: 14,

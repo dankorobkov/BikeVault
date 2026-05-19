@@ -7,26 +7,30 @@ import { updateBike } from './bikesService';
 import type { Bike, StravaTokens } from '../types';
 
 /**
- * The modal computes `installDistance = currentBikeKm − priorRiddenKm`,
- * which is correct when installDate = "now" but wrong as soon as the
- * user back-dates it: any rides between `installDate` and today are
- * already baked into `currentBikeKm`, so "Already ridden" comes out as
- * just `priorRiddenKm` instead of `priorRiddenKm + km-since-install`.
+ * When the user back-dates an install, the modal's `installDistance =
+ * currentBikeKm` is wrong: the rides between `installDate` and today
+ * are already part of `currentBikeKm`, so they'd disappear from the
+ * "km on this bike since install" computation (since install is
+ * anchored to a value newer than installDate).
  *
- * `correctBackdatedInstall` re-derives the correct `installDistance`
- * (and the bike's true `totalDistance`) from a single pass over the
- * full Strava activity history, attributed against the user's whole
- * bike list — same rules as `useSync.runMigration` so create/edit and
- * the next sync can't disagree.
+ * `correctBackdatedInstall` re-derives the correct anchor — the bike's
+ * odometer reading at `installDate` — from a single pass over the full
+ * Strava activity history, attributed against the user's whole bike
+ * list (same rules as `useSync.runMigration`).
+ *
+ * As of v8, `priorWear` is its own column on the component and is
+ * forwarded untouched by the caller — this function only deals with the
+ * install anchor and the bike's current total. It no longer needs to
+ * subtract a recovered "prior" out of the snapshot, which simplifies
+ * the math considerably and removes a class of off-by-prior bugs in
+ * the add/edit flow.
  *
  * Output:
- *   installDistance     = (sum of cycling km on this bike with
- *                          start_date < installDate) − priorRiddenKm
+ *   installDistance     = sum of cycling km on this bike with
+ *                          start_date < installDate (bike's true
+ *                          odometer at install)
  *   bikeTotalDistance   = sum of cycling km on this bike across the
  *                          full history
- *
- * With those, `ridden = bikeTotal − install = priorRiddenKm + (km on
- * this bike since installDate)`, which is exactly what the UI claims.
  *
  * Returns `{ ok: false }` on any failure (no Strava, install date
  * basically "now", network error, …) so callers fall back to the
@@ -58,10 +62,6 @@ export interface BackdateCorrectionInput {
    */
   allBikes: Bike[];
   stravaTokens: StravaTokens | null;
-  /** The modal's pre-correction `installDistance`. */
-  rawInstallDistance: number;
-  /** The bike total at the moment Save was tapped. */
-  staleBikeTotal: number;
   /** Selected install date in unix ms. */
   installDate: number;
 }
@@ -69,24 +69,10 @@ export interface BackdateCorrectionInput {
 export async function correctBackdatedInstall(
   input: BackdateCorrectionInput
 ): Promise<BackdateCorrection> {
-  const {
-    userId,
-    bike,
-    allBikes,
-    stravaTokens,
-    rawInstallDistance,
-    staleBikeTotal,
-    installDate,
-  } = input;
+  const { userId, bike, allBikes, stravaTokens, installDate } = input;
 
   if (!bike || !stravaTokens) return { ok: false };
   if (Date.now() - installDate < BACKDATE_THRESHOLD_MS) return { ok: false };
-
-  // Recover the user's "Already ridden" input from the modal's
-  // formula `installDistance = bikeKm - prior`. We re-add it after
-  // resolving the bike's odometer at installDate so the part keeps
-  // its declared prior wear.
-  const prior = Math.max(0, staleBikeTotal - rawInstallDistance);
 
   let accessToken: string;
   try {
@@ -109,9 +95,10 @@ export async function correctBackdatedInstall(
 
   return {
     ok: true,
-    // Floor at 0 — a part installed before the user's earliest tracked
-    // ride should never read as "negative wear".
-    installDistance: Math.max(0, snap.installDistance - prior),
+    // Install anchor = bike's odometer reading at installDate. priorWear
+    // is the caller's responsibility — it's its own column now, not
+    // baked into this number.
+    installDistance: snap.installDistance,
     bikeTotalDistance: snap.totalDistance,
   };
 }

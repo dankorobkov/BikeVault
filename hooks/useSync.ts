@@ -226,6 +226,13 @@ async function runMigration(args: {
     );
 
     if (activeOnBike.length > 0) {
+      // Capture the bike's pre-migration total. Legacy `priorWear`
+      // recovery needs the "currently displayed ridden" value, which
+      // depends on the bike total as it stood BEFORE we rewrite it
+      // further down. Reading from the stored `bike` object is safe
+      // here — we haven't called updateBike for this bike yet.
+      const oldBikeTotal = bike.totalDistance ?? 0;
+
       for (const c of activeOnBike) {
         let cumulativeBeforeInstall = 0;
         for (const a of bikeActivities) {
@@ -233,15 +240,44 @@ async function runMigration(args: {
           cumulativeBeforeInstall += activityDistanceKm(a);
         }
         const newInstall = Math.round(cumulativeBeforeInstall);
+
+        // priorWear is preserved across every migration. We only touch
+        // it once — for pre-v8 components that don't have the column
+        // yet — to recover the user's original "Already ridden" input
+        // from the implicit encoding the old code used.
+        //
+        // Recovery formula:
+        //   oldRidden               = oldBikeTotal − oldInstallDistance
+        //   newRidesSinceInstall    = newBikeTotal − newCumulativeBeforeInstall
+        //   priorWear_recovered     = max(0, oldRidden − newRidesSinceInstall)
+        //
+        // This is exact when the old bike total was correct under the
+        // old attribution rules; it under-recovers (drops to 0) when
+        // an earlier buggy migration had already zeroed out the
+        // implicit prior delta (e.g. components installed "today" got
+        // installDistance = bike.totalDistance during the v5/v6/v7
+        // rebases, which destroyed the recoverable signal).
+        const updates: Partial<BikeComponent> = {};
+        let touched = false;
+        if (c.priorWear === undefined) {
+          const oldRidden = Math.max(0, oldBikeTotal - c.installDistance);
+          const newRidesSinceInstall = Math.max(0, newTotal - newInstall);
+          const recovered = Math.max(0, Math.round(oldRidden - newRidesSinceInstall));
+          if (recovered > 0) {
+            updates.priorWear = recovered;
+            touched = true;
+          }
+        }
         if (newInstall !== c.installDistance) {
+          updates.installDistance = newInstall;
+          touched = true;
+        }
+        if (touched) {
           try {
-            await updateComponent(userId, c.id, { installDistance: newInstall });
-            updateComponentLocal(c.id, {
-              installDistance: newInstall,
-              updatedAt: now,
-            });
+            await updateComponent(userId, c.id, updates);
+            updateComponentLocal(c.id, { ...updates, updatedAt: now });
           } catch (e) {
-            console.warn('Component install rebase failed:', c.id, e);
+            console.warn('Component rebase failed:', c.id, e);
           }
         }
       }

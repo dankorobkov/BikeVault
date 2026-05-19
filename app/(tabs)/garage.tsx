@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import RefreshableScrollView from '../../components/RefreshableScrollView';
 import { useTopInset } from '../../hooks/useTopInset';
 import { Ionicons } from '@expo/vector-icons';
 import BikeIcon from '../../components/BikeIcon';
@@ -24,6 +25,7 @@ import {
   correctBackdatedInstall,
   applyBikeTotalSnapshot,
 } from '../../services/backdateCorrection';
+import { useSync } from '../../hooks/useSync';
 import { Analytics } from '../../services/analytics';
 import { useThemeColors } from '../../theme/ThemeProvider';
 import type { ColorPalette } from '../../constants/colors';
@@ -67,6 +69,26 @@ export default function GarageScreen() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [successName, setSuccessName] = useState('');
   const [editingComponent, setEditingComponent] = useState<BikeComponent | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const { syncStrava } = useSync();
+
+  /** Pull-to-refresh — same behaviour as the Bikes tab: trigger a
+   *  Strava sync when connected, otherwise just flash the spinner so
+   *  the gesture feels acknowledged. */
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      if (stravaTokens) {
+        await syncStrava();
+      } else {
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    } catch {
+      /* Errors are surfaced from the Settings sync button instead. */
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const getBike = (bikeId: string | null) =>
     bikeId ? bikes.find((b) => b.id === bikeId) : undefined;
@@ -84,7 +106,12 @@ export default function GarageScreen() {
       if (c.status !== 'active') return false;
       const bike = getBike(c.bikeId);
       if (!bike) return false;
-      const pct = calcWearPercent(bike.totalDistance, c.installDistance, c.maxLifespan);
+      const pct = calcWearPercent(
+        bike.totalDistance,
+        c.installDistance,
+        c.maxLifespan,
+        c.priorWear ?? 0
+      );
       return pct >= 60;
     }
     // 'all': active + in-stock
@@ -107,8 +134,12 @@ export default function GarageScreen() {
       const nameCmp = nameA.localeCompare(nameB);
       if (nameCmp !== 0) return nameCmp;
     }
-    const pctA = bikeA ? calcWearPercent(bikeA.totalDistance, a.installDistance, a.maxLifespan) : 0;
-    const pctB = bikeB ? calcWearPercent(bikeB.totalDistance, b.installDistance, b.maxLifespan) : 0;
+    const pctA = bikeA
+      ? calcWearPercent(bikeA.totalDistance, a.installDistance, a.maxLifespan, a.priorWear ?? 0)
+      : 0;
+    const pctB = bikeB
+      ? calcWearPercent(bikeB.totalDistance, b.installDistance, b.maxLifespan, b.priorWear ?? 0)
+      : 0;
     return pctB - pctA;
   });
 
@@ -116,7 +147,14 @@ export default function GarageScreen() {
     if (c.status !== 'active') return false;
     const bike = getBike(c.bikeId);
     if (!bike) return false;
-    return calcWearPercent(bike.totalDistance, c.installDistance, c.maxLifespan) >= 60;
+    return (
+      calcWearPercent(
+        bike.totalDistance,
+        c.installDistance,
+        c.maxLifespan,
+        c.priorWear ?? 0
+      ) >= 60
+    );
   }).length;
 
   const inStockCount = components.filter((c) => c.status === 'in-stock').length;
@@ -178,8 +216,6 @@ export default function GarageScreen() {
         bike: targetBike,
         allBikes: bikes,
         stravaTokens,
-        rawInstallDistance: updates.installDistance!,
-        staleBikeTotal: targetBike.totalDistance ?? 0,
         installDate: updates.installDate!,
       });
       if (correction.ok) {
@@ -372,7 +408,12 @@ export default function GarageScreen() {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <RefreshableScrollView
+        contentContainerStyle={styles.content}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor={C.accent}
+      >
         {sorted.length === 0 ? (
           isDataLoading ? (
             // Data is still fetching in the background — show a spinner instead
@@ -440,7 +481,7 @@ export default function GarageScreen() {
             );
           })
         )}
-      </ScrollView>
+      </RefreshableScrollView>
 
       <AddComponentModal
         visible={showAddStock}

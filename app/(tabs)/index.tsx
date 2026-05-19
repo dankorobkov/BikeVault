@@ -2,17 +2,17 @@ import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
-  RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import RefreshableScrollView from '../../components/RefreshableScrollView';
 import { useTopInset } from '../../hooks/useTopInset';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../../store/useAppStore';
 import { addBike } from '../../services/bikesService';
 import { fetchAthlete, getValidToken } from '../../services/stravaService';
+import { useSync } from '../../hooks/useSync';
 import { Analytics } from '../../services/analytics';
 import { useThemeColors } from '../../theme/ThemeProvider';
 import type { ColorPalette } from '../../constants/colors';
@@ -30,6 +30,7 @@ export default function BikesScreen() {
   const C = useThemeColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const { userId, bikes, components, isDataLoading, stravaTokens, addBikeLocal } = useAppStore();
+  const { syncStrava } = useSync();
 
   const [showAdd, setShowAdd] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -90,9 +91,33 @@ export default function BikesScreen() {
     setShowSuccess(true);
   };
 
+  /**
+   * Pull-to-refresh handler. Triggers a Strava sync when connected so
+   * the bikes' totalDistance + components' wear redraw with any rides
+   * recorded since the last sync. When Strava isn't connected we just
+   * flash the spinner — there's no remote source to pull from, but
+   * suppressing the spinner entirely would feel like the gesture was
+   * ignored.
+   *
+   * Errors from `syncStrava` are swallowed here: the Settings screen
+   * surfaces them via the dialog when the user taps Sync there. We
+   * don't want a network blip during an idle pull to spawn an alert.
+   */
   const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    try {
+      if (stravaTokens) {
+        await syncStrava();
+      } else {
+        // Idle pull with no Strava — keep the spinner up briefly so the
+        // gesture feels acknowledged instead of snapping back instantly.
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    } catch {
+      /* surfaced via Settings; pull-to-refresh stays quiet */
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   return (
@@ -112,15 +137,11 @@ export default function BikesScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <RefreshableScrollView
         contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={C.accent}
-          />
-        }
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor={C.accent}
       >
         {bikes.length === 0 ? (
           isDataLoading ? (
@@ -146,7 +167,7 @@ export default function BikesScreen() {
             />
           ))
         )}
-      </ScrollView>
+      </RefreshableScrollView>
 
       <AddBikeModal
         visible={showAdd}
