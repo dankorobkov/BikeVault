@@ -17,6 +17,7 @@ import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import BikeIcon from '../../components/BikeIcon';
+import OnboardingVideoModal from '../../components/OnboardingVideoModal';
 import ThemeToggle from '../../components/ThemeToggle';
 import { useThemeColors } from '../../theme/ThemeProvider';
 import type { ColorPalette } from '../../constants/colors';
@@ -83,6 +84,10 @@ export default function SettingsScreen() {
     bikes,
     updateBikeLocal,
   } = useAppStore();
+  // Drives the "Watch onboarding video" entry. Independent of the
+  // first-time gate — opens in replay mode so it never re-writes the
+  // hasSeenOnboarding flag and Skip is enabled from second zero.
+  const [replayOnboarding, setReplayOnboarding] = useState(false);
   const { syncStrava, loadLastSync } = useSync();
   const [connecting, setConnecting] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -887,11 +892,43 @@ export default function SettingsScreen() {
                 <Text style={styles.rowTitle}>How wear is calculated</Text>
               </View>
             </View>
+            {/* Watch onboarding — bundled in the app, always available
+                to signed-in users on demand. Independent of the
+                `onboardingVideoEnabled` master switch so admins can
+                disable the first-time gate without removing the replay
+                affordance. Hidden for anonymous users (they aren't
+                part of the rollout). */}
+            {!isAnonymous ? (
+              <>
+                <View style={styles.divider} />
+                <TouchableOpacity
+                  style={styles.row}
+                  onPress={() => setReplayOnboarding(true)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.rowLeft}>
+                    <Ionicons name="play-circle-outline" size={20} color={C.accent} />
+                    <Text style={styles.rowTitle}>Watch onboarding</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={C.textTertiary} />
+                </TouchableOpacity>
+              </>
+            ) : null}
           </View>
           <Text style={styles.hint}>
             Wear is based on the distance ridden since a component was installed. Connect Strava to sync automatically, or add rides manually.
           </Text>
         </View>
+
+        {/* Replay player — mounted at the screen root so it overlays
+            everything. Opens in `replay` mode so dismissing it doesn't
+            re-write the hasSeenOnboarding flag. The HTML is bundled,
+            so there's no external dependency to gate on. */}
+        <OnboardingVideoModal
+          visible={replayOnboarding}
+          mode="replay"
+          onClose={() => setReplayOnboarding(false)}
+        />
 
         {/* Developer — credits + contact links. Sits below About so the
             version + "how wear is calculated" rows stay together as core

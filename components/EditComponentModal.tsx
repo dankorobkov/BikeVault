@@ -20,6 +20,9 @@ import { COMPONENT_TYPES, BRAKE_SYSTEM_LABELS } from '../constants/componentType
 import { formatNumber } from '../constants/units';
 import { ELECTRIC_CATEGORIES } from '../types';
 import DateField from './DateField';
+import PrimaryActionButton, {
+  PRIMARY_ACTION_BAR_HEIGHT,
+} from './PrimaryActionButton';
 import { CHAIN_LUBE_TYPES, CHAIN_LUBE_ORDER } from '../constants/chainLube';
 import type { BikeComponent, Bike, ChainLubeType } from '../types';
 
@@ -303,19 +306,21 @@ export default function EditComponentModal({
         style={styles.root}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Header */}
+        {/* Header. Primary action moved to the floating button; right
+            slot now hosts an invisible Cancel for symmetry. */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose}>
             <Text style={styles.cancelBtn}>Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Edit Component</Text>
-          <TouchableOpacity onPress={handleSave} disabled={!name.trim() || saving}>
-            {saving ? (
-              <ActivityIndicator color={C.accent} />
-            ) : (
-              <Text style={[styles.saveBtn, !name.trim() && styles.saveBtnDisabled]}>Save</Text>
-            )}
-          </TouchableOpacity>
+          <View
+            style={styles.headerRightSpacer}
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            <Text style={styles.cancelBtn}>Cancel</Text>
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -726,6 +731,12 @@ export default function EditComponentModal({
             </View>
           )}
         </ScrollView>
+        <PrimaryActionButton
+          label="Save"
+          onPress={handleSave}
+          loading={saving}
+          disabled={!name.trim()}
+        />
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -746,7 +757,11 @@ const makeStyles = (C: ColorPalette) => StyleSheet.create({
   cancelBtn: { fontSize: 16, color: C.textSecondary },
   saveBtn: { fontSize: 16, fontWeight: '600', color: C.accent },
   saveBtnDisabled: { opacity: 0.4 },
-  content: { padding: 20, gap: 20, paddingBottom: 48 },
+  // paddingBottom clears the floating PrimaryActionButton — keep in
+  // step with PRIMARY_ACTION_BAR_HEIGHT.
+  content: { padding: 20, gap: 20, paddingBottom: 48 + PRIMARY_ACTION_BAR_HEIGHT },
+  // Invisible placeholder mirroring Cancel width for header symmetry.
+  headerRightSpacer: { opacity: 0 },
   categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',

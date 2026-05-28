@@ -15,6 +15,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '../theme/ThemeProvider';
 import type { ColorPalette } from '../constants/colors';
+import PrimaryActionButton, {
+  PRIMARY_ACTION_BAR_HEIGHT,
+} from './PrimaryActionButton';
 import {
   COMPONENT_TYPES,
   COMPONENT_GROUP_LABELS,
@@ -217,7 +220,10 @@ export default function AddComponentModal({
         style={styles.root}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Header */}
+        {/* Header. Primary action (Save / Next) moved to the floating
+            button at the bottom; right slot now hosts an invisible
+            copy of the longest possible left label so the title stays
+            optically centred across both steps. */}
         <View style={styles.header}>
           <TouchableOpacity onPress={step === 'category' ? handleClose : () => setStep('category')}>
             <Text style={styles.cancelBtn}>{step === 'category' ? 'Cancel' : '← Back'}</Text>
@@ -225,19 +231,16 @@ export default function AddComponentModal({
           <Text style={styles.title}>
             {step === 'category' ? 'Choose Type' : 'Component Details'}
           </Text>
-          {step === 'details' ? (
-            <TouchableOpacity onPress={handleAdd} disabled={!name.trim() || saving}>
-              {saving ? (
-                <ActivityIndicator color={C.accent} />
-              ) : (
-                <Text style={[styles.saveBtn, !name.trim() && styles.saveBtnDisabled]}>Save</Text>
-              )}
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={() => setStep('details')}>
-              <Text style={styles.saveBtn}>Next</Text>
-            </TouchableOpacity>
-          )}
+          <View
+            style={styles.headerRightSpacer}
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            <Text style={styles.cancelBtn}>
+              {step === 'category' ? 'Cancel' : '← Back'}
+            </Text>
+          </View>
         </View>
 
         {step === 'category' ? (
@@ -551,6 +554,18 @@ export default function AddComponentModal({
             </View>
           </ScrollView>
         )}
+        {/* Floating primary action — label/handler switch per step.
+            Step 'category': "Next" advances to details (matches the
+            legacy top-right link; the more common path is tapping a
+            category bubble, which auto-advances).
+            Step 'details': "Save" commits via handleAdd, gated on a
+            non-empty name. */}
+        <PrimaryActionButton
+          label={step === 'category' ? 'Next' : 'Save'}
+          onPress={step === 'category' ? () => setStep('details') : handleAdd}
+          loading={step === 'details' && saving}
+          disabled={step === 'details' && !name.trim()}
+        />
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -571,7 +586,14 @@ const makeStyles = (C: ColorPalette) => StyleSheet.create({
   cancelBtn: { fontSize: 16, color: C.textSecondary },
   saveBtn: { fontSize: 16, fontWeight: '600', color: C.accent },
   saveBtnDisabled: { opacity: 0.4 },
-  content: { padding: 20, gap: 24, paddingBottom: 48 },
+  // paddingBottom clears the floating PrimaryActionButton on both
+  // steps (category picker + details form share this style). Keep in
+  // step with PRIMARY_ACTION_BAR_HEIGHT.
+  content: { padding: 20, gap: 24, paddingBottom: 48 + PRIMARY_ACTION_BAR_HEIGHT },
+  // Invisible placeholder mirroring the left button width per step so
+  // the title stays optically centred. Width comes from rendering the
+  // same Text content with opacity: 0.
+  headerRightSpacer: { opacity: 0 },
   section: { gap: 10 },
   sectionLabel: {
     fontSize: 11,

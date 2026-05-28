@@ -11,12 +11,15 @@ import { fetchBikes } from '../services/bikesService';
 import { fetchAllComponents } from '../services/componentsService';
 import { loadStravaTokens, validateStravaTokens } from '../services/stravaService';
 import { createUserProfile, getUserProfile } from '../services/userService';
+import { fetchFeatureFlags } from '../services/featureFlagsService';
 import { scanAndNotify } from '../services/notifications';
 import type { ColorPalette } from '../constants/colors';
 import { DEMO_BIKES, DEMO_COMPONENTS } from '../constants/demoData';
 import { DialogRoot } from '../components/AppDialog';
+import OnboardingVideoModal from '../components/OnboardingVideoModal';
 import BikeIcon from '../components/BikeIcon';
 import { ThemeProvider, useTheme, useThemeColors } from '../theme/ThemeProvider';
+import { useShouldShowOnboarding } from '../hooks/useShouldShowOnboarding';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -175,7 +178,33 @@ function ThemedLayout() {
       </Stack>
       {/* Global app-styled dialog — replaces Alert.alert / window.confirm. */}
       <DialogRoot />
+      {/* First-time onboarding video. Self-gating: renders null unless
+          the user qualifies AND the flag is on AND the route is (tabs). */}
+      <OnboardingHost />
     </>
+  );
+}
+
+/**
+ * Tiny host so `useShouldShowOnboarding` (which calls `useSegments`)
+ * runs inside the navigator subtree. Keeping it separate from
+ * ThemedLayout means a re-render driven by the segments / store
+ * doesn't force the whole layout to recompute its styles.
+ */
+function OnboardingHost() {
+  const shouldShow = useShouldShowOnboarding();
+  // `visible` is driven entirely by the hook — the hook flips to false
+  // as soon as `hasSeenOnboarding` becomes true, which the modal does
+  // via `setHasSeenOnboarding(true)` before its async write. So there's
+  // no separate "dismissed" local state to manage here.
+  return (
+    <OnboardingVideoModal
+      visible={shouldShow}
+      mode="first-time"
+      onClose={() => {
+        /* state-driven; nothing to do here */
+      }}
+    />
   );
 }
 
@@ -185,6 +214,8 @@ export default function RootLayout() {
     setUserProfile,
     setHasProfile,
     setProfileChecked,
+    setHasSeenOnboarding,
+    setFeatureFlags,
     setBikes,
     setComponents,
     setStravaTokens,
@@ -216,6 +247,16 @@ export default function RootLayout() {
           photoUrl: user.photoURL,
         });
 
+        // Kick off the feature-flag fetch as soon as auth resolves —
+        // it's a single Firestore read, independent of profile load,
+        // and the result is needed before the onboarding modal can be
+        // gated correctly. Errors are swallowed in the service.
+        fetchFeatureFlags()
+          .then((flags) => setFeatureFlags(flags))
+          .catch(() => {
+            /* fetchFeatureFlags returns defaults on failure */
+          });
+
         // ── Release splash right away ──────────────────────────────────────
         setLoading(false);
         SplashScreen.hideAsync();
@@ -237,6 +278,11 @@ export default function RootLayout() {
               const has = profile !== null;
               setHasProfile(has);
               setProfileChecked(true);
+              // Mirror the persisted onboarding state into the store
+              // so `useShouldShowOnboarding` can read it synchronously.
+              // null when the profile is missing OR the field hasn't
+              // been written yet (legacy users / new-and-not-yet-shown).
+              setHasSeenOnboarding(profile?.hasSeenOnboarding ?? null);
               if (!has) {
                 // New user — stop here; AuthGate will route to /invite-code.
                 setDataLoading(false);

@@ -14,6 +14,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '../theme/ThemeProvider';
 import type { ColorPalette } from '../constants/colors';
+import PrimaryActionButton, {
+  PRIMARY_ACTION_BAR_HEIGHT,
+} from './PrimaryActionButton';
 import {
   BIKE_TYPE_LABELS,
   BIKE_TYPE_ICONS,
@@ -176,19 +179,21 @@ export default function EditBikeModal({
         style={styles.root}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Header */}
+        {/* Header. Primary action moved to the floating button; the
+            right slot now hosts an invisible Cancel for symmetry. */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose}>
             <Text style={styles.cancelBtn}>Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Edit Bike</Text>
-          <TouchableOpacity onPress={handleSave} disabled={!name.trim() || saving}>
-            {saving ? (
-              <ActivityIndicator color={C.accent} />
-            ) : (
-              <Text style={[styles.saveBtn, !name.trim() && styles.saveBtnDisabled]}>Save</Text>
-            )}
-          </TouchableOpacity>
+          <View
+            style={styles.headerRightSpacer}
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            <Text style={styles.cancelBtn}>Cancel</Text>
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -405,6 +410,12 @@ export default function EditBikeModal({
             </View>
           </View>
         </ScrollView>
+        <PrimaryActionButton
+          label="Save"
+          onPress={handleSave}
+          loading={saving}
+          disabled={!name.trim()}
+        />
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -425,7 +436,12 @@ const makeStyles = (C: ColorPalette) => StyleSheet.create({
   cancelBtn: { fontSize: 16, color: C.textSecondary },
   saveBtn: { fontSize: 16, fontWeight: '600', color: C.accent },
   saveBtnDisabled: { opacity: 0.4 },
-  content: { padding: 20, gap: 20, paddingBottom: 48 },
+  // paddingBottom clears the floating PrimaryActionButton — keep in
+  // step with PRIMARY_ACTION_BAR_HEIGHT.
+  content: { padding: 20, gap: 20, paddingBottom: 48 + PRIMARY_ACTION_BAR_HEIGHT },
+  // Invisible placeholder mirroring the Cancel button's width so the
+  // title stays optically centred.
+  headerRightSpacer: { opacity: 0 },
   section: { gap: 8 },
   sectionLabel: {
     fontSize: 11,
