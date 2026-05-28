@@ -2,6 +2,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
   deleteDoc,
   getDocs,
   collection,
@@ -19,6 +20,12 @@ export interface UserProfile {
   photoUrl: string | null;
   signupCode: string;
   createdAt: number;
+  // Whether the user has finished (or skipped) the onboarding video.
+  // Undefined on legacy profiles created before the field existed;
+  // the onboarding gate treats undefined as "not seen yet" and then
+  // relies on the signup-time cutoff in the feature flag doc to avoid
+  // surfacing the video to pre-existing users.
+  hasSeenOnboarding?: boolean;
 }
 
 function userDoc(userId: string) {
@@ -42,7 +49,29 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
       typeof data.createdAt === 'number'
         ? data.createdAt
         : Date.now(),
+    hasSeenOnboarding:
+      typeof data.hasSeenOnboarding === 'boolean'
+        ? data.hasSeenOnboarding
+        : undefined,
   };
+}
+
+/**
+ * Marks the onboarding video as seen for this user. Called when the user
+ * either watches the video to completion or taps Skip on the first-time
+ * presentation. Safe to call more than once.
+ *
+ * Uses `updateDoc` (not `setDoc`) so this fails loudly if the profile
+ * doesn't already exist — which would mean the gate let the modal open
+ * before the profile was ready. Better to surface that than to silently
+ * create a half-written user doc with only this field on it.
+ */
+export async function markOnboardingSeen(userId: string): Promise<void> {
+  await updateDoc(userDoc(userId), {
+    hasSeenOnboarding: true,
+    onboardingSeenAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 /**

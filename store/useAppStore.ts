@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Bike, BikeComponent, StravaTokens, NotificationPrefs } from '../types';
+import type { FeatureFlags } from '../services/featureFlagsService';
 
 interface AppState {
   // Auth
@@ -13,6 +14,12 @@ interface AppState {
   hasProfile: boolean;
   // null = we haven't checked yet (show loader); true/false = known state.
   profileChecked: boolean;
+  // Mirror of the `hasSeenOnboarding` flag from the Firestore profile.
+  // null = unknown (profile not loaded yet, or legacy profile without
+  // the field); true/false = explicit. The onboarding gate treats null
+  // as "not seen" but the signup-time cutoff in the feature flag stops
+  // it surfacing to legacy users.
+  hasSeenOnboarding: boolean | null;
 
   // Data
   bikes: Bike[];
@@ -26,6 +33,11 @@ interface AppState {
   // Preferences
   notificationPrefs: NotificationPrefs;
   useMetric: boolean;
+
+  // Feature flags — server-controlled, fetched once at boot. null until
+  // the first read resolves; consumers should treat null as "don't
+  // assume any feature is on" and wait for the value.
+  featureFlags: FeatureFlags | null;
 
   // UI
   isLoading: boolean;
@@ -41,6 +53,8 @@ interface AppState {
   }) => void;
   setHasProfile: (v: boolean) => void;
   setProfileChecked: (v: boolean) => void;
+  setHasSeenOnboarding: (v: boolean | null) => void;
+  setFeatureFlags: (flags: FeatureFlags | null) => void;
   signOut: () => void;
 
   setBikes: (bikes: Bike[]) => void;
@@ -79,6 +93,8 @@ export const useAppStore = create<AppState>((set) => ({
   userPhotoUrl: null,
   hasProfile: false,
   profileChecked: false,
+  hasSeenOnboarding: null,
+  featureFlags: null,
   bikes: [],
   components: [],
   stravaTokens: null,
@@ -99,6 +115,11 @@ export const useAppStore = create<AppState>((set) => ({
     }),
   setHasProfile: (v) => set({ hasProfile: v }),
   setProfileChecked: (v) => set({ profileChecked: v }),
+  setHasSeenOnboarding: (v) => set({ hasSeenOnboarding: v }),
+  // Feature flags are app-wide, not per-user — intentionally NOT
+  // cleared on signOut so we don't have to refetch them when a different
+  // user signs in on the same device.
+  setFeatureFlags: (flags) => set({ featureFlags: flags }),
   signOut: () =>
     set({
       userId: null,
@@ -108,6 +129,9 @@ export const useAppStore = create<AppState>((set) => ({
       userPhotoUrl: null,
       hasProfile: false,
       profileChecked: false,
+      // Reset to null so the next signed-in user starts from an
+      // unknown state — their own profile load decides true/false.
+      hasSeenOnboarding: null,
       bikes: [],
       components: [],
       stravaTokens: null,
