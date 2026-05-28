@@ -15,6 +15,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '../theme/ThemeProvider';
 import type { ColorPalette } from '../constants/colors';
 import { formatNumber } from '../constants/units';
+import PrimaryActionButton, {
+  PRIMARY_ACTION_BAR_HEIGHT,
+} from './PrimaryActionButton';
 import {
   BIKE_TYPE_LABELS,
   BIKE_TYPE_ICONS,
@@ -181,19 +184,22 @@ export default function AddBikeModal({
         style={styles.root}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Header */}
+        {/* Header. The primary action moved to the floating button at
+            the bottom; the right slot now hosts an invisible "Cancel"
+            of the same width so the title stays optically centred. */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => { resetForm(); onClose(); }}>
             <Text style={styles.cancelBtn}>Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Add Bike</Text>
-          <TouchableOpacity onPress={handleAdd} disabled={!name.trim() || saving}>
-            {saving ? (
-              <ActivityIndicator color={C.accent} />
-            ) : (
-              <Text style={[styles.saveBtn, !name.trim() && styles.saveBtnDisabled]}>Save</Text>
-            )}
-          </TouchableOpacity>
+          <View
+            style={styles.headerRightSpacer}
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            <Text style={styles.cancelBtn}>Cancel</Text>
+          </View>
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -447,6 +453,12 @@ export default function AddBikeModal({
             </View>
           </View>
         </ScrollView>
+        <PrimaryActionButton
+          label="Save"
+          onPress={handleAdd}
+          loading={saving}
+          disabled={!name.trim()}
+        />
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -468,7 +480,13 @@ const makeStyles = (C: ColorPalette) => StyleSheet.create({
   saveBtn: { fontSize: 16, fontWeight: '600', color: C.accent },
   saveBtnDisabled: { opacity: 0.4 },
   scroll: { flex: 1 },
-  content: { padding: 20, gap: 24, paddingBottom: 40 },
+  // paddingBottom clears the floating PrimaryActionButton so the last
+  // form field is fully reachable above it. Width comes from the
+  // component's exported constant — keep them in lockstep.
+  content: { padding: 20, gap: 24, paddingBottom: 40 + PRIMARY_ACTION_BAR_HEIGHT },
+  // Invisible placeholder that mirrors the Cancel button's width so
+  // the title stays optically centred after the right link was removed.
+  headerRightSpacer: { opacity: 0 },
   section: { gap: 10 },
   sectionLabel: {
     fontSize: 11,
