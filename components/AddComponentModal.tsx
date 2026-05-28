@@ -560,11 +560,13 @@ export default function AddComponentModal({
             category bubble, which auto-advances).
             Step 'details': "Save" commits via handleAdd, gated on a
             non-empty name. */}
+        {/* No `disabled` prop — button always renders vibrant for
+            visual consistency. Empty-name taps in the details step are
+            a no-op via handleAdd's guard. */}
         <PrimaryActionButton
           label={step === 'category' ? 'Next' : 'Save'}
           onPress={step === 'category' ? () => setStep('details') : handleAdd}
           loading={step === 'details' && saving}
-          disabled={step === 'details' && !name.trim()}
         />
       </KeyboardAvoidingView>
     </Modal>

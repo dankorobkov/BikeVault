@@ -453,11 +453,14 @@ export default function AddBikeModal({
             </View>
           </View>
         </ScrollView>
+        {/* No `disabled` prop — the button always renders vibrant for
+            visual consistency with the Add Component flow. `handleAdd`
+            already early-returns on empty names, so a premature tap is
+            a safe no-op rather than a crash. */}
         <PrimaryActionButton
           label="Save"
           onPress={handleAdd}
           loading={saving}
-          disabled={!name.trim()}
         />
       </KeyboardAvoidingView>
     </Modal>

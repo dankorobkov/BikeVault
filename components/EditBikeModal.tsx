@@ -410,11 +410,12 @@ export default function EditBikeModal({
             </View>
           </View>
         </ScrollView>
+        {/* No `disabled` prop — button always renders vibrant. Empty-name
+            taps are a no-op via handleSave's guard. */}
         <PrimaryActionButton
           label="Save"
           onPress={handleSave}
           loading={saving}
-          disabled={!name.trim()}
         />
       </KeyboardAvoidingView>
     </Modal>
