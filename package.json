@@ -7,8 +7,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "build:prod": "EXPO_PUBLIC_APP_ENV=prod expo export -p web --output-dir dist && node scripts/inject-pwa-tags.mjs dist",
-    "build:test": "EXPO_PUBLIC_APP_ENV=test expo export -p web --output-dir dist/test && node scripts/inject-pwa-tags.mjs dist/test",
+    "build:prod": "EXPO_PUBLIC_APP_ENV=prod expo export -p web --output-dir dist && node scripts/inject-pwa-tags.mjs dist --base=/",
+    "build:test": "EXPO_PUBLIC_APP_ENV=test expo export -p web --output-dir dist/test && node scripts/inject-pwa-tags.mjs dist/test --base=/test/",
     "build:all": "npm run build:prod && npm run build:test",
     "deploy": "firebase deploy --only hosting",
     "deploy:all": "npm run build:all && npm run deploy"
