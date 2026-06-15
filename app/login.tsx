@@ -21,7 +21,7 @@ import { auth } from '../config/firebase';
 import { Analytics } from '../services/analytics';
 import { useThemeColors } from '../theme/ThemeProvider';
 import type { ColorPalette } from '../constants/colors';
-import BikeIcon from '../components/BikeIcon';
+import BrandMark from '../components/BrandMark';
 import { dialog } from '../components/AppDialog';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -117,7 +117,7 @@ export default function LoginScreen() {
       {/* Logo area */}
       <View style={styles.hero}>
         <View style={styles.logoBox}>
-          <BikeIcon name="bike" variant="fill" size={52} color={C.accent} accent={C.accent} />
+          <BrandMark size={52} color={C.accent} />
         </View>
         <Text style={styles.appName}>BikeVault</Text>
         <Text style={styles.tagline}>Track every part. Ride with confidence.</Text>
