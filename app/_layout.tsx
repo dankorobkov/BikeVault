@@ -17,7 +17,7 @@ import type { ColorPalette } from '../constants/colors';
 import { DEMO_BIKES, DEMO_COMPONENTS } from '../constants/demoData';
 import { DialogRoot } from '../components/AppDialog';
 import OnboardingVideoModal from '../components/OnboardingVideoModal';
-import BikeIcon from '../components/BikeIcon';
+import BrandMark from '../components/BrandMark';
 import { ThemeProvider, useTheme, useThemeColors } from '../theme/ThemeProvider';
 import { useShouldShowOnboarding } from '../hooks/useShouldShowOnboarding';
 
@@ -147,7 +147,7 @@ function ThemedLayout() {
       <View style={styles.splash}>
         <StatusBar style={resolved === 'dark' ? 'light' : 'dark'} />
         <View style={styles.splashLogo}>
-          <BikeIcon name="bike" variant="fill" size={56} accent={C.accent} color={C.accent} />
+          <BrandMark size={56} color={C.accent} />
         </View>
         <Text style={styles.splashTitle}>BikeVault</Text>
         <Text style={styles.splashSub}>Loading your garage…</Text>
