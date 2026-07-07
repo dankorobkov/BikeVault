@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { dialog } from '../components/AppDialog';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -69,10 +69,16 @@ export default function WahooCallback() {
       };
     }
 
-    const redirectUri = AuthSession.makeRedirectUri({
-      scheme: 'bikevault',
-      path: 'wahoo-callback',
-    });
+    // Wahoo requires the token-exchange redirect_uri to match the authorize
+    // step EXACTLY. Recomputing it with makeRedirectUri can drift under the
+    // /test/ base path (a `/test` prefix or trailing slash difference), which
+    // Wahoo rejects with HTTP 400. On web the current page IS the URI Wahoo
+    // redirected to, so `origin + pathname` is guaranteed to match what
+    // authorize sent. Native keeps the scheme-based value.
+    const redirectUri =
+      Platform.OS === 'web'
+        ? window.location.origin + window.location.pathname
+        : AuthSession.makeRedirectUri({ scheme: 'bikevault', path: 'wahoo-callback' });
 
     exchangeWahooCode(userId, params.code, redirectUri)
       .then(async (tokens) => {

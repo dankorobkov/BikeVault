@@ -121,7 +121,18 @@ async function fetchWithRetry(
     }
 
     if (!res.ok) {
-      throw new Error(`Wahoo ${describe} → HTTP ${res.status}`);
+      // Surface Wahoo's error body — a 400 on /oauth/token carries the real
+      // reason (e.g. {"error":"invalid_grant"} for a redirect_uri/code
+      // mismatch, or "invalid_client" for a bad secret). Without it the
+      // dialog just says "HTTP 400" and we're guessing.
+      let detail = '';
+      try {
+        const text = await res.text();
+        if (text) detail = `: ${text.slice(0, 200)}`;
+      } catch {
+        /* body already consumed / unreadable */
+      }
+      throw new Error(`Wahoo ${describe} → HTTP ${res.status}${detail}`);
     }
 
     return res;
