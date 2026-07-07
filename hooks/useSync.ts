@@ -10,6 +10,11 @@ import {
   isCyclingActivity,
   resolveBikeForActivity,
 } from '../services/stravaService';
+import {
+  getValidWahooToken,
+  clearWahooTokens,
+  fetchWahooActivitiesSince,
+} from '../services/wahooService';
 import { updateBike } from '../services/bikesService';
 import { updateComponent } from '../services/componentsService';
 import {
@@ -54,67 +59,34 @@ export function useSync() {
   const {
     userId,
     stravaTokens,
+    wahooTokens,
+    primaryProvider,
+    wahooDefaultBikeId,
     bikes,
     components,
     setIsSyncing,
     setLastSyncAt,
     setStravaTokens,
+    setWahooTokens,
     updateBikeLocal,
     updateComponentLocal,
   } = useAppStore();
 
-  const syncStrava = useCallback(async () => {
-    if (!userId || !stravaTokens) return;
-    setIsSyncing(true);
+  // ── Strava sync (unchanged behaviour) ──────────────────────────────────────
+  // Full historical migration on first run / schema bump, incremental
+  // thereafter. Only Strava carries gear tags + full history, so only
+  // Strava has a migration path.
+  const runStravaSync = useCallback(async () => {
+    if (!stravaTokens) return;
+    let validTokens;
     try {
-      let validTokens;
-      try {
-        validTokens = await getValidToken(userId, stravaTokens);
-      } catch (e) {
-        if (e instanceof StravaAuthError) {
-          try {
-            await clearStravaTokens(userId);
-          } catch {
-            /* local state still updated below */
-          }
-          setStravaTokens(null);
-          throw new Error(
-            'Strava access was revoked. Please reconnect Strava in Settings.'
-          );
-        }
-        throw e;
-      }
-
-      const state = await loadSyncState(userId);
-
-      if (state.schemaVersion < CURRENT_SCHEMA_VERSION) {
-        await runMigration({
-          userId,
-          accessToken: validTokens.accessToken,
-          bikes,
-          components,
-          updateBikeLocal,
-          updateComponentLocal,
-        });
-      } else {
-        await runIncrementalSync({
-          userId,
-          accessToken: validTokens.accessToken,
-          bikes,
-          lastActivityStart: state.lastActivityStart,
-          updateBikeLocal,
-        });
-      }
-
-      const now = Date.now();
-      setLastSyncAt(now);
-      await AsyncStorage.setItem(LAST_SYNC_KEY, String(now));
+      validTokens = await getValidToken(userId!, stravaTokens);
     } catch (e) {
       if (e instanceof StravaAuthError) {
         try {
-          await clearStravaTokens(userId);
+          await clearStravaTokens(userId!);
         } catch {
-          /* ignore */
+          /* local state still updated below */
         }
         setStravaTokens(null);
         throw new Error(
@@ -122,19 +94,111 @@ export function useSync() {
         );
       }
       throw e;
+    }
+
+    const state = await loadSyncState(userId!);
+
+    if (state.schemaVersion < CURRENT_SCHEMA_VERSION) {
+      await runMigration({
+        userId: userId!,
+        accessToken: validTokens.accessToken,
+        bikes,
+        components,
+        updateBikeLocal,
+        updateComponentLocal,
+      });
+    } else {
+      await runIncrementalSync({
+        userId: userId!,
+        accessToken: validTokens.accessToken,
+        bikes,
+        lastActivityStart: state.lastActivityStart,
+        updateBikeLocal,
+      });
+    }
+  }, [userId, stravaTokens, bikes, components, setStravaTokens, updateBikeLocal, updateComponentLocal]);
+
+  // ── Wahoo sync ─────────────────────────────────────────────────────────────
+  // "Keep totals, add new only": no historical backfill. The cursor is
+  // seeded to "now" the first time Wahoo runs (or when it's picked as
+  // primary), so only rides recorded afterwards advance odometers. Wahoo
+  // workouts carry no gear tag, so attribution is activity-type only.
+  const runWahooSync = useCallback(async () => {
+    if (!wahooTokens) return;
+    let validTokens;
+    try {
+      validTokens = await getValidWahooToken(userId!, wahooTokens);
+    } catch (e) {
+      if (e instanceof StravaAuthError) {
+        try {
+          await clearWahooTokens(userId!);
+        } catch {
+          /* local state still updated below */
+        }
+        setWahooTokens(null);
+        throw new Error(
+          'Wahoo access was revoked. Please reconnect Wahoo in Settings.'
+        );
+      }
+      throw e;
+    }
+
+    const state = await loadSyncState(userId!);
+    const cursor = state.wahooLastActivityStart ?? 0;
+
+    if (!cursor) {
+      // First Wahoo run and no seed yet — start counting from now so we
+      // don't retroactively add Wahoo history on top of existing totals.
+      await saveSyncState(userId!, {
+        wahooLastActivityStart: Math.floor(Date.now() / 1000),
+      });
+      return;
+    }
+
+    await runProviderIncrementalSync({
+      userId: userId!,
+      bikes,
+      updateBikeLocal,
+      fetchSince: () => fetchWahooActivitiesSince(validTokens.accessToken, cursor),
+      cursor,
+      persistCursor: (newCursor) =>
+        saveSyncState(userId!, { wahooLastActivityStart: newCursor }),
+      fallbackBikeId: wahooDefaultBikeId,
+    });
+  }, [userId, wahooTokens, wahooDefaultBikeId, bikes, setWahooTokens, updateBikeLocal]);
+
+  const syncStrava = useCallback(async () => {
+    // Name kept for back-compat with existing callers; this now syncs the
+    // user's chosen primary data source, not necessarily Strava.
+    if (!userId) return;
+    const provider = primaryProvider;
+    // Nothing to do if the primary provider isn't linked.
+    if (provider === 'strava' && !stravaTokens) return;
+    if (provider === 'wahoo' && !wahooTokens) return;
+
+    setIsSyncing(true);
+    try {
+      if (provider === 'wahoo') {
+        await runWahooSync();
+      } else {
+        await runStravaSync();
+      }
+
+      const now = Date.now();
+      setLastSyncAt(now);
+      await AsyncStorage.setItem(LAST_SYNC_KEY, String(now));
     } finally {
       setIsSyncing(false);
     }
   }, [
     userId,
+    primaryProvider,
     stravaTokens,
-    bikes,
-    components,
+    wahooTokens,
+    runStravaSync,
+    runWahooSync,
     setIsSyncing,
     setLastSyncAt,
-    setStravaTokens,
-    updateBikeLocal,
-    updateComponentLocal,
   ]);
 
   const loadLastSync = useCallback(async () => {
@@ -356,4 +420,70 @@ async function runIncrementalSync(args: {
     lastActivityStart: newCursor,
     schemaVersion: CURRENT_SCHEMA_VERSION,
   });
+}
+
+/**
+ * Provider-agnostic incremental sync.
+ *
+ * Identical accumulation to `runIncrementalSync` (attribute cycling
+ * activities to bikes, bump each owning bike's `totalDistance`), but
+ * parameterised over the fetch and cursor-persistence so any provider
+ * can reuse it. Used by the Wahoo path; the Strava path keeps its own
+ * function so its schema-versioned cursor semantics are untouched.
+ *
+ * Works on the shared `StravaActivity` shape — Wahoo workouts are mapped
+ * into that shape (gear_id null) upstream, so `resolveBikeForActivity`'s
+ * activity-type rule does the attribution.
+ */
+async function runProviderIncrementalSync(args: {
+  userId: string;
+  bikes: Bike[];
+  updateBikeLocal: (id: string, updates: Partial<Bike>) => void;
+  fetchSince: () => Promise<StravaActivity[]>;
+  cursor: number;
+  persistCursor: (newCursor: number) => Promise<void>;
+  /**
+   * Catch-all bike for cycling activities that don't attribute by the
+   * normal rules (used by Wahoo, which has no gear tags). When set and
+   * `resolveBikeForActivity` returns null for a cycling ride, the ride is
+   * credited to this bike instead of being dropped.
+   */
+  fallbackBikeId?: string | null;
+}) {
+  const { userId, bikes, updateBikeLocal, fetchSince, cursor, persistCursor, fallbackBikeId } =
+    args;
+
+  const activities = await fetchSince();
+  if (activities.length === 0) return;
+
+  const cycling = activities.filter(isCyclingActivity);
+  const fallbackBike =
+    fallbackBikeId != null ? bikes.find((b) => b.id === fallbackBikeId) ?? null : null;
+
+  const addKmByBike = new Map<string, number>();
+  for (const a of cycling) {
+    // Normal attribution first (activity-type match); only cycling rides
+    // that match nothing fall through to the catch-all bike.
+    const bike = resolveBikeForActivity(a, bikes) ?? fallbackBike;
+    if (!bike) continue;
+    addKmByBike.set(bike.id, (addKmByBike.get(bike.id) ?? 0) + activityDistanceKm(a));
+  }
+
+  const now = Date.now();
+  for (const [bikeId, addKm] of addKmByBike) {
+    const bike = bikes.find((b) => b.id === bikeId);
+    if (!bike) continue;
+    const rounded = Math.round(addKm);
+    if (rounded <= 0) continue;
+    const newTotal = (bike.totalDistance ?? 0) + rounded;
+    try {
+      await updateBike(userId, bike.id, { totalDistance: newTotal });
+      updateBikeLocal(bike.id, { totalDistance: newTotal, updatedAt: now });
+    } catch (e) {
+      console.warn('Bike totalDistance update failed:', bike.id, e);
+    }
+  }
+
+  const newCursor = Math.max(cursor, maxStartDateSec(activities));
+  await persistCursor(newCursor);
 }

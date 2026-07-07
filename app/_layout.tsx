@@ -10,6 +10,8 @@ import { useAppStore } from '../store/useAppStore';
 import { fetchBikes } from '../services/bikesService';
 import { fetchAllComponents } from '../services/componentsService';
 import { loadStravaTokens, validateStravaTokens } from '../services/stravaService';
+import { loadWahooTokens, validateWahooTokens } from '../services/wahooService';
+import { loadSyncState } from '../services/syncStateService';
 import { createUserProfile, getUserProfile } from '../services/userService';
 import { fetchFeatureFlags } from '../services/featureFlagsService';
 import { scanAndNotify } from '../services/notifications';
@@ -219,6 +221,9 @@ export default function RootLayout() {
     setBikes,
     setComponents,
     setStravaTokens,
+    setWahooTokens,
+    setPrimaryProvider,
+    setWahooDefaultBikeId,
     setLoading,
   } = useAppStore();
 
@@ -292,11 +297,17 @@ export default function RootLayout() {
                 fetchBikes(user.uid),
                 fetchAllComponents(user.uid),
                 loadStravaTokens(user.uid),
+                loadWahooTokens(user.uid),
+                loadSyncState(user.uid),
               ]);
             })
             .then((result) => {
               if (!result) return;
-              const [bikes, components, stravaTokens] = result;
+              const [bikes, components, stravaTokens, wahooTokens, syncState] = result;
+              // Primary data source (which provider feeds odometers).
+              // Defaults to 'strava' for legacy users with no stored value.
+              setPrimaryProvider(syncState.primaryProvider ?? 'strava');
+              setWahooDefaultBikeId(syncState.wahooDefaultBikeId ?? null);
               setBikes(bikes);
               setComponents(components);
               // Scan for anything needing attention (chain lube due,
@@ -323,6 +334,17 @@ export default function RootLayout() {
                     else if (valid !== stravaTokens) setStravaTokens(valid);
                   })
                   .catch((e) => console.warn('Strava token validation failed:', e));
+              }
+              if (wahooTokens) {
+                // Same optimistic-then-validate pattern as Strava, against
+                // Wahoo's /v1/user probe.
+                setWahooTokens(wahooTokens);
+                validateWahooTokens(user.uid, wahooTokens)
+                  .then((valid) => {
+                    if (!valid) setWahooTokens(null);
+                    else if (valid !== wahooTokens) setWahooTokens(valid);
+                  })
+                  .catch((e) => console.warn('Wahoo token validation failed:', e));
               }
             })
             .catch((e) => {

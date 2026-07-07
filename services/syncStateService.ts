@@ -1,5 +1,6 @@
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import type { ProviderId } from '../types';
 
 /**
  * Per-user Strava sync state.
@@ -96,14 +97,45 @@ import { db } from '../config/firebase';
 export const CURRENT_SCHEMA_VERSION = 8;
 
 export interface SyncState {
-  /** Unix seconds of the most recent activity we've already imported. */
+  /**
+   * Unix seconds of the most recent Strava activity we've already
+   * imported. Historically the only cursor (Strava was the only source);
+   * kept under this name for back-compat with every existing user doc.
+   */
   lastActivityStart: number;
   /**
    * Schema version of the last successful migration. If this is below
    * `CURRENT_SCHEMA_VERSION`, the next sync will re-run the historical
    * backfill instead of taking the incremental path.
+   *
+   * Note: schemaVersion / the historical backfill is a STRAVA-only
+   * concept — it rebases odometers from full Strava history (which has
+   * gear tags). Wahoo uses "keep totals, add new only", so it never
+   * triggers a migration.
    */
   schemaVersion: number;
+  /**
+   * Which linked provider is the source of truth for bike distances.
+   * Only this provider's activities advance odometers. Undefined on
+   * legacy docs → treated as 'strava' (the only provider that existed).
+   */
+  primaryProvider?: ProviderId;
+  /**
+   * Unix seconds of the most recent Wahoo workout we've imported. Its
+   * own cursor because Wahoo and Strava can be linked simultaneously and
+   * primary can switch between them without re-fetching. When Wahoo is
+   * made primary for the first time this is seeded to "now" so we only
+   * add rides going forward (matches the "keep totals" switch policy).
+   */
+  wahooLastActivityStart?: number;
+  /**
+   * Optional "catch-all" bike for Wahoo. Wahoo workouts have no gear tag,
+   * so a ride can only attribute by activity type. When a cycling workout
+   * matches no bike's default activity (unmapped type, or several bikes
+   * share the type), it's attributed to this bike instead of being
+   * dropped. `null`/absent = drop unmatched rides (the previous behaviour).
+   */
+  wahooDefaultBikeId?: string | null;
 }
 
 const DEFAULT_STATE: SyncState = {
@@ -136,9 +168,20 @@ export async function loadSyncState(userId: string): Promise<SyncState> {
         : data.migratedToV2 === true
         ? 1
         : 0;
+    const primaryProvider =
+      data.primaryProvider === 'strava' || data.primaryProvider === 'wahoo'
+        ? (data.primaryProvider as ProviderId)
+        : undefined;
+    const wahooLastActivityStart =
+      typeof data.wahooLastActivityStart === 'number' ? data.wahooLastActivityStart : 0;
+    const wahooDefaultBikeId =
+      typeof data.wahooDefaultBikeId === 'string' ? data.wahooDefaultBikeId : null;
     return {
       lastActivityStart,
       schemaVersion,
+      primaryProvider,
+      wahooLastActivityStart,
+      wahooDefaultBikeId,
     };
   } catch (e) {
     // If Firestore rules haven't been redeployed to allow the syncState
@@ -154,7 +197,7 @@ export async function loadSyncState(userId: string): Promise<SyncState> {
 
 export async function saveSyncState(
   userId: string,
-  state: SyncState
+  state: Partial<SyncState>
 ): Promise<void> {
   try {
     await setDoc(syncStateDoc(userId), state, { merge: true });
@@ -164,4 +207,34 @@ export async function saveSyncState(
     // the next sync attempt.
     console.warn('saveSyncState failed, sync will re-migrate next run:', e);
   }
+}
+
+/**
+ * Persist the user's chosen primary data source. When switching TO Wahoo
+ * for the first time, pass `seedWahooCursorSec = now` so we start
+ * counting Wahoo rides from the switch point rather than retroactively
+ * piling the whole Wahoo history onto existing totals ("keep totals, add
+ * new only"). Merge-writes so it never clobbers the Strava cursor.
+ */
+export async function savePrimaryProvider(
+  userId: string,
+  primaryProvider: ProviderId,
+  seedWahooCursorSec?: number
+): Promise<void> {
+  const patch: Partial<SyncState> = { primaryProvider };
+  if (typeof seedWahooCursorSec === 'number') {
+    patch.wahooLastActivityStart = seedWahooCursorSec;
+  }
+  await saveSyncState(userId, patch);
+}
+
+/**
+ * Persist the Wahoo catch-all bike. Pass `null` to clear it (unmatched
+ * Wahoo rides go back to being dropped).
+ */
+export async function saveWahooDefaultBike(
+  userId: string,
+  bikeId: string | null
+): Promise<void> {
+  await saveSyncState(userId, { wahooDefaultBikeId: bikeId });
 }

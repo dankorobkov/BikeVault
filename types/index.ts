@@ -358,6 +358,110 @@ export interface StravaTokens {
   athleteAvatar: string;
 }
 
+// ── Multi-provider activity sources ────────────────────────────────────────────
+
+/**
+ * Every fitness data source BikeVault can link. The user may link more
+ * than one, but exactly one is the *primary* source — the only provider
+ * whose activities advance bike odometers. The rest stay linked so the
+ * user can switch primary later without re-authorizing.
+ */
+export type ProviderId = 'strava' | 'wahoo';
+
+/**
+ * OAuth tokens + athlete summary for a Wahoo connection. Mirrors
+ * `StravaTokens` so the two can be handled symmetrically in the store
+ * and provider layer. `expiresAt` is unix seconds (Wahoo access tokens
+ * live ~2h; `offline_data` scope is what grants the refresh token).
+ *
+ * Wahoo's user object has no avatar/profile-photo field, so
+ * `athleteAvatar` is always '' for Wahoo — the UI falls back to a
+ * provider glyph.
+ */
+export interface WahooTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+  athleteId: number;
+  athleteName: string;
+  athleteAvatar: string;
+}
+
+/**
+ * A single Wahoo workout as returned by `GET /v1/workouts`. Only the
+ * fields BikeVault needs are typed. `workout_summary` is null for
+ * planned/uncompleted workouts (no ride happened, so no distance);
+ * `distance_accum` is metres, serialized as a string.
+ */
+export interface WahooWorkout {
+  id: number;
+  starts: string; // ISO 8601
+  minutes: number;
+  workout_type_id: number;
+  workout_summary?: {
+    distance_accum?: string | null;
+  } | null;
+}
+
+/**
+ * Wahoo `workout_type_id` values in the BIKING family — i.e. the ones
+ * that put distance on a bicycle. Every other workout type (running,
+ * swimming, gym, …) is ignored during sync, exactly like Strava's
+ * non-cycling sport types.
+ *
+ * Reference: Wahoo Cloud API "Workout Types" table.
+ *   0  BIKING            11 BIKING_CYCLECROSS   12 BIKING_INDOOR
+ *   13 BIKING_MOUNTAIN   14 BIKING_RECUMBENT    15 BIKING_ROAD
+ *   16 BIKING_TRACK      17 BIKING_MOTOCYCLING  49 INDOOR_CYCLING_CLASS
+ *   61 BIKING_INDOOR_TRAINER   64 EBIKING
+ *   68 BIKING_INDOOR_VIRTUAL   70 HANDCYCLING
+ */
+export const WAHOO_CYCLING_WORKOUT_TYPE_IDS: ReadonlySet<number> = new Set([
+  0, 11, 12, 13, 14, 15, 16, 17, 49, 61, 64, 68, 70,
+]);
+
+export function isWahooCyclingWorkout(w: WahooWorkout): boolean {
+  return WAHOO_CYCLING_WORKOUT_TYPE_IDS.has(w.workout_type_id);
+}
+
+/**
+ * Map a Wahoo cycling `workout_type_id` onto BikeVault's canonical bike
+ * activity type (the same enum used for `bike.defaultActivity`), so a
+ * Wahoo workout can be attributed by the existing activity-type rule.
+ *
+ * Wahoo carries no per-bike/gear tag (unlike Strava's `gear_id`), so
+ * activity type is the ONLY attribution signal Wahoo can offer — a
+ * limitation surfaced to the user in Settings.
+ *
+ * Returns `null` for non-cycling workout types.
+ */
+export function wahooWorkoutTypeToActivityType(
+  workoutTypeId: number
+): StravaActivityType | null {
+  switch (workoutTypeId) {
+    case 13: // BIKING_MOUNTAIN
+      return 'MountainBikeRide';
+    case 11: // BIKING_CYCLECROSS (gravel/cx bucket, matches bike-type default)
+      return 'GravelRide';
+    case 64: // EBIKING
+      return 'EBikeRide';
+    case 12: // BIKING_INDOOR
+    case 49: // INDOOR_CYCLING_CLASS
+    case 61: // BIKING_INDOOR_TRAINER
+    case 68: // BIKING_INDOOR_VIRTUAL
+      return 'VirtualRide';
+    case 0: // BIKING
+    case 14: // BIKING_RECUMBENT
+    case 15: // BIKING_ROAD
+    case 16: // BIKING_TRACK
+    case 17: // BIKING_MOTOCYCLING
+    case 70: // HANDCYCLING
+      return 'Ride';
+    default:
+      return null;
+  }
+}
+
 // ── Notification prefs ────────────────────────────────────────────────────────
 export interface NotificationPrefs {
   enabled: boolean;

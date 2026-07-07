@@ -16,6 +16,7 @@ import { useTopInset } from '../../hooks/useTopInset';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import BikeIcon from '../../components/BikeIcon';
 import OnboardingVideoModal from '../../components/OnboardingVideoModal';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -31,6 +32,13 @@ import {
   clearStravaTokens,
   loadStravaTokens,
 } from '../../services/stravaService';
+import {
+  exchangeWahooCode,
+  clearWahooTokens,
+  loadWahooTokens,
+} from '../../services/wahooService';
+import { savePrimaryProvider, saveWahooDefaultBike } from '../../services/syncStateService';
+import { PROVIDERS, PROVIDER_ORDER } from '../../services/providers/registry';
 import { deleteUserAccount } from '../../services/userService';
 import { updateBike } from '../../services/bikesService';
 import {
@@ -39,6 +47,7 @@ import {
   fireTestNotification,
 } from '../../services/notifications';
 import { STRAVA_CONFIG } from '../../config/strava';
+import { WAHOO_CONFIG } from '../../config/wahoo';
 import {
   STRAVA_ACTIVITY_LABELS,
   STRAVA_ACTIVITY_ICONS,
@@ -46,6 +55,7 @@ import {
 import {
   defaultActivityForBikeType,
   type StravaActivityType,
+  type ProviderId,
 } from '../../types';
 import { useSync } from '../../hooks/useSync';
 
@@ -57,7 +67,13 @@ const discovery = {
   tokenEndpoint: STRAVA_CONFIG.tokenEndpoint,
 };
 
-const STRAVA_CONFIGURED = !!STRAVA_CONFIG.clientId && STRAVA_CONFIG.clientId !== 'your_strava_client_id';
+const wahooDiscovery = {
+  authorizationEndpoint: WAHOO_CONFIG.authEndpoint,
+  tokenEndpoint: WAHOO_CONFIG.tokenEndpoint,
+};
+
+const STRAVA_CONFIGURED = PROVIDERS.strava.isConfigured;
+const WAHOO_CONFIGURED = PROVIDERS.wahoo.isConfigured;
 
 const STRAVA_ACTIVITIES = Object.entries(STRAVA_ACTIVITY_LABELS) as [
   StravaActivityType,
@@ -76,6 +92,12 @@ export default function SettingsScreen() {
     userPhotoUrl,
     stravaTokens,
     setStravaTokens,
+    wahooTokens,
+    setWahooTokens,
+    primaryProvider,
+    setPrimaryProvider,
+    wahooDefaultBikeId,
+    setWahooDefaultBikeId,
     lastSyncAt,
     isSyncing,
     notificationPrefs,
@@ -117,7 +139,7 @@ export default function SettingsScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      if (stravaTokens) {
+      if (stravaTokens || wahooTokens) {
         await syncStrava();
       } else {
         await new Promise((r) => setTimeout(r, 500));
@@ -229,6 +251,24 @@ export default function SettingsScreen() {
     discovery
   );
 
+  const wahooRedirectUri = AuthSession.makeRedirectUri({
+    scheme: 'bikevault',
+    path: 'wahoo-callback',
+  });
+
+  const [wahooRequest, wahooResponse, wahooPromptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: WAHOO_CONFIG.clientId,
+      // Wahoo takes the OAuth-standard space-separated scope list, so we
+      // pass the array as-is (expo-auth-session joins with spaces) —
+      // unlike Strava, which needs a comma-joined single element.
+      scopes: WAHOO_CONFIG.scopes,
+      redirectUri: wahooRedirectUri,
+      usePKCE: false,
+    },
+    wahooDiscovery
+  );
+
   useEffect(() => { loadLastSync(); }, []);
 
   useEffect(() => {
@@ -247,10 +287,18 @@ export default function SettingsScreen() {
     bc.onmessage = async (ev: MessageEvent) => {
       if (ev.data?.type !== 'connected') return;
       try {
-        const tokens = await loadStravaTokens(userId);
-        if (tokens) {
-          setStravaTokens(tokens);
-          if (tokens.athleteAvatar) setAthleteAvatar(tokens.athleteAvatar);
+        // The callback tab could have connected EITHER provider — reload
+        // both so whichever one changed reflects here.
+        const [stravaT, wahooT] = await Promise.all([
+          loadStravaTokens(userId),
+          loadWahooTokens(userId),
+        ]);
+        if (stravaT) {
+          setStravaTokens(stravaT);
+          if (stravaT.athleteAvatar) setAthleteAvatar(stravaT.athleteAvatar);
+        }
+        if (wahooT) setWahooTokens(wahooT);
+        if (stravaT || wahooT) {
           // Kick off a sync so the "Last synced" timestamp updates
           // without a manual tap.
           syncStrava().catch(() => undefined);
@@ -259,11 +307,11 @@ export default function SettingsScreen() {
           loadLastSync();
         }
       } catch (e) {
-        console.warn('Cross-tab Strava refresh failed:', e);
+        console.warn('Cross-tab data-source refresh failed:', e);
       }
     };
     return () => bc.close();
-  }, [userId, setStravaTokens, syncStrava, loadLastSync]);
+  }, [userId, setStravaTokens, setWahooTokens, syncStrava, loadLastSync]);
 
   useEffect(() => {
     // On web, the OAuth flow redirects to /strava-callback which handles
@@ -293,49 +341,156 @@ export default function SettingsScreen() {
     }
   }, [response]);
 
-  const handleConnectStrava = () => {
-    if (!STRAVA_CONFIGURED) {
+  // Wahoo native OAuth response (mirrors the Strava effect above). Web
+  // uses the /wahoo-callback route instead.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    if (wahooResponse?.type === 'success' && userId) {
+      const { code } = wahooResponse.params;
+      setConnecting(true);
+      exchangeWahooCode(userId, code, wahooRedirectUri)
+        .then(async (tokens) => {
+          setWahooTokens(tokens);
+          // First data source? make Wahoo primary + seed cursor to now.
+          if (!stravaTokens) {
+            try {
+              await savePrimaryProvider(userId, 'wahoo', Math.floor(Date.now() / 1000));
+              setPrimaryProvider('wahoo');
+            } catch {
+              /* user can set primary manually */
+            }
+          }
+          return syncStrava().catch(() => {
+            /* initial sync failure is non-fatal; user can retry */
+          });
+        })
+        .catch((e) =>
+          dialog.alert({ title: 'Connection failed', message: e.message, tone: 'destructive' })
+        )
+        .finally(() => setConnecting(false));
+    } else if (wahooResponse?.type === 'error') {
       dialog.alert({
-        title: 'Strava not configured',
-        message:
-          'Strava API credentials are missing from this build. Add EXPO_PUBLIC_STRAVA_CLIENT_ID and EXPO_PUBLIC_STRAVA_CLIENT_SECRET to .env.',
+        title: 'Wahoo error',
+        message: wahooResponse.error?.message ?? 'Unknown error',
+        tone: 'destructive',
+      });
+    }
+  }, [wahooResponse]);
+
+  // ── Provider link / unlink / primary ───────────────────────────────────────
+
+  const providerConnected = (id: ProviderId): boolean =>
+    id === 'strava' ? !!stravaTokens : !!wahooTokens;
+
+  const connectedProviderIds = PROVIDER_ORDER.filter(providerConnected);
+
+  const handleConnectProvider = (id: ProviderId) => {
+    const configured = id === 'strava' ? STRAVA_CONFIGURED : WAHOO_CONFIGURED;
+    if (!configured) {
+      const P = PROVIDERS[id];
+      const envPrefix = id === 'strava' ? 'STRAVA' : 'WAHOO';
+      dialog.alert({
+        title: `${P.displayName} not configured`,
+        message: `${P.displayName} API credentials are missing from this build. Add EXPO_PUBLIC_${envPrefix}_CLIENT_ID and EXPO_PUBLIC_${envPrefix}_CLIENT_SECRET to .env.`,
         tone: 'warning',
       });
       return;
     }
-    promptAsync();
+    setConnecting(true);
+    if (id === 'strava') promptAsync();
+    else wahooPromptAsync();
   };
 
-  const doDisconnect = async () => {
+  const handleSetPrimary = async (id: ProviderId) => {
+    if (!userId || primaryProvider === id) return;
+    if (!providerConnected(id)) return;
+    setPrimaryProvider(id);
+    try {
+      // Switching to Wahoo seeds its cursor to now → "keep totals, add new
+      // only". Switching to Strava needs no seed (it has its own cursor +
+      // historical backfill).
+      await savePrimaryProvider(
+        userId,
+        id,
+        id === 'wahoo' ? Math.floor(Date.now() / 1000) : undefined
+      );
+    } catch (e) {
+      console.warn('Failed to persist primary provider:', e);
+    }
+    // Reflect the change immediately.
+    syncStrava().catch(() => undefined);
+  };
+
+  const handleSetWahooDefaultBike = async (bikeId: string | null) => {
+    if (!userId) return;
+    // Toggle off if tapping the already-selected bike.
+    const next = wahooDefaultBikeId === bikeId ? null : bikeId;
+    setWahooDefaultBikeId(next);
+    try {
+      await saveWahooDefaultBike(userId, next);
+    } catch (e) {
+      console.warn('Failed to persist Wahoo default bike:', e);
+    }
+  };
+
+  const doDisconnect = async (id: ProviderId) => {
     if (!userId) return;
     // Clear Firestore first, but never let a failure (e.g. Safari ITP
     // blocking the Firestore channel) leave the user stuck with a dead
     // connection they can't remove. Local state is the source of truth
     // for the UI, so we always null it even if the server delete fails.
     try {
-      await clearStravaTokens(userId);
+      if (id === 'strava') await clearStravaTokens(userId);
+      else await clearWahooTokens(userId);
     } catch (e) {
-      console.warn('clearStravaTokens failed (continuing with local disconnect):', e);
+      console.warn(`clear ${id} tokens failed (continuing with local disconnect):`, e);
     }
-    setStravaTokens(null);
+    if (id === 'strava') {
+      setStravaTokens(null);
+      setAthleteAvatar(null);
+    } else {
+      setWahooTokens(null);
+    }
+    // If we just unlinked the primary source, fall back to whichever other
+    // provider is still connected so odometers keep updating from something.
+    if (primaryProvider === id) {
+      const fallback = PROVIDER_ORDER.find((p) => p !== id && providerConnected(p));
+      if (fallback) {
+        setPrimaryProvider(fallback);
+        try {
+          await savePrimaryProvider(
+            userId,
+            fallback,
+            fallback === 'wahoo' ? Math.floor(Date.now() / 1000) : undefined
+          );
+        } catch {
+          /* non-fatal */
+        }
+      }
+    }
   };
 
-  const handleDisconnect = async () => {
+  const handleDisconnectProvider = async (id: ProviderId) => {
+    const P = PROVIDERS[id];
     const ok = await dialog.confirm({
-      title: 'Disconnect Strava',
-      message: 'This will stop automatic distance sync. Continue?',
+      title: `Disconnect ${P.displayName}`,
+      message:
+        primaryProvider === id
+          ? `${P.displayName} is your primary data source. Disconnecting stops automatic distance sync (another linked source, if any, becomes primary). Continue?`
+          : 'This will unlink the account. Continue?',
       confirmLabel: 'Disconnect',
       tone: 'destructive',
     });
-    if (ok) doDisconnect();
+    if (ok) doDisconnect(id);
   };
 
   const handleSync = async () => {
+    if (connectedProviderIds.length === 0) return;
     try {
       await syncStrava();
       dialog.alert({
         title: 'Sync complete',
-        message: 'Bike distances updated from Strava.',
+        message: `Bike distances updated from ${PROVIDERS[primaryProvider].displayName}.`,
         tone: 'info',
       });
     } catch (e: unknown) {
@@ -424,7 +579,13 @@ export default function SettingsScreen() {
     performDelete();
   };
 
-  const isConnected = !!stravaTokens;
+  const anyConnected = connectedProviderIds.length > 0;
+  const lastSyncLabel = lastSyncAt
+    ? 'Last synced ' +
+      dayjs(lastSyncAt).fromNow() +
+      ' · ' +
+      dayjs(lastSyncAt).format('D MMM YYYY, HH:mm')
+    : 'Never synced';
 
   return (
     <View style={styles.root}>
@@ -486,47 +647,72 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Strava section — only for signed-in users (Firestore-backed) */}
+        {/* Data Sources — link one or more activity providers, pick the
+            one that feeds bike distances. Signed-in users only. */}
         {!isAnonymous && (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>STRAVA</Text>
+            <Text style={styles.sectionLabel}>DATA SOURCES</Text>
             <View style={styles.card}>
-              {isConnected ? (
+              {/* Primary-source selector + Sync — only meaningful once at
+                  least one provider is linked. */}
+              {anyConnected && (
                 <>
-                  <View style={styles.stravaRow}>
-                    <View style={styles.stravaLogo}>
-                      {athleteAvatar ? (
-                        <Image source={{ uri: athleteAvatar }} style={styles.stravaAvatar} />
-                      ) : (
-                        <Ionicons name="person-circle-outline" size={36} color={C.accent} />
-                      )}
-                    </View>
-                    <View style={styles.stravaInfo}>
-                      <Text style={styles.stravaName}>{stravaTokens.athleteName}</Text>
-                      <View style={styles.connectedBadge}>
-                        <View style={styles.dot} />
-                        <Text style={styles.connectedText}>Connected</Text>
-                      </View>
-                    </View>
+                  <View style={styles.primaryHeader}>
+                    <Text style={styles.rowTitle}>Primary source</Text>
+                    <Text style={styles.rowSub}>
+                      Where bike distances are pulled from
+                    </Text>
                   </View>
+                  <View style={styles.segment}>
+                    {PROVIDER_ORDER.map((pid) => {
+                      const connected = providerConnected(pid);
+                      const active = primaryProvider === pid;
+                      return (
+                        <TouchableOpacity
+                          key={pid}
+                          disabled={!connected || active}
+                          onPress={() => handleSetPrimary(pid)}
+                          style={[
+                            styles.segmentBtn,
+                            active && styles.segmentBtnActive,
+                            !connected && styles.segmentBtnDisabled,
+                          ]}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons
+                            name={PROVIDERS[pid].icon as any}
+                            size={15}
+                            color={active ? C.white : connected ? C.text : C.textTertiary}
+                          />
+                          <Text
+                            style={[
+                              styles.segmentText,
+                              active && styles.segmentTextActive,
+                              !connected && styles.segmentTextDisabled,
+                            ]}
+                          >
+                            {PROVIDERS[pid].displayName}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {primaryProvider === 'wahoo' && (
+                    <Text style={styles.sourceNote}>
+                      Wahoo has no per-bike tags, so rides are matched to bikes by
+                      activity type (see Default Activities below).
+                    </Text>
+                  )}
 
                   <View style={styles.divider} />
 
                   <TouchableOpacity style={styles.row} onPress={handleSync} disabled={isSyncing}>
                     <View style={styles.rowLeft}>
                       <Ionicons name="sync-outline" size={20} color={C.accent} />
-                      {/* `rowTextCol` (flex: 1) is required so the
-                          "Last synced …" subtitle wraps within the
-                          row width instead of bleeding under the
-                          trailing chevron — long form is e.g.
-                          "Last synced 2 hours ago · 13 May 2026, 19:47". */}
                       <View style={styles.rowTextCol}>
                         <Text style={styles.rowTitle}>Sync Activities</Text>
-                        <Text style={styles.rowSub}>
-                          {lastSyncAt
-                            ? 'Last synced ' + dayjs(lastSyncAt).fromNow() + ' · ' + dayjs(lastSyncAt).format('D MMM YYYY, HH:mm')
-                            : 'Never synced'}
-                        </Text>
+                        <Text style={styles.rowSub}>{lastSyncLabel}</Text>
                       </View>
                     </View>
                     {isSyncing ? (
@@ -535,50 +721,128 @@ export default function SettingsScreen() {
                       <Ionicons name="chevron-forward" size={18} color={C.textTertiary} />
                     )}
                   </TouchableOpacity>
-
-                  <View style={styles.divider} />
-
-                  <TouchableOpacity style={styles.row} onPress={handleDisconnect}>
-                    <View style={styles.rowLeft}>
-                      <Ionicons name="unlink-outline" size={20} color={C.danger} />
-                      <Text style={[styles.rowTitle, { color: C.danger }]}>
-                        Disconnect Strava
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color={C.textTertiary} />
-                  </TouchableOpacity>
                 </>
-              ) : (
-                <View style={styles.connectBox}>
-                  <View style={styles.stravaIconBox}>
-                    <Ionicons name="fitness-outline" size={28} color={C.accent} />
-                  </View>
-                  <Text style={styles.connectTitle}>Connect Strava</Text>
-                  <Text style={styles.connectSub}>
-                    Link your Strava account to automatically sync bike distances and track component wear.
-                  </Text>
-                  <TouchableOpacity
-                    style={[styles.connectBtn, (connecting || !request) && styles.connectBtnDisabled]}
-                    onPress={handleConnectStrava}
-                    disabled={connecting || !request}
-                  >
-                    {connecting ? (
-                      <ActivityIndicator color={C.white} />
-                    ) : (
-                      <>
-                        <Ionicons name="flash-outline" size={18} color={C.white} />
-                        <Text style={styles.connectBtnText}>Connect with Strava</Text>
-                      </>
+              )}
+
+              {/* One row per provider: connected → athlete + Disconnect;
+                  otherwise → a Connect action. */}
+              {PROVIDER_ORDER.map((pid) => {
+                const P = PROVIDERS[pid];
+                const connected = providerConnected(pid);
+                const tokens = pid === 'strava' ? stravaTokens : wahooTokens;
+                const isPrimary = primaryProvider === pid;
+                const configured = pid === 'strava' ? STRAVA_CONFIGURED : WAHOO_CONFIGURED;
+                const canConnect = pid === 'strava' ? !!request : !!wahooRequest;
+                const avatarUri =
+                  pid === 'strava' ? athleteAvatar ?? tokens?.athleteAvatar : null;
+                return (
+                  <View key={pid}>
+                    {(anyConnected || pid !== PROVIDER_ORDER[0]) && (
+                      <View style={styles.divider} />
                     )}
-                  </TouchableOpacity>
-                  {!STRAVA_CONFIGURED && (
-                    <Text style={styles.connectComingSoon}>
-                      Strava credentials missing — see .env
+                    <View style={styles.providerRow}>
+                      <View style={[styles.providerIcon, { backgroundColor: P.brandColor + '22' }]}>
+                        {avatarUri ? (
+                          <Image source={{ uri: avatarUri }} style={styles.providerAvatar} />
+                        ) : (
+                          <Ionicons name={P.icon as any} size={22} color={P.brandColor} />
+                        )}
+                      </View>
+                      <View style={styles.providerInfo}>
+                        <View style={styles.providerNameRow}>
+                          <Text style={styles.rowTitle}>{P.displayName}</Text>
+                          {isPrimary && (
+                            <View style={styles.primaryBadge}>
+                              <Text style={styles.primaryBadgeText}>PRIMARY</Text>
+                            </View>
+                          )}
+                        </View>
+                        {connected ? (
+                          <View style={styles.connectedBadge}>
+                            <View style={styles.dot} />
+                            <Text style={styles.connectedText} numberOfLines={1}>
+                              {tokens?.athleteName || 'Connected'}
+                            </Text>
+                          </View>
+                        ) : (
+                          <Text style={styles.rowSub}>
+                            {configured ? P.tagline : 'Credentials missing — see .env'}
+                          </Text>
+                        )}
+                      </View>
+                      {connected ? (
+                        <TouchableOpacity
+                          onPress={() => handleDisconnectProvider(pid)}
+                          hitSlop={8}
+                          style={styles.providerAction}
+                        >
+                          <Ionicons name="unlink-outline" size={18} color={C.danger} />
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          style={[
+                            styles.providerConnectBtn,
+                            (connecting || !configured || !canConnect) &&
+                              styles.connectBtnDisabled,
+                          ]}
+                          onPress={() => handleConnectProvider(pid)}
+                          disabled={connecting || !configured || !canConnect}
+                        >
+                          <Text style={styles.providerConnectText}>Connect</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+
+              {/* Wahoo catch-all bike — shown when Wahoo is linked and
+                  there are bikes to choose from. Because Wahoo rides can't
+                  carry a gear tag, any cycling workout that doesn't match a
+                  bike by activity type lands on the bike picked here (tap
+                  again to clear). */}
+              {providerConnected('wahoo') && bikes.length > 0 && (
+                <>
+                  <View style={styles.divider} />
+                  <View style={styles.primaryHeader}>
+                    <Text style={styles.rowTitle}>Wahoo catch-all bike</Text>
+                    <Text style={styles.rowSub}>
+                      Wahoo rides that don’t match a bike by activity type go here
                     </Text>
-                  )}
-                </View>
+                  </View>
+                  <View style={styles.activityChipWrap}>
+                    {bikes.map((b) => {
+                      const active = wahooDefaultBikeId === b.id;
+                      return (
+                        <TouchableOpacity
+                          key={b.id}
+                          style={[styles.chip, active && styles.chipActive]}
+                          onPress={() => handleSetWahooDefaultBike(b.id)}
+                          activeOpacity={0.7}
+                        >
+                          <View
+                            style={[
+                              styles.bikeDot,
+                              { backgroundColor: b.color ?? C.accent, marginRight: 6 },
+                            ]}
+                          />
+                          <Text
+                            style={[styles.chipText, active && styles.chipTextActive]}
+                            numberOfLines={1}
+                          >
+                            {b.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </>
               )}
             </View>
+            <Text style={styles.hint}>
+              Link any accounts you use; only your primary source updates bike
+              distances. Switch primary anytime — existing totals are kept.
+            </Text>
           </View>
         )}
 
@@ -1005,6 +1269,36 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Support — optional donation link. Opens the external donatr.ee
+            page in the browser. Mirrors the gradient pill button from the
+            web marketing surface (purple #6C5CE7 → #A855F7 with a glow). */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>SUPPORT</Text>
+          <View style={styles.card}>
+            <View style={styles.donateBox}>
+              <Text style={styles.donateBlurb}>
+                BikeVault is free. If it keeps your drivetrain honest, you can
+                chip in to support development.
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() =>
+                  openExternal('https://donatr.ee/danielkorobkov', 'the donation page')
+                }
+              >
+                <LinearGradient
+                  colors={['#6C5CE7', '#A855F7']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.donateBtn}
+                >
+                  <Text style={styles.donateBtnText}>Donate to BikeVault</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
         {/* Danger zone — delete account (only for signed-in users) */}
         {!isAnonymous && (
           <View style={styles.section}>
@@ -1145,6 +1439,72 @@ const makeStyles = (C: ColorPalette) => StyleSheet.create({
   connectBtnText: { fontSize: 15, fontWeight: '700', color: C.white },
   connectComingSoon: { fontSize: 12, color: C.textTertiary, textAlign: 'center', marginTop: 2 },
 
+  // ── Data Sources ───────────────────────────────────────────────────────────
+  primaryHeader: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 },
+  segment: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+  },
+  segmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  segmentBtnActive: { backgroundColor: C.accent, borderColor: C.accent },
+  segmentBtnDisabled: { opacity: 0.4 },
+  segmentText: { fontSize: 14, fontWeight: '600', color: C.text },
+  segmentTextActive: { color: C.white },
+  segmentTextDisabled: { color: C.textTertiary },
+  sourceNote: {
+    fontSize: 12,
+    color: C.textSecondary,
+    lineHeight: 17,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    marginTop: -4,
+  },
+  providerRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  providerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  providerAvatar: { width: 44, height: 44 },
+  providerInfo: { flex: 1, gap: 4 },
+  providerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  primaryBadge: {
+    backgroundColor: C.accentDim,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  primaryBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    color: C.accent,
+  },
+  providerAction: { padding: 6 },
+  providerConnectBtn: {
+    backgroundColor: C.accent,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  providerConnectText: { fontSize: 13, fontWeight: '700', color: C.white },
+
   hint: { fontSize: 13, color: C.textSecondary, lineHeight: 18, paddingHorizontal: 4 },
 
   // Default-activity picker rows
@@ -1206,6 +1566,29 @@ const makeStyles = (C: ColorPalette) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+  // Support section
+  donateBox: { padding: 20, alignItems: 'center', gap: 14 },
+  donateBlurb: {
+    fontSize: 14,
+    color: C.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  donateBtn: {
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Glow, mirroring the web button's box-shadow.
+    shadowColor: '#6C5CE7',
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 6,
+  },
+  donateBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
   // Appearance section
   themeRow: {

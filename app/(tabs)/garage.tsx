@@ -56,6 +56,7 @@ export default function GarageScreen() {
     bikes,
     components,
     stravaTokens,
+    wahooTokens,
     isDataLoading,
     updateComponentLocal,
     removeComponentLocal,
@@ -78,7 +79,7 @@ export default function GarageScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      if (stravaTokens) {
+      if (stravaTokens || wahooTokens) {
         await syncStrava();
       } else {
         await new Promise((r) => setTimeout(r, 500));

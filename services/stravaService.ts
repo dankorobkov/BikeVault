@@ -392,6 +392,42 @@ async function fetchWithRetry(
       continue;
     }
 
+    // 403 = valid token, but forbidden from this resource. Unlike a 401,
+    // the status alone doesn't say why — Strava explains it in the JSON
+    // body, so read that before deciding how to surface it. Two cases we
+    // care about:
+    //   - Missing activity scope: the token was granted without
+    //     `activity:read`/`activity:read_all` (user didn't tick the
+    //     activities box on the consent screen). Body carries an error
+    //     with field `*_read_permission` / code `missing`. This is the
+    //     same class of problem as a revoked token — the user must
+    //     reconnect and grant access — so route it through
+    //     StravaAuthError, which makes useSync clear the dead token and
+    //     drop back to the Connect button.
+    //   - Anything else (e.g. an unapproved test app hitting its
+    //     "connected athletes exceeded" limit): surface the real reason
+    //     from the body but DON'T clear tokens — it's a config/limit
+    //     issue, not a bad credential.
+    if (res.status === 403) {
+      let body: { message?: string; errors?: Array<{ field?: string; code?: string }> } | null =
+        null;
+      try {
+        body = await res.json();
+      } catch {
+        /* non-JSON body — leave null and fall through to the generic message */
+      }
+      const missingScope = body?.errors?.some(
+        (err) => err?.field?.includes('read_permission') || err?.code === 'missing'
+      );
+      if (missingScope) {
+        throw new StravaAuthError(
+          'BikeVault can\'t read your Strava activities. Reconnect Strava and allow "View data about your activities".'
+        );
+      }
+      const detail = body?.message ? `: ${body.message}` : '';
+      throw new Error(`Strava ${describe} → HTTP 403${detail}`);
+    }
+
     // Other 4xx = client error, surface with context (don't retry).
     if (!res.ok) {
       throw new Error(`Strava ${describe} → HTTP ${res.status}`);

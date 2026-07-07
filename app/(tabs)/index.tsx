@@ -29,7 +29,7 @@ export default function BikesScreen() {
   const router = useRouter();
   const C = useThemeColors();
   const styles = useMemo(() => makeStyles(C), [C]);
-  const { userId, bikes, components, isDataLoading, stravaTokens, addBikeLocal } = useAppStore();
+  const { userId, bikes, components, isDataLoading, stravaTokens, wahooTokens, addBikeLocal } = useAppStore();
   const { syncStrava } = useSync();
 
   const [showAdd, setShowAdd] = useState(false);
@@ -106,11 +106,11 @@ export default function BikesScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      if (stravaTokens) {
+      if (stravaTokens || wahooTokens) {
         await syncStrava();
       } else {
-        // Idle pull with no Strava — keep the spinner up briefly so the
-        // gesture feels acknowledged instead of snapping back instantly.
+        // Idle pull with no linked source — keep the spinner up briefly so
+        // the gesture feels acknowledged instead of snapping back instantly.
         await new Promise((r) => setTimeout(r, 500));
       }
     } catch {

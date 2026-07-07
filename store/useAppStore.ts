@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import type { Bike, BikeComponent, StravaTokens, NotificationPrefs } from '../types';
+import type {
+  Bike,
+  BikeComponent,
+  StravaTokens,
+  WahooTokens,
+  ProviderId,
+  NotificationPrefs,
+} from '../types';
 import type { FeatureFlags } from '../services/featureFlagsService';
 
 interface AppState {
@@ -25,8 +32,16 @@ interface AppState {
   bikes: Bike[];
   components: BikeComponent[];
 
-  // Strava
+  // Activity data sources
+  // Each provider's connection is stored independently so the user can
+  // link several at once. `primaryProvider` decides which one actually
+  // feeds bike distances (see useSync). Legacy state: Strava only.
   stravaTokens: StravaTokens | null;
+  wahooTokens: WahooTokens | null;
+  primaryProvider: ProviderId;
+  // Optional catch-all bike for Wahoo rides that don't attribute by
+  // activity type. null = drop unmatched rides.
+  wahooDefaultBikeId: string | null;
   lastSyncAt: number | null;
   isSyncing: boolean;
 
@@ -68,6 +83,9 @@ interface AppState {
   removeComponentLocal: (id: string) => void;
 
   setStravaTokens: (tokens: StravaTokens | null) => void;
+  setWahooTokens: (tokens: WahooTokens | null) => void;
+  setPrimaryProvider: (provider: ProviderId) => void;
+  setWahooDefaultBikeId: (bikeId: string | null) => void;
   setLastSyncAt: (ts: number) => void;
   setIsSyncing: (v: boolean) => void;
 
@@ -98,6 +116,9 @@ export const useAppStore = create<AppState>((set) => ({
   bikes: [],
   components: [],
   stravaTokens: null,
+  wahooTokens: null,
+  primaryProvider: 'strava',
+  wahooDefaultBikeId: null,
   lastSyncAt: null,
   isSyncing: false,
   notificationPrefs: DEFAULT_NOTIFICATION_PREFS,
@@ -135,6 +156,9 @@ export const useAppStore = create<AppState>((set) => ({
       bikes: [],
       components: [],
       stravaTokens: null,
+      wahooTokens: null,
+      primaryProvider: 'strava',
+      wahooDefaultBikeId: null,
       lastSyncAt: null,
     }),
 
@@ -161,6 +185,9 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => ({ components: s.components.filter((c) => c.id !== id) })),
 
   setStravaTokens: (tokens) => set({ stravaTokens: tokens }),
+  setWahooTokens: (tokens) => set({ wahooTokens: tokens }),
+  setPrimaryProvider: (provider) => set({ primaryProvider: provider }),
+  setWahooDefaultBikeId: (bikeId) => set({ wahooDefaultBikeId: bikeId }),
   setLastSyncAt: (ts) => set({ lastSyncAt: ts }),
   setIsSyncing: (v) => set({ isSyncing: v }),
 
