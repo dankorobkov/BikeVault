@@ -24,6 +24,9 @@ import PrimaryActionButton, {
   PRIMARY_ACTION_BAR_HEIGHT,
 } from './PrimaryActionButton';
 import { CHAIN_LUBE_TYPES, CHAIN_LUBE_ORDER } from '../constants/chainLube';
+import ActivityLog from './ActivityLog';
+import { useAppStore } from '../store/useAppStore';
+import { fetchComponentActivity, type ActivityEntry } from '../services/activityService';
 import type { BikeComponent, Bike, ChainLubeType } from '../types';
 
 interface Props {
@@ -59,6 +62,9 @@ export default function EditComponentModal({
 }: Props) {
   const C = useThemeColors();
   const styles = useMemo(() => makeStyles(C), [C]);
+  const userId = useAppStore((s) => s.userId);
+  // Per-component "Latest actions" history, loaded when the modal opens.
+  const [componentLog, setComponentLog] = useState<ActivityEntry[]>([]);
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [notes, setNotes] = useState('');
@@ -92,6 +98,23 @@ export default function EditComponentModal({
     const n = Number(cleaned);
     return Number.isFinite(n) ? n : 0;
   };
+
+  // Load this component's "Latest actions" when the modal opens.
+  useEffect(() => {
+    if (!visible || !component || !userId) {
+      setComponentLog([]);
+      return;
+    }
+    let active = true;
+    fetchComponentActivity(userId, component.id)
+      .then((a) => {
+        if (active) setComponentLog(a);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [visible, component?.id, userId]);
 
   useEffect(() => {
     if (component && visible) {
@@ -730,6 +753,11 @@ export default function EditComponentModal({
               </View>
             </View>
           )}
+
+          {/* Latest actions for this component */}
+          <View style={styles.section}>
+            <ActivityLog entries={componentLog} />
+          </View>
         </ScrollView>
         <PrimaryActionButton
           label="Save"

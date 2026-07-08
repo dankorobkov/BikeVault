@@ -4,6 +4,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  getDoc,
   getDocs,
   query,
   where,
@@ -12,6 +13,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { logBikeActivity, logComponentEvent } from './activityService';
 import type {
   BikeComponent,
   ChainLubeType,
@@ -25,6 +27,26 @@ function componentsRef(userId: string) {
 
 function componentDoc(userId: string, componentId: string) {
   return doc(db, 'users', userId, 'components', componentId);
+}
+
+/**
+ * Read just the name + parent bike of a component, for composing activity
+ * log entries in operations whose signature only carries the id (retire,
+ * move-to-stock, install, delete). Best-effort: returns null on any error
+ * so logging can be skipped without affecting the operation.
+ */
+async function readComponentMeta(
+  userId: string,
+  componentId: string
+): Promise<{ name: string; bikeId: string | null } | null> {
+  try {
+    const snap = await getDoc(componentDoc(userId, componentId));
+    if (!snap.exists()) return null;
+    const d = snap.data();
+    return { name: (d.name as string) ?? 'Component', bikeId: (d.bikeId as string | null) ?? null };
+  } catch {
+    return null;
+  }
 }
 
 function fromFirestore(d: { id: string; data: () => Record<string, unknown> }): BikeComponent {
@@ -140,6 +162,13 @@ export async function addComponent(
 
   const ref = await addDoc(componentsRef(userId), data);
   const now = Date.now();
+  logComponentEvent(userId, {
+    componentId: ref.id,
+    bikeId: component.bikeId ?? null,
+    action: 'component_added',
+    selfLabel: 'Added',
+    bikeLabel: `Added “${component.name}”`,
+  });
   return { id: ref.id, ...component, createdAt: now, updatedAt: now };
 }
 
@@ -163,17 +192,35 @@ export async function updateComponent(
 }
 
 export async function retireComponent(userId: string, componentId: string): Promise<void> {
+  const meta = await readComponentMeta(userId, componentId);
   await updateDoc(componentDoc(userId, componentId), {
     status: 'retired',
     updatedAt: serverTimestamp(),
   });
+  logComponentEvent(userId, {
+    componentId,
+    bikeId: meta?.bikeId ?? null,
+    action: 'component_retired',
+    selfLabel: 'Retired',
+    bikeLabel: `Retired “${meta?.name ?? 'component'}”`,
+  });
 }
 
 export async function moveToStock(userId: string, componentId: string): Promise<void> {
+  // Read the parent bike BEFORE the write nulls it — so the "moved to
+  // stock" entry can still be attributed to the bike it left.
+  const meta = await readComponentMeta(userId, componentId);
   await updateDoc(componentDoc(userId, componentId), {
     bikeId: null,
     status: 'in-stock',
     updatedAt: serverTimestamp(),
+  });
+  logComponentEvent(userId, {
+    componentId,
+    bikeId: meta?.bikeId ?? null,
+    action: 'component_stocked',
+    selfLabel: 'Moved to stock',
+    bikeLabel: `Moved “${meta?.name ?? 'component'}” to stock`,
   });
 }
 
@@ -183,14 +230,29 @@ export async function installOnBike(
   bikeId: string,
   installDistance: number
 ): Promise<void> {
+  const meta = await readComponentMeta(userId, componentId);
   await updateDoc(componentDoc(userId, componentId), {
     bikeId,
     status: 'active',
     installDistance,
     updatedAt: serverTimestamp(),
   });
+  logComponentEvent(userId, {
+    componentId,
+    bikeId, // the new bike it was installed on
+    action: 'component_installed',
+    selfLabel: 'Installed on bike',
+    bikeLabel: `Installed “${meta?.name ?? 'component'}”`,
+  });
 }
 
 export async function deleteComponent(userId: string, componentId: string): Promise<void> {
+  // Capture name + bike before deletion so the parent bike's history can
+  // show "Removed …". The component's own log dies with it, so we only
+  // write the bike-side entry.
+  const meta = await readComponentMeta(userId, componentId);
   await deleteDoc(componentDoc(userId, componentId));
+  if (meta?.bikeId) {
+    void logBikeActivity(userId, meta.bikeId, 'component_deleted', `Removed “${meta.name}”`);
+  }
 }

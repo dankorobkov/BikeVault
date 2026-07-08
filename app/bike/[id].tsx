@@ -23,6 +23,12 @@ import {
   installOnBike,
 } from '../../services/componentsService';
 import { deleteBike, updateBike } from '../../services/bikesService';
+import {
+  logBikeActivity,
+  logComponentEvent,
+  fetchBikeActivity,
+  type ActivityEntry,
+} from '../../services/activityService';
 import { getValidToken } from '../../services/stravaService';
 import {
   correctBackdatedInstall,
@@ -40,6 +46,7 @@ import EditComponentModal from '../../components/EditComponentModal';
 import EmptyState from '../../components/EmptyState';
 import SuccessBanner from '../../components/SuccessBanner';
 import AppTabBar from '../../components/AppTabBar';
+import ActivityLog from '../../components/ActivityLog';
 import { useSync } from '../../hooks/useSync';
 import { useTopInset } from '../../hooks/useTopInset';
 import {
@@ -102,10 +109,39 @@ export default function BikeDetailScreen() {
   // Edit Component modal
   const [editingComponent, setEditingComponent] = useState<BikeComponent | null>(null);
 
+  // Latest actions — this bike's history (its own edits + its components').
+  const [actionLog, setActionLog] = useState<ActivityEntry[]>([]);
+
   const bike = bikes.find((b) => b.id === id);
   const bikeComponents = components.filter(
     (c) => c.bikeId === id && (showRetired ? true : c.status !== 'retired')
   );
+
+  // Load the "Latest actions" log on mount, and re-pull shortly after any
+  // change to this bike or its components — the log write is async and
+  // best-effort, so a small delayed refetch catches the newest entry.
+  const activitySig =
+    `${bike?.updatedAt ?? 0}:${components.length}:` +
+    components
+      .filter((c) => c.bikeId === id)
+      .map((c) => `${c.id}@${c.updatedAt}`)
+      .join('|');
+  useEffect(() => {
+    if (!userId || !id) return;
+    let active = true;
+    const load = () =>
+      fetchBikeActivity(userId, id)
+        .then((a) => {
+          if (active) setActionLog(a);
+        })
+        .catch(() => undefined);
+    load();
+    const t = setTimeout(load, 900);
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
+  }, [userId, id, activitySig]);
 
   useEffect(() => {
     if (!bike?.stravaId || !stravaTokens || !userId) return;
@@ -332,6 +368,14 @@ export default function BikeDetailScreen() {
     await updateComponent(userId, componentId, nextUpdates);
     updateComponentLocal(componentId, { ...nextUpdates, updatedAt: Date.now() });
     if (nextUpdates.category) Analytics.editComponent(nextUpdates.category);
+    const editedComp = components.find((c) => c.id === componentId);
+    logComponentEvent(userId, {
+      componentId,
+      bikeId: nextUpdates.bikeId ?? editedComp?.bikeId ?? id,
+      action: 'component_edited',
+      selfLabel: 'Edited',
+      bikeLabel: `Edited “${nextUpdates.name ?? editedComp?.name ?? 'component'}”`,
+    });
   };
 
   const handleEditInstallOnBike = async (
@@ -442,6 +486,7 @@ export default function BikeDetailScreen() {
       updatedAt: Date.now(),
     });
     Analytics.editBike();
+    logBikeActivity(userId, id, 'bike_edited', 'Details edited');
   };
 
   const handleAddRide = async () => {
@@ -452,6 +497,7 @@ export default function BikeDetailScreen() {
       const newDist = bike.totalDistance + km;
       await updateBike(userId, id, { totalDistance: newDist });
       updateBikeLocal(id, { totalDistance: newDist, updatedAt: Date.now() });
+      logBikeActivity(userId, id, 'ride_added', `Ride added +${Math.round(km)} km`);
       setShowAddRide(false);
       setRideKm('');
       setRideName('');
@@ -745,6 +791,11 @@ export default function BikeDetailScreen() {
               />
             ))
           )}
+        </View>
+
+        {/* Latest actions — this bike's history plus its components' events */}
+        <View style={{ marginTop: 24 }}>
+          <ActivityLog entries={actionLog} />
         </View>
       </RefreshableScrollView>
 

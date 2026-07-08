@@ -21,6 +21,7 @@ import {
   updateComponent,
   installOnBike,
 } from '../../services/componentsService';
+import { logComponentEvent } from '../../services/activityService';
 import {
   correctBackdatedInstall,
   applyBikeTotalSnapshot,
@@ -234,7 +235,17 @@ export default function GarageScreen() {
 
     await updateComponent(userId, componentId, nextUpdates);
     updateComponentLocal(componentId, { ...nextUpdates, updatedAt: Date.now() });
-    if (existing) Analytics.editComponent(nextUpdates.category ?? existing.category);
+    if (existing) {
+      Analytics.editComponent(nextUpdates.category ?? existing.category);
+      const name = nextUpdates.name ?? existing.name;
+      logComponentEvent(userId, {
+        componentId,
+        bikeId: nextUpdates.bikeId ?? existing.bikeId,
+        action: 'component_edited',
+        selfLabel: 'Edited',
+        bikeLabel: `Edited “${name}”`,
+      });
+    }
   };
 
   const handleEditInstallOnBike = async (

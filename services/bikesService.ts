@@ -11,6 +11,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { logBikeActivity } from './activityService';
 import { defaultActivityForBikeType } from '../types';
 import type {
   Bike,
@@ -89,6 +90,8 @@ export async function addBike(
 
   const ref = await addDoc(bikesRef(userId), data);
   const now = Date.now();
+  // Best-effort activity log (never blocks the add).
+  void logBikeActivity(userId, ref.id, 'bike_added', 'Bike added');
   return {
     id: ref.id,
     ...bike,
