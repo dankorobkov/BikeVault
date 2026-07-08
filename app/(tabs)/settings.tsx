@@ -251,10 +251,19 @@ export default function SettingsScreen() {
     discovery
   );
 
-  const wahooRedirectUri = AuthSession.makeRedirectUri({
-    scheme: 'bikevault',
-    path: 'wahoo-callback',
-  });
+  // Wahoo validates the redirect_uri as an EXACT full-URL match (unlike
+  // Strava, which only checks the domain). On web, `makeRedirectUri` drops
+  // the deployment base path, so on the test build it yields
+  // `https://host/wahoo-callback` instead of `https://host/test/wahoo-callback`
+  // — which Wahoo rejects. Build the URL ourselves with the same base path
+  // logic as app.config.js so authorize + callback both land on the right
+  // build and match the registered callback URL exactly.
+  const wahooRedirectUri =
+    Platform.OS === 'web'
+      ? `${window.location.origin}${
+          process.env.EXPO_PUBLIC_APP_ENV === 'test' ? '/test' : ''
+        }/wahoo-callback`
+      : AuthSession.makeRedirectUri({ scheme: 'bikevault', path: 'wahoo-callback' });
 
   const [wahooRequest, wahooResponse, wahooPromptAsync] = AuthSession.useAuthRequest(
     {
