@@ -39,8 +39,20 @@ import {
 } from '../../services/wahooService';
 import { savePrimaryProvider, saveWahooDefaultBike } from '../../services/syncStateService';
 import { PROVIDERS, PROVIDER_ORDER } from '../../services/providers/registry';
-import { deleteUserAccount } from '../../services/userService';
+import {
+  deleteUserAccount,
+  subscribeUser,
+  unsubscribeUser,
+  setOverLimitSince as persistOverLimitSince,
+} from '../../services/userService';
 import { updateBike } from '../../services/bikesService';
+import {
+  FREE_BIKE_LIMIT,
+  FREE_COMPONENT_LIMIT,
+  SUBSCRIPTION_DURATION_MS,
+  isOverFreeLimits,
+  graceDaysRemaining,
+} from '../../constants/subscription';
 import {
   getNotificationPermission,
   requestNotificationPermission,
@@ -104,8 +116,16 @@ export default function SettingsScreen() {
     setNotificationPrefs,
     signOut,
     bikes,
+    components,
     updateBikeLocal,
+    subscriptionStatus,
+    subscriptionPurchasedAt,
+    subscriptionExpiresAt,
+    overLimitSince,
+    setSubscription,
   } = useAppStore();
+  const isSubscribed = subscriptionStatus === 'subscribed';
+  const [subscribing, setSubscribing] = useState(false);
   // Drives the "Watch onboarding video" entry. Independent of the
   // first-time gate — opens in replay mode so it never re-writes the
   // hasSeenOnboarding flag and Skip is enabled from second zero.
@@ -522,6 +542,62 @@ export default function SettingsScreen() {
     signOut();
   };
 
+  // ── Subscription (mock — no payment processor wired up yet) ───────────────
+  const handleSubscribe = async () => {
+    if (!userId) return;
+    setSubscribing(true);
+    try {
+      await subscribeUser(userId);
+      const now = Date.now();
+      setSubscription({
+        status: 'subscribed',
+        purchasedAt: now,
+        expiresAt: now + SUBSCRIPTION_DURATION_MS,
+        overLimitSince: null,
+      });
+      dialog.alert({
+        title: 'Subscribed!',
+        message: 'Unlimited bikes and components are unlocked.',
+        tone: 'info',
+      });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Could not subscribe';
+      dialog.alert({ title: 'Subscribe failed', message: msg, tone: 'destructive' });
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
+  const handleUnsubscribe = async () => {
+    const over = isOverFreeLimits(bikes.length, components.length);
+    const ok = await dialog.confirm({
+      title: 'Unsubscribe?',
+      message: over
+        ? `You're over the free plan limit (${FREE_BIKE_LIMIT} bikes / ${FREE_COMPONENT_LIMIT} components). You'll keep full access for 30 days to trim down or resubscribe, then you'll be asked to choose what to keep.`
+        : `You'll drop to the free plan: up to ${FREE_BIKE_LIMIT} bikes and ${FREE_COMPONENT_LIMIT} components.`,
+      confirmLabel: 'Unsubscribe',
+      tone: 'destructive',
+    });
+    if (!ok || !userId) return;
+    setSubscribing(true);
+    try {
+      await unsubscribeUser(userId);
+      const newOverLimitSince = over ? Date.now() : null;
+      await persistOverLimitSince(userId, newOverLimitSince);
+      setSubscription({
+        status: 'free',
+        purchasedAt: subscriptionPurchasedAt,
+        expiresAt: null,
+        overLimitSince: newOverLimitSince,
+      });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Could not unsubscribe';
+      dialog.alert({ title: 'Unsubscribe failed', message: msg, tone: 'destructive' });
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
   // ── Delete account (two-step confirmation) ────────────────────────────────
   const performDelete = async () => {
     if (!userId || !auth.currentUser) return;
@@ -655,6 +731,106 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Subscription — free tier is capped at FREE_BIKE_LIMIT bikes /
+            FREE_COMPONENT_LIMIT components; subscribing removes the caps.
+            No payment processor yet, so Subscribe is a mock action (see
+            services/userService.ts). Signed-in users only — anonymous/demo
+            sessions are local-only and can't persist a subscription. */}
+        {!isAnonymous && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>SUBSCRIPTION</Text>
+            <View style={styles.card}>
+              <View style={styles.subRow}>
+                <View style={styles.rowLeft}>
+                  <View style={styles.subIconBox}>
+                    <Ionicons
+                      name={isSubscribed ? 'ribbon' : 'ribbon-outline'}
+                      size={20}
+                      color={C.accent}
+                    />
+                  </View>
+                  <View style={styles.rowTextCol}>
+                    <View style={styles.providerNameRow}>
+                      <Text style={styles.rowTitle}>
+                        {isSubscribed ? 'Subscribed' : 'Free plan'}
+                      </Text>
+                      {isSubscribed && (
+                        <View style={styles.primaryBadge}>
+                          <Text style={styles.primaryBadgeText}>UNLIMITED</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.rowSub}>
+                      {isSubscribed
+                        ? (subscriptionPurchasedAt
+                            ? 'Purchased ' + dayjs(subscriptionPurchasedAt).format('D MMM YYYY')
+                            : 'Active') +
+                          ' · ' +
+                          (subscriptionExpiresAt
+                            ? 'Renews ' + dayjs(subscriptionExpiresAt).format('D MMM YYYY')
+                            : 'No expiry')
+                        : `Up to ${FREE_BIKE_LIMIT} bikes and ${FREE_COMPONENT_LIMIT} components (${bikes.length}/${FREE_BIKE_LIMIT} bikes, ${components.length}/${FREE_COMPONENT_LIMIT} components)`}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {overLimitSince !== null && (
+                <>
+                  <View style={styles.divider} />
+                  <View style={styles.graceBanner}>
+                    <Ionicons name="warning-outline" size={18} color={C.warning} />
+                    <Text style={styles.graceBannerText}>
+                      Over the free plan limit. You have{' '}
+                      {graceDaysRemaining(overLimitSince)} day
+                      {graceDaysRemaining(overLimitSince) === 1 ? '' : 's'} to
+                      subscribe or trim your garage down to {FREE_BIKE_LIMIT} bikes /{' '}
+                      {FREE_COMPONENT_LIMIT} components before you'll be asked to
+                      choose what to keep.
+                    </Text>
+                  </View>
+                </>
+              )}
+
+              <View style={styles.divider} />
+
+              {isSubscribed ? (
+                <TouchableOpacity
+                  style={styles.row}
+                  onPress={handleUnsubscribe}
+                  disabled={subscribing}
+                >
+                  <View style={styles.rowLeft}>
+                    <Ionicons name="close-circle-outline" size={20} color={C.danger} />
+                    <Text style={[styles.rowTitle, { color: C.danger }]}>Unsubscribe</Text>
+                  </View>
+                  {subscribing && <ActivityIndicator color={C.danger} size="small" />}
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.subscribeRow}
+                  onPress={handleSubscribe}
+                  disabled={subscribing}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient
+                    colors={['#6C5CE7', '#A855F7']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.subscribeBtn}
+                  >
+                    {subscribing ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.subscribeBtnText}>Subscribe — unlimited bikes & parts</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Data Sources — link one or more activity providers, pick the
             one that feeds bike distances. Signed-in users only. */}
@@ -1598,6 +1774,38 @@ const makeStyles = (C: ColorPalette) => StyleSheet.create({
     elevation: 6,
   },
   donateBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+  // Subscription section
+  subRow: { flexDirection: 'row', alignItems: 'center', padding: 16 },
+  subIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: C.accentDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  graceBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    padding: 16,
+    backgroundColor: (C.warning ?? '#E8A33D') + '15',
+  },
+  graceBannerText: { flex: 1, fontSize: 12.5, color: C.text, lineHeight: 18 },
+  subscribeRow: { padding: 16 },
+  subscribeBtn: {
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#6C5CE7',
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 5,
+  },
+  subscribeBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
   // Appearance section
   themeRow: {

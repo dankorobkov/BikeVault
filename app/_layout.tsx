@@ -12,7 +12,15 @@ import { fetchAllComponents } from '../services/componentsService';
 import { loadStravaTokens, validateStravaTokens } from '../services/stravaService';
 import { loadWahooTokens, validateWahooTokens } from '../services/wahooService';
 import { loadSyncState } from '../services/syncStateService';
-import { createUserProfile, getUserProfile } from '../services/userService';
+import {
+  createUserProfile,
+  getUserProfile,
+  isSubscriptionExpired,
+  unsubscribeUser,
+  setOverLimitSince as persistOverLimitSince,
+  type UserProfile,
+} from '../services/userService';
+import { isOverFreeLimits, isGracePeriodExpired } from '../constants/subscription';
 import { fetchFeatureFlags } from '../services/featureFlagsService';
 import { scanAndNotify } from '../services/notifications';
 import type { ColorPalette } from '../constants/colors';
@@ -43,6 +51,7 @@ function AuthGate() {
     userEmail,
     userPhotoUrl,
     setHasProfile,
+    overLimitSince,
   } = useAppStore();
 
   // Guards the prod auto-create so this effect doesn't fire it twice while
@@ -55,6 +64,7 @@ function AuthGate() {
     const current = segments[0] as string | undefined;
     const onLogin = current === 'login';
     const onInvite = current === 'invite-code';
+    const onTrim = current === 'trim-selection';
 
     if (!userId) {
       if (!onLogin) router.replace('/login');
@@ -90,6 +100,24 @@ function AuthGate() {
       return;
     }
 
+    // Signed in, has a profile, over the free-tier limits, and the
+    // 30-day grace period has run out — force the trim-selection flow
+    // before letting them anywhere else in the app. Doesn't apply to
+    // anonymous/demo sessions: their data is local-only, so there's
+    // nothing to persist a grace period against.
+    const graceExpired =
+      !isAnonymous && hasProfile && overLimitSince !== null && isGracePeriodExpired(overLimitSince);
+    if (graceExpired) {
+      if (!onTrim) router.replace('/trim-selection' as never);
+      return;
+    }
+    // They resolved it (resubscribed / trimmed down / signed out and
+    // back in) but the route is still on the trim screen — release them.
+    if (onTrim) {
+      router.replace('/(tabs)');
+      return;
+    }
+
     // Signed in and allowed into the app.
     if (onLogin || onInvite) {
       router.replace('/(tabs)');
@@ -105,6 +133,7 @@ function AuthGate() {
     userDisplayName,
     userPhotoUrl,
     setHasProfile,
+    overLimitSince,
   ]);
 
   return null;
@@ -174,6 +203,7 @@ function ThemedLayout() {
       >
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="invite-code" options={{ headerShown: false }} />
+        <Stack.Screen name="trim-selection" options={{ headerShown: false }} />
         <Stack.Screen name="strava-callback" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="bike/[id]" options={{ headerShown: false }} />
@@ -225,6 +255,7 @@ export default function RootLayout() {
     setPrimaryProvider,
     setWahooDefaultBikeId,
     setLoading,
+    setSubscription,
   } = useAppStore();
 
   useEffect(() => {
@@ -268,19 +299,33 @@ export default function RootLayout() {
 
         // ── Fetch data in the background ───────────────────────────────────
         if (user.isAnonymous) {
-          // Anonymous users always have a "profile" (demo data)
+          // Anonymous users always have a "profile" (demo data). Free-tier
+          // limits still apply to demo mode, but there's no persistence and
+          // no grace period — the sample garage is trimmed to fit the caps
+          // exactly, so this is just "no subscribe option, no lockout".
           setHasProfile(true);
           setProfileChecked(true);
           setBikes(DEMO_BIKES);
           setComponents(DEMO_COMPONENTS);
+          setSubscription({
+            status: 'free',
+            purchasedAt: null,
+            expiresAt: null,
+            overLimitSince: null,
+          });
         } else {
           setDataLoading(true);
+          // Captured here so the second `.then` (which has the bike/component
+          // counts needed to evaluate the free-tier limits) can still see
+          // the profile's subscription fields without re-fetching.
+          let loadedProfile: UserProfile | null = null;
           // Check profile first — gate the rest of the loading on having one,
           // so a first-time Google user doesn't hit Firestore-permission errors
           // while they're still on the invite-code screen.
           getUserProfile(user.uid)
             .then((profile) => {
               const has = profile !== null;
+              loadedProfile = profile;
               setHasProfile(has);
               setProfileChecked(true);
               // Mirror the persisted onboarding state into the store
@@ -292,6 +337,15 @@ export default function RootLayout() {
                 // New user — stop here; AuthGate will route to /invite-code.
                 setDataLoading(false);
                 return null;
+              }
+              // A previously-subscribed account whose mock expiry has
+              // passed gets auto-downgraded to free. Fire-and-forget the
+              // Firestore write; the local `loadedProfile.subscriptionStatus`
+              // override below is what actually drives the UI this session.
+              if (isSubscriptionExpired(profile)) {
+                unsubscribeUser(user.uid).catch((e) =>
+                  console.warn('Auto-downgrade on expiry failed:', e)
+                );
               }
               return Promise.all([
                 fetchBikes(user.uid),
@@ -310,6 +364,39 @@ export default function RootLayout() {
               setWahooDefaultBikeId(syncState.wahooDefaultBikeId ?? null);
               setBikes(bikes);
               setComponents(components);
+
+              // ── Subscription status + free-tier over-limit detection ──────
+              const profile = loadedProfile;
+              if (profile) {
+                const effectiveStatus = isSubscriptionExpired(profile)
+                  ? 'free'
+                  : profile.subscriptionStatus;
+                const isSubscribedNow = effectiveStatus === 'subscribed';
+                const over = !isSubscribedNow && isOverFreeLimits(bikes.length, components.length);
+                let overLimitSince = profile.overLimitSince ?? null;
+                if (over && overLimitSince === null) {
+                  // Just dropped over the limit (e.g. unsubscribed with
+                  // more bikes/components than the free tier allows) —
+                  // start the 30-day grace-period clock.
+                  overLimitSince = Date.now();
+                  persistOverLimitSince(user.uid, overLimitSince).catch((e) =>
+                    console.warn('Failed to persist overLimitSince:', e)
+                  );
+                } else if (!over && overLimitSince !== null) {
+                  // Back under the limit (resubscribed or trimmed down) —
+                  // clear the clock.
+                  overLimitSince = null;
+                  persistOverLimitSince(user.uid, null).catch((e) =>
+                    console.warn('Failed to clear overLimitSince:', e)
+                  );
+                }
+                setSubscription({
+                  status: effectiveStatus,
+                  purchasedAt: profile.subscriptionPurchasedAt ?? null,
+                  expiresAt: isSubscribedNow ? profile.subscriptionExpiresAt ?? null : null,
+                  overLimitSince,
+                });
+              }
               // Scan for anything needing attention (chain lube due,
               // components past 80%, service intervals). Safe no-op if
               // permission hasn't been granted or the user turned

@@ -39,6 +39,7 @@ import { useThemeColors } from '../../theme/ThemeProvider';
 import type { ColorPalette } from '../../constants/colors';
 import { formatNumber } from '../../constants/units';
 import { BIKE_TYPE_LABELS, BRAKE_SYSTEM_LABELS, COMPONENT_TYPES } from '../../constants/componentTypes';
+import { canAddComponent, FREE_COMPONENT_LIMIT } from '../../constants/subscription';
 import ComponentCard from '../../components/ComponentCard';
 import AddComponentModal from '../../components/AddComponentModal';
 import EditBikeModal from '../../components/EditBikeModal';
@@ -85,7 +86,9 @@ export default function BikeDetailScreen() {
     removeComponentLocal,
     removeBikeLocal,
     updateBikeLocal,
+    subscriptionStatus,
   } = useAppStore();
+  const isSubscribed = subscriptionStatus === 'subscribed';
 
   const [showAdd, setShowAdd] = useState(false);
   const [showRetired, setShowRetired] = useState(false);
@@ -763,7 +766,20 @@ export default function BikeDetailScreen() {
                 </Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity onPress={() => setShowAdd(true)} style={styles.addBtn}>
+            <TouchableOpacity
+              onPress={() => {
+                if (!canAddComponent(components.length, isSubscribed)) {
+                  dialog.alert({
+                    title: 'Free plan limit reached',
+                    message: `The free plan is capped at ${FREE_COMPONENT_LIMIT} components total. Subscribe from Settings to add more.`,
+                    tone: 'warning',
+                  });
+                  return;
+                }
+                setShowAdd(true);
+              }}
+              style={styles.addBtn}
+            >
               <Ionicons name="add" size={18} color={C.accent} />
               <Text style={styles.addBtnText}>Add</Text>
             </TouchableOpacity>

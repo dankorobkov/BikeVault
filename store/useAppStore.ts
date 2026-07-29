@@ -8,6 +8,7 @@ import type {
   NotificationPrefs,
 } from '../types';
 import type { FeatureFlags } from '../services/featureFlagsService';
+import type { SubscriptionStatus } from '../services/userService';
 
 interface AppState {
   // Auth
@@ -27,6 +28,19 @@ interface AppState {
   // as "not seen" but the signup-time cutoff in the feature flag stops
   // it surfacing to legacy users.
   hasSeenOnboarding: boolean | null;
+
+  // ── Subscription ─────────────────────────────────────────────────────────
+  // Mirrors the Firestore profile fields (see services/userService.ts).
+  // Defaults to 'free' with no dates until the profile loads. Anonymous
+  // (demo) users are always 'free' with no grace period — their data is
+  // local-only and never persisted, so a lockout flow doesn't apply to
+  // them.
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionPurchasedAt: number | null;
+  subscriptionExpiresAt: number | null;
+  // ms timestamp the account first went over free-tier limits, or null
+  // when under the limits / subscribed. Drives the 30-day grace period.
+  overLimitSince: number | null;
 
   // Data
   bikes: Bike[];
@@ -70,6 +84,13 @@ interface AppState {
   setProfileChecked: (v: boolean) => void;
   setHasSeenOnboarding: (v: boolean | null) => void;
   setFeatureFlags: (flags: FeatureFlags | null) => void;
+  setSubscription: (info: {
+    status: SubscriptionStatus;
+    purchasedAt: number | null;
+    expiresAt: number | null;
+    overLimitSince: number | null;
+  }) => void;
+  setOverLimitSinceLocal: (ts: number | null) => void;
   signOut: () => void;
 
   setBikes: (bikes: Bike[]) => void;
@@ -113,6 +134,10 @@ export const useAppStore = create<AppState>((set) => ({
   profileChecked: false,
   hasSeenOnboarding: null,
   featureFlags: null,
+  subscriptionStatus: 'free',
+  subscriptionPurchasedAt: null,
+  subscriptionExpiresAt: null,
+  overLimitSince: null,
   bikes: [],
   components: [],
   stravaTokens: null,
@@ -141,6 +166,14 @@ export const useAppStore = create<AppState>((set) => ({
   // cleared on signOut so we don't have to refetch them when a different
   // user signs in on the same device.
   setFeatureFlags: (flags) => set({ featureFlags: flags }),
+  setSubscription: (info) =>
+    set({
+      subscriptionStatus: info.status,
+      subscriptionPurchasedAt: info.purchasedAt,
+      subscriptionExpiresAt: info.expiresAt,
+      overLimitSince: info.overLimitSince,
+    }),
+  setOverLimitSinceLocal: (ts) => set({ overLimitSince: ts }),
   signOut: () =>
     set({
       userId: null,
@@ -153,6 +186,10 @@ export const useAppStore = create<AppState>((set) => ({
       // Reset to null so the next signed-in user starts from an
       // unknown state — their own profile load decides true/false.
       hasSeenOnboarding: null,
+      subscriptionStatus: 'free',
+      subscriptionPurchasedAt: null,
+      subscriptionExpiresAt: null,
+      overLimitSince: null,
       bikes: [],
       components: [],
       stravaTokens: null,

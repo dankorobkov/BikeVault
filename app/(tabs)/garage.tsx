@@ -9,10 +9,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import RefreshableScrollView from '../../components/RefreshableScrollView';
+import { dialog } from '../../components/AppDialog';
 import { useTopInset } from '../../hooks/useTopInset';
 import { Ionicons } from '@expo/vector-icons';
 import BikeIcon from '../../components/BikeIcon';
 import { useAppStore } from '../../store/useAppStore';
+import { canAddComponent, FREE_COMPONENT_LIMIT } from '../../constants/subscription';
 import {
   retireComponent,
   deleteComponent,
@@ -63,7 +65,9 @@ export default function GarageScreen() {
     removeComponentLocal,
     addComponentLocal,
     updateBikeLocal,
+    subscriptionStatus,
   } = useAppStore();
+  const isSubscribed = subscriptionStatus === 'subscribed';
   const [filter, setFilter] = useState<Filter>('all');
   const [sortMode, setSortMode] = useState<SortMode>('wear');
   const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null); // null = all bikes
@@ -345,7 +349,20 @@ export default function GarageScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddStock(true)}>
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={() => {
+              if (!canAddComponent(components.length, isSubscribed)) {
+                dialog.alert({
+                  title: 'Free plan limit reached',
+                  message: `The free plan is capped at ${FREE_COMPONENT_LIMIT} components total. Subscribe from Settings to add more.`,
+                  tone: 'warning',
+                });
+                return;
+              }
+              setShowAddStock(true);
+            }}
+          >
             <BikeIcon name="add" variant="line" size={20} color={C.accent} />
           </TouchableOpacity>
         </View>

@@ -8,10 +8,14 @@ import {
   collection,
   serverTimestamp,
   writeBatch,
+  Timestamp,
 } from 'firebase/firestore';
 import { deleteUser, type User } from 'firebase/auth';
 import { db } from '../config/firebase';
 import { clearStravaTokens } from './stravaService';
+import { SUBSCRIPTION_DURATION_MS } from '../constants/subscription';
+
+export type SubscriptionStatus = 'free' | 'subscribed';
 
 export interface UserProfile {
   uid: string;
@@ -26,6 +30,24 @@ export interface UserProfile {
   // relies on the signup-time cutoff in the feature flag doc to avoid
   // surfacing the video to pre-existing users.
   hasSeenOnboarding?: boolean;
+  // ── Subscription ──────────────────────────────────────────────────────
+  // Free tier is capped (see constants/subscription.ts); 'subscribed' has
+  // no limits. Profiles written before this feature existed have no
+  // `subscriptionStatus` field at all — `getUserProfile` grandfathers
+  // those in as permanently subscribed (subscriptionExpiresAt: null)
+  // rather than defaulting them to 'free'.
+  subscriptionStatus: SubscriptionStatus;
+  // When the (mock) subscription was purchased. Undefined for accounts
+  // that have never subscribed.
+  subscriptionPurchasedAt?: number;
+  // ms timestamp the subscription lapses, or `null` for "never expires"
+  // (grandfathered legacy accounts). Undefined = never subscribed.
+  subscriptionExpiresAt?: number | null;
+  // ms timestamp the account first went over the free-tier limits while
+  // on the free plan. Drives the 30-day grace period before the
+  // trim-selection gate kicks in. `null`/undefined = not currently over
+  // limit (or the account is subscribed, where this doesn't apply).
+  overLimitSince?: number | null;
 }
 
 function userDoc(userId: string) {
@@ -39,6 +61,23 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
   const data = snap.data();
   // A profile is considered "created" once `signupCode` has been written.
   if (!data.signupCode) return null;
+
+  // Legacy profiles (written before the subscription feature shipped)
+  // have no `subscriptionStatus` field at all. Grandfather those in as
+  // permanently subscribed rather than dropping them onto the free tier
+  // — per product decision, everyone who was already using the app
+  // keeps unlimited bikes/components with no expiry.
+  const hasSubscriptionField = typeof data.subscriptionStatus === 'string';
+  const subscriptionStatus: SubscriptionStatus = hasSubscriptionField
+    ? (data.subscriptionStatus as SubscriptionStatus)
+    : 'subscribed';
+
+  const toMs = (v: unknown): number | undefined => {
+    if (v instanceof Timestamp) return v.toMillis();
+    if (typeof v === 'number') return v;
+    return undefined;
+  };
+
   return {
     uid: userId,
     email: (data.email as string | null) ?? null,
@@ -53,6 +92,15 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
       typeof data.hasSeenOnboarding === 'boolean'
         ? data.hasSeenOnboarding
         : undefined,
+    subscriptionStatus,
+    subscriptionPurchasedAt: toMs(data.subscriptionPurchasedAt),
+    subscriptionExpiresAt: hasSubscriptionField
+      ? data.subscriptionExpiresAt === null
+        ? null
+        : toMs(data.subscriptionExpiresAt) ?? null
+      : null, // grandfathered legacy profile: never expires
+    overLimitSince:
+      data.overLimitSince === null ? null : toMs(data.overLimitSince) ?? null,
   };
 }
 
@@ -96,8 +144,63 @@ export async function createUserProfile(
       signupCode: profile.signupCode,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      // Brand-new profiles start on the free tier — only profiles that
+      // predate this field get grandfathered (see `getUserProfile`).
+      subscriptionStatus: 'free',
+      overLimitSince: null,
     },
     { merge: true }
+  );
+}
+
+// ─── Subscription ────────────────────────────────────────────────────────────
+
+/**
+ * Mock "purchase". No payment processor is wired up yet — this just
+ * flips the Firestore flag and sets an expiry SUBSCRIPTION_DURATION_MS
+ * out, which is enough to build and test the free/paid gating now. Swap
+ * in real billing later without touching any caller of this function.
+ */
+export async function subscribeUser(userId: string): Promise<void> {
+  const now = Date.now();
+  await updateDoc(userDoc(userId), {
+    subscriptionStatus: 'subscribed',
+    subscriptionPurchasedAt: now,
+    subscriptionExpiresAt: now + SUBSCRIPTION_DURATION_MS,
+    // Subscribing immediately lifts the free-tier caps, so any pending
+    // grace period is no longer relevant.
+    overLimitSince: null,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Cancels immediately (no "stays active until period end" — matches the
+ * mock nature of the subscription). `subscriptionExpiresAt` /
+ * `subscriptionPurchasedAt` are left in place as history; only the
+ * status flips, so Settings can still show "previously subscribed".
+ */
+export async function unsubscribeUser(userId: string): Promise<void> {
+  await updateDoc(userDoc(userId), {
+    subscriptionStatus: 'free',
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/** Persists the grace-period start/clear. Pass `null` to clear it. */
+export async function setOverLimitSince(userId: string, ts: number | null): Promise<void> {
+  await updateDoc(userDoc(userId), {
+    overLimitSince: ts,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/** Pure check — true when a 'subscribed' profile's expiry has passed. */
+export function isSubscriptionExpired(profile: UserProfile): boolean {
+  return (
+    profile.subscriptionStatus === 'subscribed' &&
+    typeof profile.subscriptionExpiresAt === 'number' &&
+    profile.subscriptionExpiresAt < Date.now()
   );
 }
 

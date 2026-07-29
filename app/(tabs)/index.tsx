@@ -7,10 +7,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import RefreshableScrollView from '../../components/RefreshableScrollView';
+import { dialog } from '../../components/AppDialog';
 import { useTopInset } from '../../hooks/useTopInset';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../../store/useAppStore';
 import { addBike } from '../../services/bikesService';
+import { canAddBike, FREE_BIKE_LIMIT } from '../../constants/subscription';
 import { fetchAthlete, getValidToken } from '../../services/stravaService';
 import { useSync } from '../../hooks/useSync';
 import { Analytics } from '../../services/analytics';
@@ -29,7 +31,17 @@ export default function BikesScreen() {
   const router = useRouter();
   const C = useThemeColors();
   const styles = useMemo(() => makeStyles(C), [C]);
-  const { userId, bikes, components, isDataLoading, stravaTokens, wahooTokens, addBikeLocal } = useAppStore();
+  const {
+    userId,
+    bikes,
+    components,
+    isDataLoading,
+    stravaTokens,
+    wahooTokens,
+    addBikeLocal,
+    subscriptionStatus,
+  } = useAppStore();
+  const isSubscribed = subscriptionStatus === 'subscribed';
   const { syncStrava } = useSync();
 
   const [showAdd, setShowAdd] = useState(false);
@@ -53,6 +65,15 @@ export default function BikesScreen() {
   }, [bikes]);
 
   const openAddModal = async () => {
+    if (!canAddBike(bikes.length, isSubscribed)) {
+      dialog.alert({
+        title: 'Free plan limit reached',
+        message:
+          `The free plan is capped at ${FREE_BIKE_LIMIT} bikes. Subscribe from Settings to add more.`,
+        tone: 'warning',
+      });
+      return;
+    }
     if (stravaTokens && userId) {
       try {
         const tokens = await getValidToken(userId, stravaTokens);
