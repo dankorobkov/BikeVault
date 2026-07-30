@@ -13,7 +13,7 @@ import {
 import { deleteUser, type User } from 'firebase/auth';
 import { db } from '../config/firebase';
 import { clearStravaTokens } from './stravaService';
-import { SUBSCRIPTION_DURATION_MS } from '../constants/subscription';
+import { SUBSCRIPTION_DURATION_MS, SUBSCRIPTION_FEATURE_LAUNCH_MS } from '../constants/subscription';
 
 export type SubscriptionStatus = 'free' | 'subscribed';
 
@@ -62,21 +62,33 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
   // A profile is considered "created" once `signupCode` has been written.
   if (!data.signupCode) return null;
 
-  // Legacy profiles (written before the subscription feature shipped)
-  // have no `subscriptionStatus` field at all. Grandfather those in as
-  // permanently subscribed rather than dropping them onto the free tier
-  // — per product decision, everyone who was already using the app
-  // keeps unlimited bikes/components with no expiry.
-  const hasSubscriptionField = typeof data.subscriptionStatus === 'string';
-  const subscriptionStatus: SubscriptionStatus = hasSubscriptionField
-    ? (data.subscriptionStatus as SubscriptionStatus)
-    : 'subscribed';
-
   const toMs = (v: unknown): number | undefined => {
     if (v instanceof Timestamp) return v.toMillis();
     if (typeof v === 'number') return v;
     return undefined;
   };
+
+  // `createdAt` is written as `serverTimestamp()`, which reads back as a
+  // Firestore `Timestamp` instance — NOT a `number`. Must go through
+  // `toMs` (previously this fell through to `Date.now()` on every read,
+  // silently making "account age" meaningless everywhere it was used).
+  const createdAtMs = toMs(data.createdAt) ?? Date.now();
+
+  // Legacy profiles (written before the subscription feature shipped)
+  // have no `subscriptionStatus` field at all. Grandfather those in as
+  // permanently subscribed rather than dropping them onto the free tier
+  // — per product decision, everyone who was already using the app
+  // keeps unlimited bikes/components with no expiry. Gated on BOTH the
+  // missing field AND predating the feature's launch cutoff, so a
+  // brand-new profile can never be grandfathered even in edge cases the
+  // field-presence check alone might miss.
+  const hasSubscriptionField = typeof data.subscriptionStatus === 'string';
+  const isLegacyAccount = !hasSubscriptionField && createdAtMs < SUBSCRIPTION_FEATURE_LAUNCH_MS;
+  const subscriptionStatus: SubscriptionStatus = hasSubscriptionField
+    ? (data.subscriptionStatus as SubscriptionStatus)
+    : isLegacyAccount
+    ? 'subscribed'
+    : 'free';
 
   return {
     uid: userId,
@@ -84,10 +96,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     displayName: (data.displayName as string | null) ?? null,
     photoUrl: (data.photoUrl as string | null) ?? null,
     signupCode: data.signupCode as string,
-    createdAt:
-      typeof data.createdAt === 'number'
-        ? data.createdAt
-        : Date.now(),
+    createdAt: createdAtMs,
     hasSeenOnboarding:
       typeof data.hasSeenOnboarding === 'boolean'
         ? data.hasSeenOnboarding

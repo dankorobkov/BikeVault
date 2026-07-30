@@ -87,6 +87,17 @@ const wahooDiscovery = {
 const STRAVA_CONFIGURED = PROVIDERS.strava.isConfigured;
 const WAHOO_CONFIGURED = PROVIDERS.wahoo.isConfigured;
 
+// No payment processor wired up yet — the Subscribe button is a visual
+// placeholder for now (mock `subscribeUser` stays wired underneath so
+// flipping this back on is a one-line change once billing exists).
+const SUBSCRIBE_ENABLED = false;
+
+const SUBSCRIPTION_PERKS = [
+  'Unlimited bikes — track your whole garage, no cap',
+  'Unlimited components — every part, on every bike',
+  'Supports ongoing development of BikeVault',
+];
+
 const STRAVA_ACTIVITIES = Object.entries(STRAVA_ACTIVITY_LABELS) as [
   StravaActivityType,
   string,
@@ -808,25 +819,31 @@ export default function SettingsScreen() {
                   {subscribing && <ActivityIndicator color={C.danger} size="small" />}
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity
-                  style={styles.subscribeRow}
-                  onPress={handleSubscribe}
-                  disabled={subscribing}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={['#6C5CE7', '#A855F7']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.subscribeBtn}
+                <View style={styles.subscribeRow}>
+                  <TouchableOpacity
+                    style={[styles.subscribeBtn, !SUBSCRIBE_ENABLED && styles.subscribeBtnDisabled]}
+                    onPress={handleSubscribe}
+                    disabled={!SUBSCRIBE_ENABLED || subscribing}
+                    activeOpacity={0.85}
                   >
                     {subscribing ? (
-                      <ActivityIndicator color="#fff" size="small" />
+                      <ActivityIndicator color={C.white} size="small" />
                     ) : (
-                      <Text style={styles.subscribeBtnText}>Subscribe — unlimited bikes & parts</Text>
+                      <Text style={styles.subscribeBtnText}>
+                        {SUBSCRIBE_ENABLED ? 'Subscribe' : 'Subscribe — coming soon'}
+                      </Text>
                     )}
-                  </LinearGradient>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+
+                  <View style={styles.perksList}>
+                    {SUBSCRIPTION_PERKS.map((perk) => (
+                      <View key={perk} style={styles.perkRow}>
+                        <Ionicons name="checkmark-circle" size={16} color={C.accent} />
+                        <Text style={styles.perkText}>{perk}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
               )}
             </View>
           </View>
@@ -1793,19 +1810,19 @@ const makeStyles = (C: ColorPalette) => StyleSheet.create({
     backgroundColor: (C.warning ?? '#E8A33D') + '15',
   },
   graceBannerText: { flex: 1, fontSize: 12.5, color: C.text, lineHeight: 18 },
-  subscribeRow: { padding: 16 },
+  subscribeRow: { padding: 16, gap: 14 },
   subscribeBtn: {
+    backgroundColor: C.accent,
     paddingVertical: 13,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#6C5CE7',
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 5,
   },
-  subscribeBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  subscribeBtnDisabled: { opacity: 0.5 },
+  subscribeBtnText: { fontSize: 14, fontWeight: '700', color: C.white },
+  perksList: { gap: 8 },
+  perkRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  perkText: { flex: 1, fontSize: 13, color: C.textSecondary, lineHeight: 18 },
 
   // Appearance section
   themeRow: {

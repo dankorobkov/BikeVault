@@ -33,6 +33,20 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export const SUBSCRIPTION_DURATION_MS = SUBSCRIPTION_DURATION_DAYS * DAY_MS;
 export const GRACE_PERIOD_MS = GRACE_PERIOD_DAYS * DAY_MS;
 
+/**
+ * Cutoff for the "grandfather existing users" rule. A profile is only
+ * eligible to be treated as a pre-existing (permanently subscribed)
+ * account if it's BOTH missing the `subscriptionStatus` field AND was
+ * created before this instant. Belt-and-suspenders on top of the
+ * field-presence check: `createUserProfile` always writes
+ * `subscriptionStatus: 'free'` on brand-new profiles, so field-presence
+ * alone should already be enough — this second, independent signal just
+ * makes it structurally impossible for any profile created from launch
+ * day onward to be grandfathered, even if something upstream ever
+ * produces a profile doc without the field.
+ */
+export const SUBSCRIPTION_FEATURE_LAUNCH_MS = new Date('2026-07-29T00:00:00Z').getTime();
+
 export function canAddBike(currentBikeCount: number, isSubscribed: boolean): boolean {
   return isSubscribed || currentBikeCount < FREE_BIKE_LIMIT;
 }
