@@ -16,7 +16,6 @@ import { useTopInset } from '../../hooks/useTopInset';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import BikeIcon from '../../components/BikeIcon';
 import OnboardingVideoModal from '../../components/OnboardingVideoModal';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -1472,8 +1471,9 @@ export default function SettingsScreen() {
         </View>
 
         {/* Support — optional donation link. Opens the external donatr.ee
-            page in the browser. Mirrors the gradient pill button from the
-            web marketing surface (purple #6C5CE7 → #A855F7 with a glow). */}
+            page in the browser. Uses the same flat accent-button style as
+            the rest of the app (Connect, Subscribe, etc.) rather than a
+            standalone brand gradient. */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>SUPPORT</Text>
           <View style={styles.card}>
@@ -1483,19 +1483,13 @@ export default function SettingsScreen() {
                 chip in to support development.
               </Text>
               <TouchableOpacity
+                style={styles.donateBtn}
                 activeOpacity={0.85}
                 onPress={() =>
                   openExternal('https://donatr.ee/danielkorobkov', 'the donation page')
                 }
               >
-                <LinearGradient
-                  colors={['#6C5CE7', '#A855F7']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.donateBtn}
-                >
-                  <Text style={styles.donateBtnText}>Donate to BikeVault</Text>
-                </LinearGradient>
+                <Text style={styles.donateBtnText}>Donate to BikeVault</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1778,19 +1772,14 @@ const makeStyles = (C: ColorPalette) => StyleSheet.create({
     lineHeight: 20,
   },
   donateBtn: {
+    backgroundColor: C.accent,
     paddingHorizontal: 28,
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    // Glow, mirroring the web button's box-shadow.
-    shadowColor: '#6C5CE7',
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 6,
   },
-  donateBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  donateBtnText: { fontSize: 14, fontWeight: '700', color: C.white },
 
   // Subscription section
   subRow: { flexDirection: 'row', alignItems: 'center', padding: 16 },
