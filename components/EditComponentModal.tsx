@@ -124,20 +124,26 @@ export default function EditComponentModal({
       setWeight(typeof component.weight === 'number' ? String(component.weight) : '');
       setMaxLifespan(formatNumber(component.maxLifespan));
       setAttentionFreq(component.attentionFrequency ? formatNumber(component.attentionFrequency) : '');
-      // Seed priorDistance from the explicit priorWear field when set
-      // (v8+ docs). For legacy components without it, fall back to the
-      // old implicit encoding (bikeDistance − installDistance) so users
-      // editing pre-v8 parts before the migration has run still see a
-      // sensible number. In-stock / retired parts with no current bike
-      // just show empty.
-      if (typeof component.priorWear === 'number' && component.priorWear > 0) {
-        setPriorDistance(formatNumber(component.priorWear));
-      } else {
-        const currentBike = bikes.find((b) => b.id === component.bikeId);
-        const bikeKm = currentBike?.totalDistance ?? 0;
-        const legacyPrior = Math.max(0, bikeKm - component.installDistance);
-        setPriorDistance(legacyPrior > 0 ? formatNumber(legacyPrior) : '');
-      }
+      // Seed priorDistance straight from the stored priorWear field.
+      //
+      // This used to fall back to computing (bikeDistance − installDistance)
+      // whenever priorWear was unset, as a stand-in for pre-v8 docs that
+      // predated this column. That fallback couldn't tell "legacy doc,
+      // recovery needed" apart from "modern doc, genuinely zero prior
+      // wear" — both look identical once priorWear is undefined — so it
+      // mis-pre-filled this field with the component's since-install wear
+      // on ANY active component you opened here, not just legacy ones.
+      // Saving (even to edit something unrelated) then silently baked
+      // that computed number into priorWear, double-counting it in the
+      // wear calculation from then on. Legacy recovery is handled once,
+      // correctly, by the Strava-history migration in
+      // hooks/useSync.ts (runMigration) — this field should just mirror
+      // whatever priorWear currently holds, same as AddComponentModal.
+      setPriorDistance(
+        typeof component.priorWear === 'number' && component.priorWear > 0
+          ? formatNumber(component.priorWear)
+          : ''
+      );
       setIsElectric(component.isElectric ?? false);
       setChargeInterval(component.chargeIntervalDays ? String(component.chargeIntervalDays) : '');
       setSelectedBikeId(component.bikeId);
@@ -148,7 +154,7 @@ export default function EditComponentModal({
       );
       setLastLubedAt(component.lastLubedAt ?? component.installDate ?? Date.now());
     }
-  }, [component, visible, bikes]);
+  }, [component, visible]);
 
   if (!component) return null;
 
