@@ -58,7 +58,15 @@ const BACKDATE_THRESHOLD_MS = 60_000;
 
 export type BackdateCorrection =
   | { ok: false; reason?: string }
-  | { ok: true; installDistance: number; bikeTotalDistance: number };
+  | {
+      ok: true;
+      installDistance: number;
+      bikeTotalDistance: number;
+      // Debug fields, temporary — see fetchBikeOdometerSnapshot.
+      fetchedCount: number;
+      attributedCount: number;
+      latestAttributedDate: number | null;
+    };
 
 export interface BackdateCorrectionInput {
   userId: string;
@@ -98,7 +106,7 @@ export async function correctBackdatedInstall(
     return { ok: false, reason };
   }
 
-  let snap: { totalDistance: number; installDistance: number };
+  let snap: Awaited<ReturnType<typeof fetchBikeOdometerSnapshot>>;
   try {
     snap = await fetchBikeOdometerSnapshot(accessToken, bike, allBikes, installDate);
   } catch (e) {
@@ -115,6 +123,9 @@ export async function correctBackdatedInstall(
     // baked into this number.
     installDistance: snap.installDistance,
     bikeTotalDistance: snap.totalDistance,
+    fetchedCount: snap.fetchedCount,
+    attributedCount: snap.attributedCount,
+    latestAttributedDate: snap.latestAttributedDate,
   };
 }
 

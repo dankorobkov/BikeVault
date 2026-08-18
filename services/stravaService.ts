@@ -559,10 +559,22 @@ export async function fetchBikeOdometerSnapshot(
   bike: Bike,
   allBikes: Bike[],
   installDate: number
-): Promise<{ totalDistance: number; installDistance: number }> {
+): Promise<{
+  totalDistance: number;
+  installDistance: number;
+  // Debug fields — not used by the normal install-anchor math, only
+  // surfaced (temporarily) to a diagnostic dialog so a mis-attribution
+  // problem can be told apart from "this bike genuinely wasn't ridden
+  // since installDate" without needing device console access.
+  fetchedCount: number;
+  attributedCount: number;
+  latestAttributedDate: number | null;
+}> {
   const activities = await fetchAllCyclingActivities(accessToken);
   let total = 0;
   let before = 0;
+  let attributedCount = 0;
+  let latestAttributedDate: number | null = null;
   // Attribute against the full bike list so gear-tagged rides on
   // other bikes are claimed by their real owner instead of falling
   // through to a defaultActivity match on this bike.
@@ -571,13 +583,21 @@ export async function fetchBikeOdometerSnapshot(
     if (!owner || owner.id !== bike.id) continue;
     const km = a.distance / 1000;
     total += km;
-    if (new Date(a.start_date).getTime() < installDate) {
+    attributedCount += 1;
+    const startMs = new Date(a.start_date).getTime();
+    if (latestAttributedDate === null || startMs > latestAttributedDate) {
+      latestAttributedDate = startMs;
+    }
+    if (startMs < installDate) {
       before += km;
     }
   }
   return {
     totalDistance: Math.round(total),
     installDistance: Math.round(before),
+    fetchedCount: activities.length,
+    attributedCount,
+    latestAttributedDate,
   };
 }
 
