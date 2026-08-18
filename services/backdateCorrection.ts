@@ -36,6 +36,15 @@ import type { Bike, StravaTokens } from '../types';
  * basically "now", network error, …) so callers fall back to the
  * modal's pre-computed value rather than persisting half-derived
  * numbers. Failing closed is the safer default.
+ *
+ * When the failure is a genuine error (as opposed to the two expected
+ * no-op cases — Strava not connected, or the date is basically "today"
+ * so no correction is needed) the result also carries a `reason`
+ * string. Callers should surface that to the user: previously every
+ * failure here was silent, so a back-dated install would quietly fall
+ * back to "today's total" as the anchor with zero indication anything
+ * had gone wrong — which read as "the app just doesn't support
+ * back-dating," not as "this particular sync failed."
  */
 
 /**
@@ -48,7 +57,7 @@ import type { Bike, StravaTokens } from '../types';
 const BACKDATE_THRESHOLD_MS = 60_000;
 
 export type BackdateCorrection =
-  | { ok: false }
+  | { ok: false; reason?: string }
   | { ok: true; installDistance: number; bikeTotalDistance: number };
 
 export interface BackdateCorrectionInput {
@@ -71,6 +80,8 @@ export async function correctBackdatedInstall(
 ): Promise<BackdateCorrection> {
   const { userId, bike, allBikes, stravaTokens, installDate } = input;
 
+  // Expected no-op cases — nothing went wrong, there's just nothing to
+  // correct. No `reason`, so callers know not to alarm the user.
   if (!bike || !stravaTokens) return { ok: false };
   if (Date.now() - installDate < BACKDATE_THRESHOLD_MS) return { ok: false };
 
@@ -82,16 +93,20 @@ export async function correctBackdatedInstall(
     if (!(e instanceof StravaAuthError)) {
       console.warn('Back-date correction: token refresh failed:', e);
     }
-    return { ok: false };
+    const reason =
+      e instanceof Error ? e.message : 'Could not refresh Strava access';
+    return { ok: false, reason };
   }
 
-  const snap = await fetchBikeOdometerSnapshot(
-    accessToken,
-    bike,
-    allBikes,
-    installDate
-  );
-  if (!snap) return { ok: false };
+  let snap: { totalDistance: number; installDistance: number };
+  try {
+    snap = await fetchBikeOdometerSnapshot(accessToken, bike, allBikes, installDate);
+  } catch (e) {
+    console.warn('Back-date correction: fetchBikeOdometerSnapshot failed:', e);
+    const reason =
+      e instanceof Error ? e.message : 'Could not fetch Strava ride history';
+    return { ok: false, reason };
+  }
 
   return {
     ok: true,

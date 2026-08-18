@@ -549,41 +549,36 @@ export async function fetchAllCyclingActivities(
  * their real owners, so the snapshot agrees with the migration to the
  * kilometre.
  *
- * Returns `null` on any failure — callers should fall back to
- * whatever values they had and try again on the next sync. Failing
- * closed is safer than returning partial numbers that could be
- * persisted as truth.
+ * Throws on any failure — the caller (`correctBackdatedInstall`) is the
+ * sole consumer and needs the real error message to surface a reason to
+ * the user rather than silently falling back with no explanation. Catch
+ * there, not here.
  */
 export async function fetchBikeOdometerSnapshot(
   accessToken: string,
   bike: Bike,
   allBikes: Bike[],
   installDate: number
-): Promise<{ totalDistance: number; installDistance: number } | null> {
-  try {
-    const activities = await fetchAllCyclingActivities(accessToken);
-    let total = 0;
-    let before = 0;
-    // Attribute against the full bike list so gear-tagged rides on
-    // other bikes are claimed by their real owner instead of falling
-    // through to a defaultActivity match on this bike.
-    for (const a of activities) {
-      const owner = resolveBikeForActivity(a, allBikes);
-      if (!owner || owner.id !== bike.id) continue;
-      const km = a.distance / 1000;
-      total += km;
-      if (new Date(a.start_date).getTime() < installDate) {
-        before += km;
-      }
+): Promise<{ totalDistance: number; installDistance: number }> {
+  const activities = await fetchAllCyclingActivities(accessToken);
+  let total = 0;
+  let before = 0;
+  // Attribute against the full bike list so gear-tagged rides on
+  // other bikes are claimed by their real owner instead of falling
+  // through to a defaultActivity match on this bike.
+  for (const a of activities) {
+    const owner = resolveBikeForActivity(a, allBikes);
+    if (!owner || owner.id !== bike.id) continue;
+    const km = a.distance / 1000;
+    total += km;
+    if (new Date(a.start_date).getTime() < installDate) {
+      before += km;
     }
-    return {
-      totalDistance: Math.round(total),
-      installDistance: Math.round(before),
-    };
-  } catch (e) {
-    console.warn('fetchBikeOdometerSnapshot failed:', e);
-    return null;
   }
+  return {
+    totalDistance: Math.round(total),
+    installDistance: Math.round(before),
+  };
 }
 
 /**

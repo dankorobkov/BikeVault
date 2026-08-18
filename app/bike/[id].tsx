@@ -218,6 +218,27 @@ export default function BikeDetailScreen() {
     });
   };
 
+  /**
+   * Surface genuine back-date correction failures instead of letting
+   * them fail silently. `correction.reason` is only set for real errors
+   * (Strava connected but the token refresh or history fetch failed) —
+   * the two expected no-op cases (Strava not connected, date basically
+   * "today") come back reason-less and are intentionally not warned
+   * about here. Non-blocking: the add/edit already went through using
+   * today's total as a stand-in anchor, this just tells the user that
+   * stand-in may be wrong so they know to retry later.
+   */
+  const warnIfCorrectionFailed = (correction: { ok: boolean; reason?: string }) => {
+    if (correction.ok || !correction.reason) return;
+    dialog.alert({
+      title: "Couldn't verify historical mileage",
+      message:
+        "This part's install date is in the past, but BikeVault couldn't pull your Strava ride history to work out the bike's true mileage on that date, so it used today's total instead — the wear shown may read low until this succeeds. " +
+        correction.reason,
+      tone: 'warning',
+    });
+  };
+
   const doAddComponent = async (data: {
     name: string;
     category: ComponentCategory;
@@ -242,6 +263,7 @@ export default function BikeDetailScreen() {
     // matches reality. Falls back to the modal's value when Strava
     // can't be queried. priorWear is forwarded separately, untouched.
     const correction = await runBackdateCorrection(data.installDate);
+    warnIfCorrectionFailed(correction);
     const correctedInstallDistance = correction.ok
       ? correction.installDistance
       : data.installDistance;
@@ -356,6 +378,7 @@ export default function BikeDetailScreen() {
       (updates.bikeId === undefined || updates.bikeId === id);
     if (stayingOnThisBike) {
       const correction = await runBackdateCorrection(updates.installDate!);
+      warnIfCorrectionFailed(correction);
       if (correction.ok && bike) {
         await applyBikeTotalSnapshot({
           userId,
