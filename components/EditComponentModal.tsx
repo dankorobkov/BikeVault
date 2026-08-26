@@ -18,7 +18,7 @@ import { useThemeColors } from '../theme/ThemeProvider';
 import type { ColorPalette } from '../constants/colors';
 import { COMPONENT_TYPES, BRAKE_SYSTEM_LABELS } from '../constants/componentTypes';
 import { formatNumber } from '../constants/units';
-import { ELECTRIC_CATEGORIES } from '../types';
+import { ELECTRIC_CATEGORIES, calcRiddenKm } from '../types';
 import DateField from './DateField';
 import PrimaryActionButton, {
   PRIMARY_ACTION_BAR_HEIGHT,
@@ -168,6 +168,21 @@ export default function EditComponentModal({
   const isActive = component.status === 'active';
   const isInStock = component.status === 'in-stock';
   const isRetired = component.status === 'retired';
+
+  // Read-only "how much wear is actually on this part right now" —
+  // the same math the wear bar on the component card uses
+  // (bikeDistance − installDistance + priorWear), computed off the
+  // component's real stored values rather than whatever's currently
+  // sitting in the (possibly unsaved) form fields. This exists because
+  // "Already ridden" below is easy to mistake for this number — it's
+  // actually just the manually-entered pre-tracking wear, a completely
+  // different, much smaller figure for most parts.
+  const currentBikeForWear = bikes.find((b) => b.id === component.bikeId);
+  const currentWearKm = calcRiddenKm(
+    currentBikeForWear?.totalDistance ?? 0,
+    component.installDistance,
+    component.priorWear ?? 0
+  );
 
   const bikeChanged = selectedBikeId !== component.bikeId;
 
@@ -411,6 +426,23 @@ export default function EditComponentModal({
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>WEAR TRACKING</Text>
               <View style={styles.inputGroup}>
+                {isActive && (
+                  <>
+                    <View style={styles.labeledRow}>
+                      <View style={styles.labelCol}>
+                        <Text style={styles.fieldLabel}>Current wear</Text>
+                        <Text style={styles.fieldSub}>
+                          Ridden so far, from your ride history
+                        </Text>
+                      </View>
+                      <Text style={styles.readOnlyValue}>
+                        {formatNumber(currentWearKm)}
+                      </Text>
+                      <Text style={styles.unitTag}>km</Text>
+                    </View>
+                    <View style={styles.divider} />
+                  </>
+                )}
                 <View style={styles.labeledRow}>
                   <View style={styles.labelCol}>
                     <Text style={styles.fieldLabel}>Date added</Text>
@@ -837,6 +869,16 @@ const makeStyles = (C: ColorPalette) => StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: C.accent,
+    minWidth: 60,
+    textAlign: 'right',
+  },
+  // Same sizing as inlineInput but plain text color, not accent — a
+  // visual cue that this value is computed/read-only, not something
+  // you can tap to edit like the fields around it.
+  readOnlyValue: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: C.text,
     minWidth: 60,
     textAlign: 'right',
   },
