@@ -58,15 +58,7 @@ const BACKDATE_THRESHOLD_MS = 60_000;
 
 export type BackdateCorrection =
   | { ok: false; reason?: string }
-  | {
-      ok: true;
-      installDistance: number;
-      bikeTotalDistance: number;
-      // Debug fields, temporary — see fetchBikeOdometerSnapshot.
-      fetchedCount: number;
-      attributedCount: number;
-      latestAttributedDate: number | null;
-    };
+  | { ok: true; installDistance: number; bikeTotalDistance: number };
 
 export interface BackdateCorrectionInput {
   userId: string;
@@ -89,25 +81,13 @@ export async function correctBackdatedInstall(
   const { userId, bike, allBikes, stravaTokens, installDate } = input;
 
   // Expected no-op cases — nothing went wrong, there's just nothing to
-  // correct. Normally no `reason` here, so callers don't alarm a user
-  // who simply hasn't connected Strava. TEMPORARILY attaching a
-  // '[debug]' reason to every branch below while we track down why the
-  // correction dialog isn't appearing at all for a Strava-connected
-  // account — remove these three debug reasons once that's resolved
-  // and restore the plain `return { ok: false }`.
-  if (!bike) return { ok: false, reason: '[debug] no bike passed in' };
-  if (!stravaTokens) {
-    return {
-      ok: false,
-      reason: '[debug] stravaTokens is null/undefined in the app store right now',
-    };
-  }
-  if (Date.now() - installDate < BACKDATE_THRESHOLD_MS) {
-    return {
-      ok: false,
-      reason: '[debug] installDate is within the last 60s — correction intentionally skipped',
-    };
-  }
+  // correct. No `reason`, so callers don't alarm a user who simply
+  // hasn't connected Strava (or a stale/expired token silently left
+  // stravaTokens null in the store — that's a real problem, but it's
+  // Settings' job to surface "you're disconnected," not every save on
+  // every screen that happens to touch a back-dated install).
+  if (!bike || !stravaTokens) return { ok: false };
+  if (Date.now() - installDate < BACKDATE_THRESHOLD_MS) return { ok: false };
 
   let accessToken: string;
   try {
@@ -122,7 +102,7 @@ export async function correctBackdatedInstall(
     return { ok: false, reason };
   }
 
-  let snap: Awaited<ReturnType<typeof fetchBikeOdometerSnapshot>>;
+  let snap: { totalDistance: number; installDistance: number };
   try {
     snap = await fetchBikeOdometerSnapshot(accessToken, bike, allBikes, installDate);
   } catch (e) {
@@ -139,9 +119,6 @@ export async function correctBackdatedInstall(
     // baked into this number.
     installDistance: snap.installDistance,
     bikeTotalDistance: snap.totalDistance,
-    fetchedCount: snap.fetchedCount,
-    attributedCount: snap.attributedCount,
-    latestAttributedDate: snap.latestAttributedDate,
   };
 }
 

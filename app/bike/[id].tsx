@@ -228,37 +228,15 @@ export default function BikeDetailScreen() {
    * about here. Non-blocking: the add/edit already went through using
    * today's total as a stand-in anchor, this just tells the user that
    * stand-in may be wrong so they know to retry later.
-   *
-   * TEMPORARY: also reports on the SUCCESS path while we're tracking
-   * down an attribution bug (installDistance coming back much higher
-   * than expected, as if old rides from before this bike existed are
-   * being folded in). Remove this whole success branch once that's
-   * confirmed fixed — it's diagnostic noise for normal use.
    */
   const warnIfCorrectionFailed = (correction: BackdateCorrection) => {
-    if (!correction.ok) {
-      if (!correction.reason) return;
-      dialog.alert({
-        title: "Couldn't verify historical mileage",
-        message:
-          "This part's install date is in the past, but BikeVault couldn't pull your Strava ride history to work out the bike's true mileage on that date, so it used today's total instead — the wear shown may read low until this succeeds. " +
-          correction.reason,
-        tone: 'warning',
-      });
-      return;
-    }
-    const latest = correction.latestAttributedDate
-      ? new Date(correction.latestAttributedDate).toISOString().slice(0, 10)
-      : 'none';
+    if (correction.ok || !correction.reason) return;
     dialog.alert({
-      title: '[DEBUG] Back-date correction result',
+      title: "Couldn't verify historical mileage",
       message:
-        `installDistance (odometer at install date): ${correction.installDistance} km\n` +
-        `bikeTotalDistance (full history): ${correction.bikeTotalDistance} km\n` +
-        `Strava activities fetched: ${correction.fetchedCount}\n` +
-        `Activities attributed to this bike: ${correction.attributedCount}\n` +
-        `Most recent attributed ride: ${latest}`,
-      tone: 'info',
+        "This part's install date is in the past, but BikeVault couldn't pull your Strava ride history to work out the bike's true mileage on that date, so it used today's total instead — the wear shown may read low until this succeeds. " +
+        correction.reason,
+      tone: 'warning',
     });
   };
 
