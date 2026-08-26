@@ -89,9 +89,25 @@ export async function correctBackdatedInstall(
   const { userId, bike, allBikes, stravaTokens, installDate } = input;
 
   // Expected no-op cases — nothing went wrong, there's just nothing to
-  // correct. No `reason`, so callers know not to alarm the user.
-  if (!bike || !stravaTokens) return { ok: false };
-  if (Date.now() - installDate < BACKDATE_THRESHOLD_MS) return { ok: false };
+  // correct. Normally no `reason` here, so callers don't alarm a user
+  // who simply hasn't connected Strava. TEMPORARILY attaching a
+  // '[debug]' reason to every branch below while we track down why the
+  // correction dialog isn't appearing at all for a Strava-connected
+  // account — remove these three debug reasons once that's resolved
+  // and restore the plain `return { ok: false }`.
+  if (!bike) return { ok: false, reason: '[debug] no bike passed in' };
+  if (!stravaTokens) {
+    return {
+      ok: false,
+      reason: '[debug] stravaTokens is null/undefined in the app store right now',
+    };
+  }
+  if (Date.now() - installDate < BACKDATE_THRESHOLD_MS) {
+    return {
+      ok: false,
+      reason: '[debug] installDate is within the last 60s — correction intentionally skipped',
+    };
+  }
 
   let accessToken: string;
   try {
